@@ -1,0 +1,311 @@
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+body {
+    font-family: 'VT323', monospace;
+    background-color: #ffffff;
+    /* Dithered background pattern (optional but cool) */
+    background-image: radial-gradient(#000 1px, transparent 1px);
+    background-size: 4px 4px;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    color: #000;
+}
+
+/* --- OVERLAY (Mobile Auto-play Fix) --- */
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.system-alert {
+    width: 300px;
+    border: 2px solid #000;
+    background: #fff;
+    box-shadow: 10px 10px 0px #000;
+}
+
+.alert-title {
+    background: #000;
+    color: #fff;
+    padding: 5px 10px;
+    font-size: 20px;
+    text-align: center;
+}
+
+.alert-content {
+    padding: 20px;
+    text-align: center;
+    font-size: 22px;
+}
+
+#startBtn {
+    margin-top: 15px;
+    background: #fff;
+    border: 2px solid #000;
+    padding: 10px 20px;
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 4px 4px 0 #000;
+}
+
+#startBtn:active {
+    background: #000;
+    color: #fff;
+    box-shadow: none;
+    transform: translate(4px, 4px);
+}
+
+/* --- MAC WINDOW UI --- */
+.mac-window {
+    width: 95%;
+    max-width: 1000px;
+    height: 90vh;
+    background: #fff;
+    border: 2px solid #000;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 10px 10px 0px #000;
+}
+
+.title-bar {
+    height: 35px;
+    border-bottom: 2px solid #000;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    /* Striped title bar background */
+    background: repeating-linear-gradient(0deg,
+            #000,
+            #000 1px,
+            #fff 1px,
+            #fff 3px);
+}
+
+.close-box {
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border: 2px solid #000;
+    margin-right: 15px;
+    box-shadow: 2px 2px 0 #000;
+}
+
+.window-title {
+    background: #fff;
+    padding: 0 15px;
+    font-size: 24px;
+    letter-spacing: 2px;
+    margin: 0 auto;
+}
+
+.lines {
+    flex-grow: 1;
+}
+
+.content-area {
+    flex: 1;
+    position: relative;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* --- MAIN CONTENT --- */
+.container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#status {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 20px;
+    border: 1px dashed #000;
+    padding: 10px;
+}
+
+/* --- VIDEO GRID --- */
+.videos-container {
+    display: grid;
+    gap: 20px;
+    height: 100%;
+    align-content: center;
+    justify-content: center;
+    width: 100%;
+    /* ALWAYS 2x2 Grid */
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    padding: 10px;
+    /* spacing */
+}
+
+/* Remove dynamic sizing */
+
+.video-wrapper {
+    position: relative;
+    border: 2px solid #000;
+    background: #000;
+    /* CRT "off" color */
+    padding: 4px;
+    /* Bezel */
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Label style override */
+.video-wrapper h3 {
+    position: absolute;
+    top: -25px;
+    /* Outside top */
+    left: 0;
+    margin: 0;
+    background: transparent;
+    color: #000;
+    font-size: 20px;
+    padding: 0;
+    text-transform: uppercase;
+}
+
+video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* --- VINTAGE CRT EFFECT --- */
+    filter: grayscale(100%) contrast(150%) brightness(90%) sepia(20%);
+    max-width: 100%;
+    /* Mobile fix */
+}
+
+/* Scanlines Overlay */
+.scanlines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(to bottom,
+            transparent 0px,
+            transparent 2px,
+            rgba(0, 0, 0, 0.2) 2px,
+            rgba(0, 0, 0, 0.2) 4px);
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* --- RETRO BUTTONS --- */
+.retro-btn {
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    background: #fff;
+    color: #000;
+    border: 2px solid #000;
+    padding: 5px 15px;
+    cursor: pointer;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    box-shadow: 4px 4px 0 #000;
+}
+
+.retro-btn:active {
+    background: #000;
+    color: #fff;
+    box-shadow: none;
+    transform: translate(4px, 4px);
+}
+
+/* --- MODAL --- */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 500;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    /* Dither effect hard to do with just opacity */
+    backdrop-filter: grayscale(100%);
+    align-items: center;
+    justify-content: center;
+}
+
+.retro-modal {
+    background-color: #fff;
+    padding: 2px;
+    /* Inner border space */
+    border: 2px solid #000;
+    width: 320px;
+    text-align: center;
+    position: relative;
+    box-shadow: 10px 10px 0 #fff, 12px 12px 0 #000;
+    /* Double shadow sort of */
+}
+
+.retro-modal h2 {
+    margin: 0;
+    background: #000;
+    color: #fff;
+    padding: 5px;
+    font-size: 24px;
+}
+
+.retro-modal .close {
+    position: absolute;
+    top: -30px;
+    right: 0;
+    color: #fff;
+    font-size: 30px;
+    cursor: pointer;
+}
+
+#qrcode {
+    margin: 20px auto;
+    border: 10px solid #fff;
+}
+
+#roomUrl {
+    color: #000;
+    font-size: 16px;
+    padding: 10px;
+    border-top: 2px solid #000;
+    margin: 0;
+    word-break: break-all;
+}
+
+/* --- MEDIA QUERIES --- */
+@media (max-width: 768px) {
+    /* Mobile override removed to keep 2x2 grid */
+
+    .mac-window {
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .title-bar {
+        display: none;
+        /* Hide window bar on mobile for full screen feeling */
+    }
+}

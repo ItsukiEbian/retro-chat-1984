@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIDEO DESK AC-84</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+
+<body>
+
+    <!-- Tap to Start Overlay (Mobile Fix) -->
+    <div id="overlay">
+        <div class="system-alert">
+            <div class="alert-title">SYSTEM ALERT</div>
+            <div class="alert-content">
+                <p>INITIALIZE VIDEO SUBSYSTEM?</p>
+                <button id="startBtn">ENGAGE</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="mac-window">
+        <div class="title-bar">
+            <div class="close-box"></div>
+            <div class="window-title">VIDEO DESK AC-84</div>
+            <div class="lines"></div>
+        </div>
+
+        <div class="content-area">
+            <button id="qrBtn" class="retro-btn">SHOW QR-ID</button>
+
+            <div id="qrModal" class="modal">
+                <div class="modal-content retro-modal">
+                    <span class="close">&times;</span>
+                    <h2>DATA LINK</h2>
+                    <div id="qrcode"></div>
+                    <p id="roomUrl"></p>
+                </div>
+            </div>
+
+            <div class="container">
+                <div id="status">STANDBY...</div>
+
+                <div class="videos-container" id="videosContainer">
+                    <!-- Dynamic videos will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>

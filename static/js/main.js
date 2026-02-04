@@ -1,0 +1,290 @@
+const socket = io();
+const videosContainer = document.getElementById('videosContainer');
+const statusDiv = document.getElementById('status');
+const overlay = document.getElementById('overlay');
+const startBtn = document.getElementById('startBtn');
+
+// Mosaic Configuration
+const PIXEL_SIZE = 15; // Larger = more blocky
+const FILTER_FPS = 30;
+
+// WebRTC Configuration
+const rtcConfig = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+};
+
+// State
+let localStream;      // The PROCESSED stream (Mosaic)
+let rawStream;        // The raw camera stream
+let peers = {};       // socketId -> { connection, videoEl } elements
+let myRoomId = null;
+
+// Hidden elements for processing
+const hiddenVideo = document.createElement('video');
+hiddenVideo.playsInline = true;
+hiddenVideo.muted = true;
+hiddenVideo.autoplay = true;
+
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d', { alpha: false }); // Optimize for no transparency
+
+// --- 1. INITIALIZATION & ROOM SETUP ---
+const urlParams = new URLSearchParams(window.location.search);
+myRoomId = urlParams.get('room');
+
+if (!myRoomId) {
+    myRoomId = Math.random().toString(36).substring(7);
+    const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?room=' + myRoomId;
+    window.history.pushState({ path: newUrl }, '', newUrl);
+}
+
+// --- 2. MOSAIC PROCESSING LOGIC ---
+function startMosaicProcessing() {
+    processVideoFrame();
+}
+
+function processVideoFrame() {
+    if (hiddenVideo.readyState === hiddenVideo.HAVE_ENOUGH_DATA) {
+        // Set canvas size to match video if not set
+        if (canvas.width !== hiddenVideo.videoWidth || canvas.height !== hiddenVideo.videoHeight) {
+            canvas.width = hiddenVideo.videoWidth;
+            canvas.height = hiddenVideo.videoHeight;
+        }
+
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // Calculate scaled dimensions (small)
+        const sw = Math.floor(w / PIXEL_SIZE);
+        const sh = Math.floor(h / PIXEL_SIZE);
+
+        // Draw scaled down (pixelate)
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(hiddenVideo, 0, 0, sw, sh);
+
+        // Draw scaled up (nearest-neighbor)
+        ctx.drawImage(canvas, 0, 0, sw, sh, 0, 0, w, h);
+    }
+    requestAnimationFrame(processVideoFrame);
+}
+
+// --- 3. START SEQUENCE ---
+async function startSystem() {
+    try {
+        statusDiv.innerText = "INITIALIZING SENSOR ARRAY...";
+
+        // A. Get Raw Camera
+        rawStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                frameRate: { ideal: 30 }
+            },
+            audio: false
+        });
+
+        // B. Start Processing Loop
+        hiddenVideo.srcObject = rawStream;
+        await hiddenVideo.play().catch(e => console.log('Wait play:', e));
+        startMosaicProcessing();
+
+        // C. Capture Processed Stream
+        localStream = canvas.captureStream(FILTER_FPS);
+
+        // D. Show Local Video
+        addVideoElement('local', localStream, 'OPERATOR');
+
+        // E. Join Room
+        overlay.style.display = 'none';
+        statusDiv.innerText = "UPLINK ESTABLISHED: " + myRoomId;
+        socket.emit('join_room', { room: myRoomId });
+
+    } catch (err) {
+        console.error("System Failure:", err);
+        statusDiv.innerText = "CRITICAL ERROR: " + err.name;
+        alert("Camera Access Failed: " + err.message);
+    }
+}
+
+startBtn.addEventListener('click', startSystem);
+
+// --- 4. UI & GRID LOGIC ---
+function addVideoElement(peerId, stream, labelText) {
+    // Prevent duplicate entries
+    if (document.getElementById('video-wrapper-' + peerId)) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'video-wrapper';
+    wrapper.id = 'video-wrapper-' + peerId;
+
+    const label = document.createElement('h3');
+    label.innerText = labelText || 'UNKNOWN ENTITY';
+
+    const scanlines = document.createElement('div');
+    scanlines.className = 'scanlines';
+
+    const video = document.createElement('video');
+    video.autoplay = true;
+    video.playsInline = true;
+    video.muted = (peerId === 'local'); // Mute self
+    video.srcObject = stream;
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(scanlines);
+    wrapper.appendChild(video);
+    videosContainer.appendChild(wrapper);
+
+    updateLayout();
+}
+
+function removeVideoElement(peerId) {
+    const el = document.getElementById('video-wrapper-' + peerId);
+    if (el) {
+        el.remove();
+        updateLayout();
+    }
+}
+
+function updateLayout() {
+    const count = videosContainer.children.length; // Includes local + remotes
+    videosContainer.setAttribute('data-count', count);
+}
+
+// --- 5. WEBRTC (MESH TOPOLOGY) ---
+
+// A. New User Joined -> We Call Them (Offer)
+socket.on('user_joined', async (data) => {
+    const targetId = data.sid;
+    console.log('Target Acquired:', targetId);
+    createPeerConnection(targetId, true); // true = initiator
+});
+
+// B. User Left -> Cleanup
+socket.on('user_left', (data) => {
+    const targetId = data.sid;
+    console.log('Target Lost:', targetId);
+    if (peers[targetId]) {
+        peers[targetId].connection.close();
+        delete peers[targetId];
+    }
+    removeVideoElement(targetId);
+});
+
+// C. Signaling Handling
+socket.on('offer', async (data) => {
+    const targetId = data.sender;
+    const pc = createPeerConnection(targetId, false);
+
+    await pc.setRemoteDescription(new RTCSessionDescription(data.description));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+
+    socket.emit('answer', {
+        target: targetId,
+        description: pc.localDescription,
+        sender: socket.id
+    });
+});
+
+socket.on('answer', async (data) => {
+    const targetId = data.sender;
+    const pc = peers[targetId]?.connection;
+    if (pc) {
+        await pc.setRemoteDescription(new RTCSessionDescription(data.description));
+    }
+});
+
+socket.on('ice_candidate', async (data) => {
+    const targetId = data.sender;
+    const pc = peers[targetId]?.connection;
+    if (pc && data.candidate) {
+        try {
+            await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } catch (e) {
+            console.error("ICE Error", e);
+        }
+    }
+});
+
+// D. Connection Factory
+function createPeerConnection(targetId, isInitiator) {
+    if (peers[targetId]) return peers[targetId].connection;
+
+    const pc = new RTCPeerConnection(rtcConfig);
+
+    // Add local PROCESSED tracks
+    localStream.getTracks().forEach(track => {
+        pc.addTrack(track, localStream);
+    });
+
+    // Handle incoming streams
+    pc.ontrack = (event) => {
+        const remoteStream = event.streams[0];
+        // Only add if not exists
+        if (!document.getElementById('video-wrapper-' + targetId)) {
+            addVideoElement(targetId, remoteStream, 'TERMINAL ' + targetId.substr(0, 4));
+        }
+    };
+
+    // Handle ICE
+    pc.onicecandidate = (event) => {
+        if (event.candidate) {
+            socket.emit('ice_candidate', {
+                target: targetId,
+                candidate: event.candidate,
+                sender: socket.id // Ensure sender ID is passed
+            });
+        }
+    };
+
+    // Save state
+    peers[targetId] = { connection: pc };
+
+    // If initiator, create offer
+    if (isInitiator) {
+        makeOffer(pc, targetId);
+    }
+
+    return pc;
+}
+
+async function makeOffer(pc, targetId) {
+    try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socket.emit('offer', {
+            target: targetId,
+            description: pc.localDescription,
+            sender: socket.id
+        });
+    } catch (err) {
+        console.error("Offer Error:", err);
+    }
+}
+
+// --- 6. UTILITIES (QR Code etc) ---
+const qrBtn = document.getElementById('qrBtn');
+const qrModal = document.getElementById('qrModal');
+const closeModal = document.getElementsByClassName('close')[0];
+const qrcodeDiv = document.getElementById('qrcode');
+const roomUrlP = document.getElementById('roomUrl');
+
+qrBtn.onclick = function () {
+    qrModal.style.display = "flex";
+    const currentUrl = window.location.href;
+    roomUrlP.innerText = currentUrl;
+    qrcodeDiv.innerHTML = "";
+    new QRCode(qrcodeDiv, {
+        text: currentUrl,
+        width: 180,
+        height: 180,
+        correctLevel: QRCode.CorrectLevel.H
+    });
+}
+closeModal.onclick = () => qrModal.style.display = "none";
+window.onclick = (e) => {
+    if (e.target == qrModal) qrModal.style.display = "none";
+}
