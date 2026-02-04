@@ -41,6 +41,14 @@ if (!myRoomId) {
     window.history.pushState({ path: newUrl }, '', newUrl);
 }
 
+function updateRoomIdDisplay() {
+    const sid = document.getElementById('sidebarRoomId');
+    const hid = document.getElementById('headerRoomId');
+    if (sid) sid.textContent = myRoomId || '—';
+    if (hid) hid.textContent = myRoomId || '—';
+}
+updateRoomIdDisplay();
+
 // --- 2. MOSAIC PROCESSING LOGIC ---
 function startMosaicProcessing() {
     processVideoFrame();
@@ -74,7 +82,7 @@ function processVideoFrame() {
 // --- 3. START SEQUENCE ---
 async function startSystem() {
     try {
-        statusDiv.innerText = "INITIALIZING SENSOR ARRAY...";
+        statusDiv.innerText = "カメラを起動しています...";
 
         // A. Get Raw Camera
         rawStream = await navigator.mediaDevices.getUserMedia({
@@ -95,16 +103,16 @@ async function startSystem() {
         localStream = canvas.captureStream(FILTER_FPS);
 
         // D. Show Local Video
-        addVideoElement('local', localStream, 'OPERATOR');
+        addVideoElement('local', localStream, 'あなた');
 
         // E. Join Room
         overlay.style.display = 'none';
-        statusDiv.innerText = "UPLINK ESTABLISHED: " + myRoomId;
+        statusDiv.innerText = "接続済み: " + myRoomId;
         socket.emit('join_room', { room: myRoomId });
 
     } catch (err) {
         console.error("System Failure:", err);
-        statusDiv.innerText = "CRITICAL ERROR: " + err.name;
+        statusDiv.innerText = "エラー: " + err.name;
         alert("Camera Access Failed: " + err.message);
     }
 }
@@ -225,7 +233,7 @@ function createPeerConnection(targetId, isInitiator) {
         const remoteStream = event.streams[0];
         // Only add if not exists
         if (!document.getElementById('video-wrapper-' + targetId)) {
-            addVideoElement(targetId, remoteStream, 'TERMINAL ' + targetId.substr(0, 4));
+            addVideoElement(targetId, remoteStream, '参加者 ' + targetId.substr(0, 6));
         }
     };
 
@@ -265,26 +273,67 @@ async function makeOffer(pc, targetId) {
     }
 }
 
-// --- 6. UTILITIES (QR Code etc) ---
+// --- 6. Right panel (Share / Settings) ---
+const rightPanel = document.getElementById('rightPanel');
+const panelBackdrop = document.getElementById('panelBackdrop');
+const panelClose = document.getElementById('panelClose');
+const panelTitle = document.getElementById('panelTitle');
+const panelViewShare = document.getElementById('panelViewShare');
+const panelViewSettings = document.getElementById('panelViewSettings');
+const sidebarShareBtn = document.getElementById('sidebarShareBtn');
+const sidebarSettingsBtn = document.getElementById('sidebarSettingsBtn');
 const qrBtn = document.getElementById('qrBtn');
-const qrModal = document.getElementById('qrModal');
-const closeModal = document.getElementsByClassName('close')[0];
 const qrcodeDiv = document.getElementById('qrcode');
 const roomUrlP = document.getElementById('roomUrl');
+const copyUrlBtn = document.getElementById('copyUrlBtn');
 
-qrBtn.onclick = function () {
-    qrModal.style.display = "flex";
-    const currentUrl = window.location.href;
-    roomUrlP.innerText = currentUrl;
-    qrcodeDiv.innerHTML = "";
-    new QRCode(qrcodeDiv, {
-        text: currentUrl,
-        width: 180,
-        height: 180,
-        correctLevel: QRCode.CorrectLevel.H
-    });
+function openPanel(view) {
+    panelViewShare.classList.remove('is-visible');
+    panelViewSettings.classList.remove('is-visible');
+    if (view === 'share') {
+        panelViewShare.classList.add('is-visible');
+        panelTitle.textContent = '共有';
+        const currentUrl = window.location.href;
+        if (roomUrlP) roomUrlP.textContent = currentUrl;
+        if (qrcodeDiv) {
+            qrcodeDiv.innerHTML = '';
+            new QRCode(qrcodeDiv, {
+                text: currentUrl,
+                width: 180,
+                height: 180,
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+    } else if (view === 'settings') {
+        panelViewSettings.classList.add('is-visible');
+        panelTitle.textContent = '設定';
+    }
+    rightPanel.classList.add('is-open');
+    if (panelBackdrop) {
+        panelBackdrop.classList.add('is-open');
+        panelBackdrop.setAttribute('aria-hidden', 'false');
+    }
 }
-closeModal.onclick = () => qrModal.style.display = "none";
-window.onclick = (e) => {
-    if (e.target == qrModal) qrModal.style.display = "none";
+
+function closePanel() {
+    rightPanel.classList.remove('is-open');
+    if (panelBackdrop) {
+        panelBackdrop.classList.remove('is-open');
+        panelBackdrop.setAttribute('aria-hidden', 'true');
+    }
+}
+
+if (qrBtn) qrBtn.addEventListener('click', () => openPanel('share'));
+if (sidebarShareBtn) sidebarShareBtn.addEventListener('click', () => openPanel('share'));
+if (sidebarSettingsBtn) sidebarSettingsBtn.addEventListener('click', () => openPanel('settings'));
+if (panelClose) panelClose.addEventListener('click', closePanel);
+if (panelBackdrop) panelBackdrop.addEventListener('click', closePanel);
+
+if (copyUrlBtn && roomUrlP) {
+    copyUrlBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(roomUrlP.textContent || window.location.href).then(() => {
+            copyUrlBtn.textContent = 'コピーしました';
+            setTimeout(() => { copyUrlBtn.textContent = 'URLをコピー'; }, 2000);
+        });
+    });
 }

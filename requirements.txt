@@ -1,5 +1,9 @@
+# Web アプリ
 flask
 flask-socketio
-eventlet
+# Render 用: gunicorn + eventlet で起動
 gunicorn
+eventlet
+# 環境変数（ローカル .env / Render ではダッシュボードの値を優先）
+python-dotenv
 pyngrok

@@ -1,63 +1,283 @@
-from flask import Flask, render_template
-from flask_socketio import SocketIO, emit
-from pyngrok import ngrok
+"""
+Video Desk — 自習室アプリ
+
+他端末（スマホ等）からローカルIPでアクセスする場合、カメラは HTTPS でないと利用できません。
+ngrok / cloudflared で HTTPS 公開する手順は README.md の「他端末からアクセスする場合」を参照してください。
+"""
 import os
-import sys
+import secrets
+from flask import Flask, render_template, request, redirect, url_for, session
+from flask_socketio import SocketIO, emit, join_room, leave_room
+from dotenv import load_dotenv
 
-# Initialize Flask
+# ローカル .env を読む（Render 等で設定した環境変数は上書きしない＝Render の値を優先）
+load_dotenv()
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret!'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret!')
+# Render では gunicorn + eventlet で起動するため、async_mode を eventlet に統一
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-# Initialize SocketIO
-# Initialize SocketIO
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+# room_id -> { sid -> { user_name, role } }
+room_users = {}
+# room_id -> { sid -> bool (hand raised) }
+hand_raise_states = {}
+# sid -> room_id (for disconnect cleanup)
+sid_to_room = {}
+# private session_id -> { main_room, admin_sid, student_sid }
+private_rooms = {}
 
-# Store connected users (simple implementation)
-connected_users = []
+
+def get_room():
+    return request.referrer or request.args.get('room')  # fallback
+def get_hand_states(room):
+    return [
+        {"sid": sid, "user_name": room_users.get(room, {}).get(sid, {}).get("user_name", ""), "role": room_users.get(room, {}).get(sid, {}).get("role", "student"), "raised": hand_raise_states.get(room, {}).get(sid, False)}
+        for sid in hand_raise_states.get(room, {})
+    ]
+
+
+# ---------- Routes ----------
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    if session.get('role'):
+        return redirect(url_for('room'))
+    room_from_url = request.args.get('room')
+    return render_template('landing.html', room_from_url=room_from_url)
+
+
+@app.route('/enter', methods=['POST'])
+def enter():
+    name = (request.form.get('name') or '').strip()
+    if not name:
+        return render_template('landing.html', error='名前を入力してください', room_from_url=request.form.get('room')), 400
+    session['role'] = 'student'
+    session['user_name'] = name[:50]
+    room = (request.form.get('room') or '').strip()
+    if room:
+        session['room'] = room
+    return redirect(url_for('room'))
+
+
+@app.route('/admin_login', methods=['GET', 'POST'])
+def admin_login():
+    if session.get('role') == 'admin':
+        return redirect(url_for('room'))
+    room_from_url = request.args.get('room')
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        admin_password = os.environ.get('ADMIN_PASSWORD', '')
+        if admin_password and password == admin_password:
+            session['role'] = 'admin'
+            session['user_name'] = '管理者'
+            if request.form.get('room'):
+                session['room'] = request.form.get('room')
+            return redirect(url_for('room'))
+        return render_template('admin_login.html', error='パスワードが正しくありません', room_from_url=request.form.get('room'))
+    return render_template('admin_login.html', room_from_url=room_from_url)
+
+
+@app.route('/room')
+def room():
+    if not session.get('role'):
+        room_arg = request.args.get('room')
+        if room_arg:
+            return redirect(url_for('index', room=room_arg))
+        return redirect(url_for('index'))
+    room_arg = request.args.get('room')
+    if room_arg and not session.get('room'):
+        session['room'] = room_arg
+    if not session.get('room'):
+        session['room'] = secrets.token_hex(4)
+    return render_template(
+        'room.html',
+        role=session.get('role'),
+        user_name=session.get('user_name', ''),
+        room_id=session.get('room'),
+    )
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
+
+# ---------- SocketIO ----------
 
 @socketio.on('connect')
 def on_connect():
-    # request.sid needs request imported? No, flask_socketio provides request context implicitly usually,
-    # but strictly speaking `from flask import request` is needed if we use it explicitly.
-    # However, existing code used `request` in `user_joined` without import shown in the view?
-    # Wait, the view showed `from flask import Flask, render_template`. missing `request`.
-    # I should add `request` to imports if I touch them, but here I am replacing lines 12-70.
-    # I will stick to what was there or make it safe.
-    from flask import request
-    print(f'User connected: {request.sid}')
+    pass
+
 
 @socketio.on('join_room')
-def on_join(data):
-    from flask import request
-    room = data['room']
-    print(f'User joined room: {room}')
-    emit('user_joined', {'sid': request.sid}, broadcast=True, include_self=False)
+def on_join_room(data):
+    from flask import request as req
+    room = data.get('room')
+    user_name = data.get('user_name', '')
+    role = data.get('role', 'student')
+    if not room:
+        return
+    sid = req.sid
+    old_room = sid_to_room.get(sid)
+    if old_room and old_room != room:
+        leave_room(old_room)
+        if old_room.startswith('private_') and old_room in room_users and sid in room_users[old_room]:
+            del room_users[old_room][sid]
+    join_room(room)
+    sid_to_room[sid] = room
+    if room not in room_users:
+        room_users[room] = {}
+    room_users[room][sid] = {"user_name": user_name, "role": role}
+    if room not in hand_raise_states:
+        hand_raise_states[room] = {}
+    hand_raise_states[room][sid] = False
+
+    # Send current hand states to this client
+    emit('hand_states', {"states": get_hand_states(room)}, room=sid)
+    # Tell others in room that this user joined (with user_name for display)
+    emit('user_joined', {"sid": sid, "user_name": user_name, "role": role}, room=room, include_self=False)
+
+
+@socketio.on('hand_raise')
+def on_hand_raise(data):
+    from flask import request as req
+    raised = data.get('raised', False)
+    sid = req.sid
+    room = sid_to_room.get(sid)
+    if not room or room not in room_users:
+        return
+    hand_raise_states[room][sid] = raised
+    user_name = room_users[room][sid].get("user_name", "")
+    emit('hand_raise_update', {"sid": sid, "user_name": user_name, "raised": raised}, room=room)
+
 
 @socketio.on('offer')
 def on_offer(data):
-    print(f"Relaying offer to {data.get('target')}")
-    emit('offer', data, room=data['target'])
+    emit('offer', data, room=data.get('target'))
+
 
 @socketio.on('answer')
 def on_answer(data):
-    print(f"Relaying answer to {data.get('target')}")
-    emit('answer', data, room=data['target'])
+    emit('answer', data, room=data.get('target'))
+
 
 @socketio.on('ice_candidate')
-def on_candidate(data):
-    print(f"Relaying ICE candidate to {data.get('target')}")
-    emit('ice_candidate', data, room=data['target'])
+def on_ice_candidate(data):
+    emit('ice_candidate', data, room=data.get('target'))
+
 
 @socketio.on('disconnect')
 def on_disconnect():
-    from flask import request
-    print(f'User disconnected: {request.sid}')
-    emit('user_left', {'sid': request.sid}, broadcast=True)
+    from flask import request as req
+    sid = req.sid
+    room = sid_to_room.pop(sid, None)
+    if room:
+        leave_room(room)
+        if room.startswith('private_'):
+            for session_id, info in list(private_rooms.items()):
+                if info.get('admin_sid') == sid or info.get('student_sid') == sid:
+                    other_sid = info['student_sid'] if sid == info['admin_sid'] else info['admin_sid']
+                    emit('redirect_to_main_room', {'main_room': info['main_room']}, room=other_sid)
+                    del private_rooms[session_id]
+                    break
+        else:
+            if room in room_users and sid in room_users[room]:
+                del room_users[room][sid]
+            if room in hand_raise_states and sid in hand_raise_states[room]:
+                del hand_raise_states[room][sid]
+            emit('user_left', {'sid': sid}, room=room)
+
+
+# ---------- Private Session ----------
+
+@socketio.on('start_private_session')
+def on_start_private_session(data):
+    from flask import request as req
+    sid = req.sid
+    student_sid = data.get('student_sid')
+    room = sid_to_room.get(sid)
+    if not room or not student_sid or room.startswith('private_'):
+        return
+    if room_users.get(room, {}).get(sid, {}).get('role') != 'admin':
+        return
+    if student_sid not in room_users.get(room, {}):
+        return
+    session_id = 'private_' + secrets.token_hex(8)
+    private_rooms[session_id] = {'main_room': room, 'admin_sid': sid, 'student_sid': student_sid}
+    emit('redirect_to_private', {'session_id': session_id, 'main_room': room}, room=sid)
+    emit('redirect_to_private', {'session_id': session_id, 'main_room': room}, room=student_sid)
+
+
+@socketio.on('join_private_room')
+def on_join_private_room(data):
+    from flask import request as req
+    sid = req.sid
+    session_id = data.get('session_id')
+    user_name = data.get('user_name', '')
+    role = data.get('role', 'student')
+    if not session_id or session_id not in private_rooms:
+        return
+    old_room = sid_to_room.get(sid)
+    if old_room:
+        leave_room(old_room)
+        if not old_room.startswith('private_'):
+            if old_room in room_users and sid in room_users[old_room]:
+                del room_users[old_room][sid]
+            if old_room in hand_raise_states and sid in hand_raise_states[old_room]:
+                del hand_raise_states[old_room][sid]
+            emit('user_left', {'sid': sid}, room=old_room)
+    join_room(session_id)
+    sid_to_room[sid] = session_id
+    if session_id not in room_users:
+        room_users[session_id] = {}
+    room_users[session_id][sid] = {'user_name': user_name, 'role': role}
+    participants = [{'sid': s, 'user_name': room_users[session_id][s].get('user_name', ''), 'role': room_users[session_id][s].get('role', '')} for s in room_users[session_id]]
+    emit('private_participants', {'participants': participants}, room=session_id)
+
+
+@socketio.on('end_private_session')
+def on_end_private_session(data):
+    from flask import request as req
+    sid = req.sid
+    session_id = sid_to_room.get(sid)
+    if not session_id or not session_id.startswith('private_') or session_id not in private_rooms:
+        return
+    info = private_rooms[session_id]
+    main_room = info['main_room']
+    emit('redirect_to_main_room', {'main_room': main_room}, room=session_id)
+    if session_id in room_users:
+        del room_users[session_id]
+    del private_rooms[session_id]
+
+
+@socketio.on('private_chat')
+def on_private_chat(data):
+    from flask import request as req
+    sid = req.sid
+    session_id = sid_to_room.get(sid)
+    if not session_id or not session_id.startswith('private_'):
+        return
+    user_name = room_users.get(session_id, {}).get(sid, {}).get('user_name', '')
+    emit('private_chat', {'sender_sid': sid, 'user_name': user_name, 'text': data.get('text', '')}, room=session_id, include_self=False)
+    emit('private_chat', {'sender_sid': sid, 'user_name': user_name, 'text': data.get('text', '')}, room=sid)
+
+
+@socketio.on('private_chat_image')
+def on_private_chat_image(data):
+    from flask import request as req
+    sid = req.sid
+    session_id = sid_to_room.get(sid)
+    if not session_id or not session_id.startswith('private_'):
+        return
+    user_name = room_users.get(session_id, {}).get(sid, {}).get('user_name', '')
+    emit('private_chat_image', {'sender_sid': sid, 'user_name': user_name, 'data_url': data.get('data_url', '')}, room=session_id, include_self=False)
+    emit('private_chat_image', {'sender_sid': sid, 'user_name': user_name, 'data_url': data.get('data_url', '')}, room=sid)
+
 
 if __name__ == '__main__':
+    # ローカル開発時のみ（Render では gunicorn で起動する）
     port = int(os.environ.get("PORT", 10000))
+    print("--- 他端末でカメラを使う場合: README.md の「他端末からアクセスする場合（HTTPS）」を参照 ---")
     socketio.run(app, debug=True, port=port, host='0.0.0.0', allow_unsafe_werkzeug=True)

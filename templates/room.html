@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Desk — 自習室</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        window.ROLE = {{ role | tojson }};
+        window.USER_NAME = {{ user_name | tojson }};
+        window.ROOM_ID = {{ room_id | tojson }};
+    </script>
+</head>
+<body>
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+    <div id="overlay" class="overlay">
+        <div class="overlay-card">
+            <div class="overlay-card-header">
+                <span class="overlay-icon">▶</span>
+                <h1>ビデオを開始</h1>
+                <p>カメラにアクセスして自習室に参加します</p>
+            </div>
+            <p id="overlayCameraWarning" class="overlay-warning" hidden aria-live="polite"></p>
+            <div class="overlay-card-actions">
+                <button id="startBtn" class="btn-primary">開始する</button>
+            </div>
+            <details class="overlay-help">
+                <summary>スマホ・他端末でカメラが使えない場合</summary>
+                <p>ブラウザのセキュリティのため、<strong>HTTP（例: 192.168.x.x）ではカメラが使えません</strong>。次のいずれかで対応できます。</p>
+                <ul>
+                    <li><strong>ngrok / cloudflared</strong> で HTTPS のURLを発行して、そのURLでアクセスする（推奨）。手順はプロジェクトの README を参照。</li>
+                    <li><strong>Chrome（Android等）</strong>: <code>chrome://flags</code> で <code>Insecure origin treated as secure</code> を検索し、<code>http://あなたのPCのIP:10000</code> を追加して有効化し、ブラウザを再起動。</li>
+                </ul>
+            </details>
+        </div>
+    </div>
+
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <span class="logo-icon">◉</span>
+                <span class="logo-text">Video Desk</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item nav-item-active" data-view="meeting">
+                <span class="nav-icon">📹</span>
+                <span class="nav-label">ミーティング</span>
+            </a>
+            <button type="button" class="nav-item" id="sidebarShareBtn" aria-label="共有">
+                <span class="nav-icon">🔗</span>
+                <span class="nav-label">共有</span>
+            </button>
+            <button type="button" class="nav-item" id="sidebarSettingsBtn" aria-label="設定">
+                <span class="nav-icon">⚙</span>
+                <span class="nav-label">設定</span>
+            </button>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-room">
+                <span class="sidebar-room-label">ルームID</span>
+                <span class="sidebar-room-value" id="sidebarRoomId">—</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="sidebar-logout">ログアウト</a>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="main-header">
+            <div class="main-header-left">
+                <h2 class="main-title">自習室</h2>
+                <span class="room-badge" id="roomBadge">ルーム: <span id="headerRoomId">—</span></span>
+                <span class="role-badge role-badge-{{ role }}">{{ '管理者' if role == 'admin' else '学習者' }}</span>
+            </div>
+            <div class="main-header-actions">
+                {% if role == 'admin' %}
+                <button type="button" class="btn-secondary" id="soundTestBtn">通知音テスト</button>
+                {% endif %}
+                <button type="button" class="btn-secondary" id="qrBtn">QRコードで共有</button>
+            </div>
+        </header>
+
+        <div class="main-content" id="mainRoomContent">
+            {% if role == 'admin' %}
+            <div class="card card-students" id="studentsCard">
+                <div class="card-header">
+                    <h3>学習者一覧</h3>
+                </div>
+                <div class="card-body">
+                    <ul class="student-list" id="studentList"></ul>
+                </div>
+            </div>
+            {% endif %}
+            <div class="card card-video">
+                <div class="card-header">
+                    <h3>ビデオ通話</h3>
+                    <div id="status" class="status-text">待機中...</div>
+                </div>
+                <div class="card-body card-body-video">
+                    <div class="videos-container" id="videosContainer"></div>
+                </div>
+            </div>
+
+            <footer class="control-bar">
+                {% if role == 'student' %}
+                <button type="button" id="handRaiseBtn" class="control-btn control-btn-hand" aria-pressed="false" title="挙手する">
+                    <span class="control-btn-icon">✋</span>
+                    <span class="control-btn-label">挙手する (Raise Hand)</span>
+                </button>
+                {% endif %}
+            </footer>
+        </div>
+
+        <div id="privateRoomContent" class="private-room-content" hidden>
+            <div class="private-room-header">
+                <button type="button" class="btn-primary" id="endPrivateSessionBtn">指導を終了して戻る</button>
+            </div>
+            <div class="private-room-body">
+                <div class="private-video-section">
+                    <div class="private-videos" id="privateVideosContainer"></div>
+                    <div class="private-video-controls">
+                        <button type="button" class="control-btn" id="privateMicBtn" title="マイク">
+                            <span class="control-btn-icon">🎤</span>
+                            <span class="control-btn-label">マイク</span>
+                        </button>
+                        <button type="button" class="control-btn" id="privateCameraBtn" title="カメラ">
+                            <span class="control-btn-icon">📷</span>
+                            <span class="control-btn-label">カメラ</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="private-chat-section">
+                    <div class="private-chat-messages" id="privateChatMessages"></div>
+                    <div class="private-chat-input-area">
+                        <input type="text" id="privateChatInput" class="auth-input" placeholder="メッセージを入力" maxlength="500">
+                        <button type="button" class="btn-secondary" id="privateChatSendBtn">送信</button>
+                        <label class="btn-secondary private-photo-btn">
+                            <span>📷 写真を送る</span>
+                            <input type="file" id="privatePhotoInput" accept="image/*" capture="environment" hidden>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="panel-backdrop" id="panelBackdrop" aria-hidden="true"></div>
+    <aside class="panel panel-right" id="rightPanel" aria-label="設定パネル">
+        <div class="panel-header">
+            <h2 class="panel-title" id="panelTitle">共有</h2>
+            <button type="button" class="panel-close" id="panelClose" aria-label="閉じる">&times;</button>
+        </div>
+        <div class="panel-content">
+            <div class="panel-view panel-view-share" id="panelViewShare">
+                <div class="share-section">
+                    <p class="share-desc">このQRコードをスキャンしてルームに参加</p>
+                    <div id="qrcode" class="qrcode-wrap"></div>
+                    <p id="roomUrl" class="room-url"></p>
+                    <button type="button" class="btn-secondary btn-copy" id="copyUrlBtn">URLをコピー</button>
+                </div>
+            </div>
+            <div class="panel-view panel-view-settings" id="panelViewSettings" hidden>
+                <div class="settings-section">
+                    <h4>設定</h4>
+                    <p class="settings-desc">オーディオ・ビデオ設定は今後追加予定です。</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <script src="{{ url_for('static', filename='js/room.js') }}"></script>
+</body>
+</html>
