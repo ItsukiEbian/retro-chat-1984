@@ -16,7 +16,7 @@
         window.ROOM_ID = {{ room_id | tojson }};
     </script>
 </head>
-<body>
+<body data-room-context="main">
     <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
     <div id="overlay" class="overlay">
@@ -71,11 +71,13 @@
         </div>
     </aside>
 
+    <div class="main-with-panel">
     <main class="main">
         <header class="main-header">
             <div class="main-header-left">
                 <h2 class="main-title">自習室</h2>
                 <span class="room-badge" id="roomBadge">ルーム: <span id="headerRoomId">—</span></span>
+                <span class="host-badge" id="hostBadge" aria-label="あなたがホストです">あなたがホストです</span>
                 <span class="role-badge role-badge-{{ role }}">{{ '管理者' if role == 'admin' else '学習者' }}</span>
             </div>
             <div class="main-header-actions">
@@ -107,7 +109,8 @@
                 </div>
             </div>
 
-            <footer class="control-bar">
+            <!-- メインルーム: 学習者は挙手のみ。チャット・写真・マイク/カメラは個別ルームでのみ表示 -->
+            <footer class="control-bar main-room-control-bar" id="mainRoomControlBar">
                 {% if role == 'student' %}
                 <button type="button" id="handRaiseBtn" class="control-btn control-btn-hand" aria-pressed="false" title="挙手する">
                     <span class="control-btn-icon">✋</span>
@@ -117,11 +120,15 @@
             </footer>
         </div>
 
+        <!-- 個別指導ルーム時のみ表示: チャット・写真・マイク/カメラ -->
         <div id="privateRoomContent" class="private-room-content" hidden>
             <div class="private-room-header">
                 <button type="button" class="btn-primary" id="endPrivateSessionBtn">指導を終了して戻る</button>
             </div>
             <div class="private-room-body">
+                <div class="private-audio-unlock-banner" id="privateAudioUnlockBanner" hidden>
+                    <button type="button" class="btn-primary" id="privateAudioUnlockBtn">音声を有効にする（クリック）</button>
+                </div>
                 <div class="private-video-section">
                     <div class="private-videos" id="privateVideosContainer"></div>
                     <div class="private-video-controls">
@@ -133,17 +140,21 @@
                             <span class="control-btn-icon">📷</span>
                             <span class="control-btn-label">カメラ</span>
                         </button>
+                        <label class="private-volume-control">
+                            <span class="private-volume-label">相手の音量</span>
+                            <input type="range" id="privateRemoteVolumeSlider" min="0" max="100" value="100" title="相手の音量（デバッグ用）">
+                        </label>
                     </div>
                 </div>
                 <div class="private-chat-section">
                     <div class="private-chat-messages" id="privateChatMessages"></div>
                     <div class="private-chat-input-area">
-                        <input type="text" id="privateChatInput" class="auth-input" placeholder="メッセージを入力" maxlength="500">
-                        <button type="button" class="btn-secondary" id="privateChatSendBtn">送信</button>
-                        <label class="btn-secondary private-photo-btn">
+                        <label class="btn-primary private-photo-btn private-photo-btn-first">
                             <span>📷 写真を送る</span>
                             <input type="file" id="privatePhotoInput" accept="image/*" capture="environment" hidden>
                         </label>
+                        <input type="text" id="privateChatInput" class="auth-input" placeholder="メッセージを入力" maxlength="500">
+                        <button type="button" class="btn-secondary" id="privateChatSendBtn">送信</button>
                     </div>
                 </div>
             </div>
@@ -151,7 +162,7 @@
     </main>
 
     <div class="panel-backdrop" id="panelBackdrop" aria-hidden="true"></div>
-    <aside class="panel panel-right" id="rightPanel" aria-label="設定パネル">
+    <aside class="panel panel-right" id="rightPanel" aria-label="共有・設定パネル">
         <div class="panel-header">
             <h2 class="panel-title" id="panelTitle">共有</h2>
             <button type="button" class="panel-close" id="panelClose" aria-label="閉じる">&times;</button>
@@ -173,6 +184,9 @@
             </div>
         </div>
     </aside>
+    </div>
+
+    <button type="button" class="menu-drawer-btn" id="menuDrawerBtn" aria-label="メニュー" title="共有・設定">メニュー</button>
 
     <script src="{{ url_for('static', filename='js/room.js') }}"></script>
 </body>

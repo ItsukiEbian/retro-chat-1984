@@ -12,23 +12,70 @@
 <body class="page-auth">
     <div class="auth-center">
         <div class="auth-card">
-            <div class="auth-card-header">
-                <span class="auth-logo">◉</span>
-                <h1>自習室へ入室</h1>
-                <p>表示名を入力して入室してください</p>
+            <!-- 学習者入室（デフォルト表示） -->
+            <div id="authStudentBlock" class="auth-block" {% if show_admin_form|default(false) %}hidden{% endif %}>
+                <div class="auth-card-header">
+                    <span class="auth-logo">◉</span>
+                    <h1>自習室へ入室</h1>
+                    <p>表示名を入力して入室してください</p>
+                </div>
+                <form method="post" action="{{ url_for('enter') }}" class="auth-form">
+                    {% if error and not show_admin_form|default(false) %}
+                    <p class="auth-error">{{ error }}</p>
+                    {% endif %}
+                    {% if room_from_url %}
+                    <input type="hidden" name="room" value="{{ room_from_url }}">
+                    {% endif %}
+                    <label class="auth-label" for="name">名前</label>
+                    <input type="text" id="name" name="name" class="auth-input" placeholder="表示名を入力" maxlength="50" required autofocus>
+                    <button type="submit" class="btn-primary auth-submit">入室する</button>
+                </form>
+                <p class="auth-admin-link">
+                    <a href="#" id="authShowAdminLink">管理者のログインはこちら</a>
+                </p>
             </div>
-            <form method="post" action="{{ url_for('enter') }}" class="auth-form">
-                {% if error %}
-                <p class="auth-error">{{ error }}</p>
-                {% endif %}
-                {% if room_from_url %}
-                <input type="hidden" name="room" value="{{ room_from_url }}">
-                {% endif %}
-                <label class="auth-label" for="name">名前</label>
-                <input type="text" id="name" name="name" class="auth-input" placeholder="表示名を入力" maxlength="50" required autofocus>
-                <button type="submit" class="btn-primary auth-submit">入室する</button>
-            </form>
+
+            <!-- 管理者ログイン（リンククリックで表示） -->
+            <div id="authAdminBlock" class="auth-block" {% if not show_admin_form|default(false) %}hidden{% endif %}>
+                <div class="auth-card-header">
+                    <span class="auth-logo auth-logo-admin">⚙</span>
+                    <h1>管理者ログイン</h1>
+                    <p>パスワードを入力してください</p>
+                </div>
+                <form method="post" action="{{ url_for('admin_login') }}" class="auth-form">
+                    {% if error and show_admin_form|default(false) %}
+                    <p class="auth-error">{{ error }}</p>
+                    {% endif %}
+                    {% if room_from_url %}
+                    <input type="hidden" name="room" value="{{ room_from_url }}">
+                    {% endif %}
+                    <label class="auth-label" for="password">管理者パスワード</label>
+                    <input type="password" id="password" name="password" class="auth-input" placeholder="パスワード" required>
+                    <button type="submit" class="btn-primary auth-submit">ログイン</button>
+                </form>
+                <p class="auth-admin-link">
+                    <a href="#" id="authShowStudentLink">学習者入室に戻る</a>
+                </p>
+            </div>
         </div>
     </div>
+    <script>
+        (function() {
+            var studentBlock = document.getElementById('authStudentBlock');
+            var adminBlock = document.getElementById('authAdminBlock');
+            var showAdminLink = document.getElementById('authShowAdminLink');
+            var showStudentLink = document.getElementById('authShowStudentLink');
+            if (showAdminLink) showAdminLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (studentBlock) studentBlock.hidden = true;
+                if (adminBlock) { adminBlock.hidden = false; var p = adminBlock.querySelector('input'); if (p) p.focus(); }
+            });
+            if (showStudentLink) showStudentLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (adminBlock) adminBlock.hidden = true;
+                if (studentBlock) { studentBlock.hidden = false; var n = studentBlock.querySelector('input'); if (n) n.focus(); }
+            });
+        })();
+    </script>
 </body>
 </html>

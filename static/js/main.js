@@ -4,8 +4,6 @@ const statusDiv = document.getElementById('status');
 const overlay = document.getElementById('overlay');
 const startBtn = document.getElementById('startBtn');
 
-// Mosaic Configuration
-const PIXEL_SIZE = 15; // Larger = more blocky
 const FILTER_FPS = 30;
 
 // WebRTC Configuration
@@ -56,25 +54,14 @@ function startMosaicProcessing() {
 
 function processVideoFrame() {
     if (hiddenVideo.readyState === hiddenVideo.HAVE_ENOUGH_DATA) {
-        // Set canvas size to match video if not set
         if (canvas.width !== hiddenVideo.videoWidth || canvas.height !== hiddenVideo.videoHeight) {
             canvas.width = hiddenVideo.videoWidth;
             canvas.height = hiddenVideo.videoHeight;
         }
-
         const w = canvas.width;
         const h = canvas.height;
-
-        // Calculate scaled dimensions (small)
-        const sw = Math.floor(w / PIXEL_SIZE);
-        const sh = Math.floor(h / PIXEL_SIZE);
-
-        // Draw scaled down (pixelate)
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(hiddenVideo, 0, 0, sw, sh);
-
-        // Draw scaled up (nearest-neighbor)
-        ctx.drawImage(canvas, 0, 0, sw, sh, 0, 0, w, h);
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(hiddenVideo, 0, 0, w, h);
     }
     requestAnimationFrame(processVideoFrame);
 }
@@ -131,9 +118,6 @@ function addVideoElement(peerId, stream, labelText) {
     const label = document.createElement('h3');
     label.innerText = labelText || 'UNKNOWN ENTITY';
 
-    const scanlines = document.createElement('div');
-    scanlines.className = 'scanlines';
-
     const video = document.createElement('video');
     video.autoplay = true;
     video.playsInline = true;
@@ -141,7 +125,6 @@ function addVideoElement(peerId, stream, labelText) {
     video.srcObject = stream;
 
     wrapper.appendChild(label);
-    wrapper.appendChild(scanlines);
     wrapper.appendChild(video);
     videosContainer.appendChild(wrapper);
 

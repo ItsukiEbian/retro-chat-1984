@@ -290,7 +290,14 @@ body {
     word-break: break-all;
 }
 
-/* ---------- Main ---------- */
+/* ---------- Main + Right panel (PC: 常時表示 / スマホ: ドロワー) ---------- */
+.main-with-panel {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
 .main {
     flex: 1;
     min-width: 0;
@@ -331,6 +338,16 @@ body {
     background: var(--surface-hover);
     padding: 6px 12px;
     border-radius: 20px;
+}
+
+.host-badge {
+    display: none;
+    font-size: 12px;
+    color: var(--primary);
+    background: var(--primary-light);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 500;
 }
 
 .main-header-actions {
@@ -428,22 +445,80 @@ body {
     display: block;
 }
 
-/* Optional: subtle scanlines removed for clean look; re-add class if needed */
-.video-wrapper .scanlines {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 1;
-    background: repeating-linear-gradient(
-        to bottom,
-        transparent 0px,
-        transparent 2px,
-        rgba(0, 0, 0, 0.03) 2px,
-        rgba(0, 0, 0, 0.03) 4px
-    );
+/* 標準ボカシのみ（プライバシー保護・清潔なすりガラス風） */
+.video-mosaic,
+.video-wrapper.video-has-mosaic video,
+.video-wrapper.video-slot-placeholder video,
+.private-video-wrapper video {
+    filter: blur(25px);
+    -webkit-filter: blur(25px);
 }
 
-/* ---------- Right panel (slide from right) ---------- */
+.video-connecting-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    pointer-events: none;
+}
+.video-wrapper.video-slot-placeholder {
+    background: linear-gradient(145deg, #f8f9fa 0%, #e8eaed 100%);
+}
+
+/* ビデオ受信前ローディング */
+.video-loading-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
+    border: 3px solid var(--border-subtle);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: video-spin 0.8s linear infinite;
+    z-index: 2;
+}
+.video-loading-spinner.is-hidden {
+    display: none;
+}
+@keyframes video-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 空き席（Gemini風・シンプルで洗練されたプレースホルダー） */
+.video-slot-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, #f8f9fa 0%, #e8eaed 100%);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    aspect-ratio: 4 / 3;
+    min-height: 160px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+.video-wrapper.video-slot-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.video-wrapper.video-slot-placeholder h3 {
+    position: static;
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+/* ---------- Right panel: PC=常時表示 / スマホ=下からドロワー ---------- */
 .panel-backdrop {
     position: fixed;
     inset: 0;
@@ -460,24 +535,21 @@ body {
 }
 
 .panel {
-    position: fixed;
-    top: 0;
-    right: 0;
     width: 100%;
     max-width: var(--panel-width);
+    min-width: 280px;
     height: 100vh;
     background: var(--bg-panel);
     box-shadow: -4px 0 24px rgba(60, 64, 67, 0.15);
-    z-index: 1001;
     display: flex;
     flex-direction: column;
-    transform: translateX(100%);
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
+    flex-shrink: 0;
+    border-left: 1px solid var(--border-subtle);
 }
 
 .panel.is-open {
-    transform: translateX(0);
+    /* スマホでドロワー表示時は JS で is-open を付与 */
 }
 
 .panel-header {
@@ -747,6 +819,22 @@ body {
     margin-top: 8px;
 }
 
+.auth-admin-link {
+    margin: 16px 0 0;
+    text-align: center;
+    font-size: 13px;
+}
+
+.auth-admin-link a {
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.auth-admin-link a:hover {
+    text-decoration: underline;
+}
+
 /* ---------- Control bar (room footer) ---------- */
 .control-bar {
     display: flex;
@@ -896,6 +984,15 @@ body {
     color: var(--primary);
 }
 
+/* ---------- メイン / 個別ルームの出し分け ---------- */
+body[data-room-context="main"] .private-room-content {
+    display: none !important;
+}
+
+body[data-room-context="private"] #mainRoomContent {
+    display: none !important;
+}
+
 /* ---------- Student list (admin) ---------- */
 .card-students .card-body {
     padding: 16px;
@@ -954,8 +1051,24 @@ body {
     display: flex;
     flex: 1;
     min-height: 0;
+    flex-wrap: wrap;
     gap: 16px;
     padding: 16px;
+}
+
+.private-audio-unlock-banner {
+    flex-basis: 100%;
+    width: 100%;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+    background: var(--primary-light);
+    border-radius: var(--radius-sm);
+}
+
+.private-audio-unlock-banner .btn-primary {
+    margin: 0;
 }
 
 .private-video-section {
@@ -1003,8 +1116,40 @@ body {
 
 .private-video-controls {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 12px;
     padding: 12px 0;
+}
+
+.private-volume-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.private-volume-label {
+    white-space: nowrap;
+}
+.private-volume-control input[type="range"] {
+    width: 80px;
+}
+
+.private-audio-click-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-size: 13px;
+    text-align: center;
+    border: none;
+    cursor: pointer;
 }
 
 .private-chat-section {
@@ -1053,6 +1198,17 @@ body {
     border-top: 1px solid var(--border-subtle);
 }
 
+.private-photo-btn-first {
+    order: -1;
+    width: 100%;
+    margin: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+}
+
 .private-chat-input-area .auth-input {
     flex: 1;
     min-width: 120px;
@@ -1068,6 +1224,30 @@ body {
 
 .control-btn.on { opacity: 1; }
 .control-btn.muted { opacity: 0.5; }
+
+/* ---------- メニューボタン（スマホのみ表示） ---------- */
+.menu-drawer-btn {
+    display: none;
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 999;
+    padding: 12px 20px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    background: var(--primary);
+    border: none;
+    border-radius: 24px;
+    box-shadow: var(--shadow-lg);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.menu-drawer-btn:hover {
+    background: var(--primary-hover);
+}
 
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
@@ -1104,21 +1284,48 @@ body {
         padding: 16px 20px 24px;
     }
 
+    .main-with-panel {
+        flex-direction: column;
+    }
+
+    .panel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        height: 70vh;
+        max-height: 80vh;
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
+        border-left: none;
+        box-shadow: 0 -4px 24px rgba(60, 64, 67, 0.15);
+        z-index: 1001;
+        transform: translateY(100%);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .panel.is-open {
+        transform: translateY(0);
+    }
+
+    .menu-drawer-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
     .videos-container {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
     }
 
     .video-wrapper {
-        min-height: 200px;
+        min-height: 160px;
     }
 }
 
 @media (max-width: 600px) {
-    .panel {
-        max-width: 100%;
-    }
-
     .overlay-card {
         padding: 24px;
     }

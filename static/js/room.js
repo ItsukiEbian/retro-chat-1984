@@ -8,7 +8,25 @@ const ROLE = window.ROLE || 'student';
 const USER_NAME = window.USER_NAME || '';
 let myRoomId = window.ROOM_ID || '';
 
-const PIXEL_SIZE = 15;
+// 再接続・席キープ用。localStorage で永続化
+function getOrCreateUserId() {
+    var key = 'videodesk_user_id';
+    try {
+        var id = localStorage.getItem(key);
+        if (id && id.length >= 32) return id;
+        var u = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+        localStorage.setItem(key, u);
+        return u;
+    } catch (e) { return ''; }
+}
+const USER_ID = getOrCreateUserId();
+
+let amHost = false;           // 自分がホストか
+let orderedSlots = [];        // 最大4。各要素は null | { sid, user_name, role, connected, is_host }
+
 const FILTER_FPS = 30;
 
 const rtcConfig = {
@@ -20,7 +38,7 @@ const rtcConfig = {
 
 let localStream;
 let rawStream;
-let peers = {};
+let peers = {};            // sid -> { connection, pendingCandidates: [] }
 let handRaiseState = {};  // sid -> { user_name, raised }
 let roomParticipants = {};  // sid -> { user_name, role } (for admin student list)
 let myHandRaised = false;
@@ -66,6 +84,12 @@ function updateRoomIdDisplay() {
     if (sid) sid.textContent = myRoomId || '—';
     if (hid) hid.textContent = myRoomId || '—';
 }
+
+function updateHostBadge() {
+    const el = document.getElementById('hostBadge');
+    if (el) el.style.display = amHost ? 'inline-block' : 'none';
+}
+
 updateRoomIdDisplay();
 
 // ---------- Notification sound (admin) ----------
@@ -102,11 +126,8 @@ function processVideoFrame() {
         }
         const w = canvas.width;
         const h = canvas.height;
-        const sw = Math.floor(w / PIXEL_SIZE);
-        const sh = Math.floor(h / PIXEL_SIZE);
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(hiddenVideo, 0, 0, sw, sh);
-        ctx.drawImage(canvas, 0, 0, sw, sh, 0, 0, w, h);
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(hiddenVideo, 0, 0, w, h);
     }
     requestAnimationFrame(processVideoFrame);
 }
@@ -136,13 +157,16 @@ async function startSystem() {
         addVideoElement('local', localStream, localLabel);
 
         overlay.style.display = 'none';
-        statusDiv.innerText = "接続済み: " + myRoomId;
+        var overlayWarning = document.getElementById('overlayCameraWarning');
+        if (overlayWarning) { overlayWarning.hidden = true; overlayWarning.textContent = ''; }
+        statusDiv.innerText = "接続中...";
 
         roomParticipants[socket.id] = { user_name: USER_NAME, role: ROLE };
         socket.emit('join_room', {
-            room: myRoomId,
+            room: myRoomId || undefined,
             user_name: USER_NAME,
-            role: ROLE
+            role: ROLE,
+            user_id: USER_ID || undefined
         });
         if (ROLE === 'admin') renderStudentList();
     } catch (err) {
@@ -208,30 +232,84 @@ function applyHandStates() {
     });
 }
 
+function createLocalWrapper(stream, labelText) {
+    var wrapper = document.createElement('div');
+    wrapper.className = 'video-wrapper video-has-mosaic';
+    wrapper.id = 'video-wrapper-local';
+    wrapper.setAttribute('data-peer-id', 'local');
+    var label = document.createElement('h3');
+    label.innerText = labelText || '';
+    var video = document.createElement('video');
+    video.className = 'video-mosaic';
+    video.autoplay = true;
+    video.playsInline = true;
+    video.muted = true;
+    video.srcObject = stream;
+    video.play().catch(function () {});
+    wrapper.appendChild(label);
+    wrapper.appendChild(video);
+    if (handRaiseState[socket.id]) updateHandIndicator(wrapper, handRaiseState[socket.id].raised);
+    return wrapper;
+}
+
+function setVideoStreamAndHideSpinner(video, stream, wrapper) {
+    if (!video || !stream) return;
+    video.srcObject = stream;
+    video.muted = (video.getAttribute('data-local') === 'true');
+    video.play().catch(function () {});
+    function onReady() {
+        video.removeEventListener('loadeddata', onReady);
+        video.removeEventListener('playing', onReady);
+        if (wrapper) {
+            var s = wrapper.querySelector('.video-loading-spinner');
+            if (s) s.classList.add('is-hidden');
+        }
+    }
+    video.addEventListener('loadeddata', onReady);
+    video.addEventListener('playing', onReady);
+    if (video.readyState >= 2) onReady();
+}
+
 function addVideoElement(peerId, stream, labelText) {
     if (document.getElementById('video-wrapper-' + peerId)) return;
 
     const wrapper = document.createElement('div');
-    wrapper.className = 'video-wrapper';
+    wrapper.className = 'video-wrapper video-has-mosaic';
     wrapper.id = 'video-wrapper-' + peerId;
     wrapper.setAttribute('data-peer-id', peerId);
 
     const label = document.createElement('h3');
     label.innerText = labelText || '';
 
-    const scanlines = document.createElement('div');
-    scanlines.className = 'scanlines';
-
     const video = document.createElement('video');
-    video.autoplay = true;
-    video.playsInline = true;
-    video.muted = (peerId === 'local');
+    video.className = 'video-mosaic';
+    video.setAttribute('autoplay', '');
+    video.setAttribute('playsinline', '');
+    video.muted = true;
     video.srcObject = stream;
+    video.setAttribute('data-local', peerId === 'local' ? 'true' : 'false');
+    video.play().then(function () {}).catch(function (err) {
+        video.muted = true;
+        video.play().catch(function () {});
+        showToast('画面をクリックすると映像が表示されます');
+    });
 
     wrapper.appendChild(label);
-    wrapper.appendChild(scanlines);
+    if (peerId !== 'local') wrapper.appendChild(createSpinnerEl());
     wrapper.appendChild(video);
     videosContainer.appendChild(wrapper);
+
+    if (peerId !== 'local') {
+        function hideSpinner() {
+            video.removeEventListener('loadeddata', hideSpinner);
+            video.removeEventListener('playing', hideSpinner);
+            var s = wrapper.querySelector('.video-loading-spinner');
+            if (s) s.classList.add('is-hidden');
+        }
+        video.addEventListener('loadeddata', hideSpinner);
+        video.addEventListener('playing', hideSpinner);
+        if (video.readyState >= 2) hideSpinner();
+    }
 
     const sid = peerId === 'local' ? socket.id : peerId;
     if (handRaiseState[sid]) updateHandIndicator(wrapper, handRaiseState[sid].raised);
@@ -247,6 +325,80 @@ function removeVideoElement(peerId) {
 
 function updateLayout() {
     if (videosContainer) videosContainer.setAttribute('data-count', videosContainer.children.length);
+}
+
+function createEmptySlot() {
+    var el = document.createElement('div');
+    el.className = 'video-slot-empty';
+    el.setAttribute('aria-label', '空き席');
+    el.textContent = '空き席';
+    return el;
+}
+
+function createSpinnerEl() {
+    var spinner = document.createElement('div');
+    spinner.className = 'video-loading-spinner';
+    spinner.setAttribute('aria-hidden', 'true');
+    return spinner;
+}
+
+function createRemotePlaceholder(slotInfo) {
+    var el = document.createElement('div');
+    el.className = 'video-wrapper video-slot-placeholder video-has-mosaic';
+    el.id = 'video-wrapper-' + slotInfo.sid;
+    el.setAttribute('data-peer-id', slotInfo.sid);
+    el.setAttribute('data-sid', slotInfo.sid);
+    var label = document.createElement('h3');
+    label.textContent = slotInfo.connected ? (slotInfo.user_name || '接続中') : '接続切れ';
+    var connLabel = document.createElement('div');
+    connLabel.className = 'video-connecting-label';
+    connLabel.textContent = '接続中...';
+    var video = document.createElement('video');
+    video.className = 'video-mosaic';
+    video.setAttribute('autoplay', '');
+    video.setAttribute('playsinline', '');
+    video.muted = true;
+    video.setAttribute('data-local', 'false');
+    el.appendChild(label);
+    el.appendChild(connLabel);
+    el.appendChild(createSpinnerEl());
+    el.appendChild(video);
+    return el;
+}
+
+function renderVideoGrid() {
+    if (!videosContainer || orderedSlots.length < 4) return;
+    var localEl = document.getElementById('video-wrapper-local');
+    var remoteEls = {};
+    orderedSlots.forEach(function (s) {
+        if (s && s.sid && s.sid !== socket.id) remoteEls[s.sid] = document.getElementById('video-wrapper-' + s.sid);
+    });
+    videosContainer.innerHTML = '';
+    for (var i = 0; i < 4; i++) {
+        if (!orderedSlots[i]) {
+            videosContainer.appendChild(createEmptySlot());
+        } else if (orderedSlots[i].sid === socket.id) {
+            if (localEl) {
+                videosContainer.appendChild(localEl);
+            } else if (localStream) {
+                var label = ROLE === 'admin' ? '管理者' : USER_NAME || 'あなた';
+                var wrap = createLocalWrapper(localStream, label);
+                videosContainer.appendChild(wrap);
+            } else {
+                videosContainer.appendChild(createEmptySlot());
+            }
+        } else {
+            var sid = orderedSlots[i].sid;
+            if (remoteEls[sid]) {
+                videosContainer.appendChild(remoteEls[sid]);
+            } else {
+                videosContainer.appendChild(createRemotePlaceholder(orderedSlots[i]));
+                createPeerConnection(sid, socket.id < sid);
+            }
+        }
+    }
+    applyHandStates();
+    updateLayout();
 }
 
 function renderStudentList() {
@@ -278,6 +430,37 @@ function escapeHtml(s) {
     return div.innerHTML;
 }
 
+socket.on('room_assigned', (data) => {
+    myRoomId = data.room_id || myRoomId;
+    amHost = !!data.is_host;
+    updateRoomIdDisplay();
+    updateHostBadge();
+    if (statusDiv) statusDiv.innerText = "接続済み: " + myRoomId;
+});
+
+socket.on('room_state', (data) => {
+    if (currentPrivateSessionId) return;
+    var raw = data.participants || [];
+    orderedSlots = raw.slice(0, 4);
+    while (orderedSlots.length < 4) orderedSlots.push(null);
+    roomParticipants = {};
+    orderedSlots.forEach(function (s) {
+        if (s && s.sid) roomParticipants[s.sid] = { user_name: s.user_name || '', role: s.role || 'student' };
+    });
+    Object.keys(peers).forEach(function (sid) {
+        if (peers[sid] && peers[sid].connection) peers[sid].connection.close();
+    });
+    peers = {};
+    renderVideoGrid();
+});
+
+socket.on('host_changed', (data) => {
+    const name = data.new_host_name || '参加者';
+    showToast(name + 'さんが新しいホストになりました');
+    amHost = (data.new_host_sid === socket.id);
+    updateHostBadge();
+});
+
 socket.on('user_joined', async (data) => {
     const targetId = data.sid;
     const userName = data.user_name || ('参加者 ' + targetId.substr(0, 6));
@@ -285,12 +468,21 @@ socket.on('user_joined', async (data) => {
     roomParticipants[targetId] = { user_name: userName, role: role };
     if (handRaiseState[targetId] === undefined) handRaiseState[targetId] = { user_name: userName, raised: false };
     else handRaiseState[targetId].user_name = userName;
-    createPeerConnection(targetId, true);
+    createPeerConnection(targetId, socket.id < targetId);
     if (ROLE === 'admin') renderStudentList();
+});
+
+socket.on('request_offer_to', function (data) {
+    var newSid = data.new_sid;
+    if (!newSid || newSid === socket.id) return;
+    roomParticipants[newSid] = roomParticipants[newSid] || { user_name: '接続中', role: 'student' };
+    createPeerConnection(newSid, socket.id < newSid);
 });
 
 socket.on('user_left', (data) => {
     const targetId = data.sid;
+    const leftName = data.user_name || '参加者';
+    if (leftName) showToast(leftName + 'さんが退出しました');
     delete roomParticipants[targetId];
     if (peers[targetId]) {
         peers[targetId].connection.close();
@@ -337,17 +529,31 @@ function showToast(message) {
     }, 4000);
 }
 
+async function flushPendingIceCandidates(peer) {
+    if (!peer || !peer.pendingCandidates || !peer.connection) return;
+    for (var i = 0; i < peer.pendingCandidates.length; i++) {
+        try {
+            await peer.connection.addIceCandidate(new RTCIceCandidate(peer.pendingCandidates[i]));
+        } catch (e) {
+            console.error("ICE flush", e);
+        }
+    }
+    peer.pendingCandidates = [];
+}
+
 socket.on('offer', async (data) => {
     const targetId = data.sender;
     if (currentPrivateSessionId) {
         var pc = privateCreatePeerConnection(targetId, '', false);
         await pc.setRemoteDescription(new RTCSessionDescription(data.description));
+        await flushPendingIceCandidates(privatePeers[targetId]);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         socket.emit('answer', { target: targetId, description: pc.localDescription, sender: socket.id });
     } else {
         const pc = createPeerConnection(targetId, false);
         await pc.setRemoteDescription(new RTCSessionDescription(data.description));
+        await flushPendingIceCandidates(peers[targetId]);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         socket.emit('answer', { target: targetId, description: pc.localDescription, sender: socket.id });
@@ -356,35 +562,126 @@ socket.on('offer', async (data) => {
 
 socket.on('answer', async (data) => {
     const targetId = data.sender;
-    var pc = currentPrivateSessionId ? (privatePeers[targetId] && privatePeers[targetId].connection) : peers[targetId]?.connection;
-    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.description));
+    var peer = currentPrivateSessionId ? privatePeers[targetId] : peers[targetId];
+    var pc = peer && peer.connection;
+    if (pc) {
+        await pc.setRemoteDescription(new RTCSessionDescription(data.description));
+        await flushPendingIceCandidates(peer);
+    }
 });
+
+function addIceCandidateSafe(pc, candidate, pendingCandidates) {
+    if (!pc || !candidate) return Promise.resolve();
+    if (pc.remoteDescription && pc.remoteDescription.type) {
+        return pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(function (e) {
+            console.error("ICE addIceCandidate", e);
+        });
+    }
+    if (pendingCandidates) pendingCandidates.push(candidate);
+    return Promise.resolve();
+}
 
 socket.on('ice_candidate', async (data) => {
     const targetId = data.sender;
-    var pc = currentPrivateSessionId ? (privatePeers[targetId] && privatePeers[targetId].connection) : peers[targetId]?.connection;
-    if (pc && data.candidate) {
-        try {
-            await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-        } catch (e) {
-            console.error("ICE Error", e);
-        }
+    const candidate = data.candidate;
+    if (!candidate) return;
+    if (currentPrivateSessionId) {
+        var pr = privatePeers[targetId];
+        var pc = pr && pr.connection;
+        if (pr && !pr.pendingCandidates) pr.pendingCandidates = [];
+        addIceCandidateSafe(pc, candidate, pr && pr.pendingCandidates);
+    } else {
+        var peer = peers[targetId];
+        var pc = peer && peer.connection;
+        if (peer && !peer.pendingCandidates) peer.pendingCandidates = [];
+        addIceCandidateSafe(pc, candidate, peer && peer.pendingCandidates);
     }
 });
+
+var WEBRTC_DEBUG = true;
+function webrtcLog(prefix, targetId, msg, extra) {
+    if (!WEBRTC_DEBUG) return;
+    var s = '[WebRTC] ' + prefix + ' →' + (targetId ? targetId.substr(0, 8) : '') + ': ' + msg;
+    if (extra) s += ' ' + JSON.stringify(extra);
+    console.log(s);
+}
 
 function createPeerConnection(targetId, isInitiator) {
     if (peers[targetId]) return peers[targetId].connection;
 
     const pc = new RTCPeerConnection(rtcConfig);
+    webrtcLog('PC', targetId, 'created', { isInitiator: isInitiator });
 
     if (localStream) {
         localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
     }
 
+    pc.onsignalingstatechange = function () {
+        webrtcLog('PC', targetId, 'signalingState', { state: pc.signalingState });
+    };
+    pc.oniceconnectionstatechange = function () {
+        webrtcLog('PC', targetId, 'iceConnectionState', { state: pc.iceConnectionState });
+        if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+            if (peers[targetId] && peers[targetId].connection === pc && !(peers[targetId].iceRestarting)) {
+                var peer = peers[targetId];
+                peer.iceRestarting = true;
+                webrtcLog('PC', targetId, 'ICE restart (createOffer iceRestart:true)');
+                pc.createOffer({ iceRestart: true }).then(function (offer) {
+                    return pc.setLocalDescription(offer);
+                }).then(function () {
+                    socket.emit('offer', { target: targetId, description: pc.localDescription, sender: socket.id });
+                    setTimeout(function () { if (peer) peer.iceRestarting = false; }, 3000);
+                }).catch(function (err) {
+                    console.warn('[WebRTC] ICE restart error', err);
+                    if (peer) peer.iceRestarting = false;
+                });
+            }
+        }
+    };
+
     pc.ontrack = (event) => {
         const remoteStream = event.streams[0];
-        if (!document.getElementById('video-wrapper-' + targetId)) {
-            const userName = (handRaiseState[targetId] && handRaiseState[targetId].user_name) || ('参加者 ' + targetId.substr(0, 6));
+        if (!remoteStream) {
+            console.warn('[WebRTC] ontrack: no stream', targetId);
+            return;
+        }
+        webrtcLog('ontrack', targetId, 'stream received', { id: remoteStream.id, tracks: remoteStream.getTracks().length });
+        const wrap = document.getElementById('video-wrapper-' + targetId);
+        if (wrap && wrap.classList.contains('video-slot-placeholder')) {
+            wrap.classList.remove('video-slot-placeholder');
+            var connLabel = wrap.querySelector('.video-connecting-label');
+            if (connLabel) connLabel.remove();
+            const video = wrap.querySelector('video');
+            if (video) {
+                video.setAttribute('autoplay', '');
+                video.setAttribute('playsinline', '');
+                video.muted = true;
+                video.srcObject = remoteStream;
+                video.play().then(function () {
+                    webrtcLog('ontrack', targetId, 'video.play() ok');
+                }).catch(function (err) {
+                    console.warn('[WebRTC] video.play() blocked', err);
+                    video.muted = true;
+                    video.play().catch(function () {});
+                    showToast('画面をクリックすると映像が表示されます');
+                });
+                var s = wrap.querySelector('.video-loading-spinner');
+                if (s) s.classList.add('is-hidden');
+                function onReady() {
+                    video.removeEventListener('loadeddata', onReady);
+                    video.removeEventListener('playing', onReady);
+                    var sp = wrap.querySelector('.video-loading-spinner');
+                    if (sp) sp.classList.add('is-hidden');
+                }
+                video.addEventListener('loadeddata', onReady);
+                video.addEventListener('playing', onReady);
+                if (video.readyState >= 2) onReady();
+            }
+            var label = wrap.querySelector('h3');
+            if (label) label.textContent = (handRaiseState[targetId] && handRaiseState[targetId].user_name) || (roomParticipants[targetId] && roomParticipants[targetId].user_name) || ('参加者 ' + targetId.substr(0, 6));
+            if (handRaiseState[targetId]) updateHandIndicator(wrap, handRaiseState[targetId].raised);
+        } else if (!wrap) {
+            const userName = (handRaiseState[targetId] && handRaiseState[targetId].user_name) || (roomParticipants[targetId] && roomParticipants[targetId].user_name) || ('参加者 ' + targetId.substr(0, 6));
             addVideoElement(targetId, remoteStream, userName);
         }
     };
@@ -395,7 +692,7 @@ function createPeerConnection(targetId, isInitiator) {
         }
     };
 
-    peers[targetId] = { connection: pc };
+    peers[targetId] = { connection: pc, pendingCandidates: [] };
 
     if (isInitiator) {
         makeOffer(pc, targetId);
@@ -445,7 +742,9 @@ function openPanel(view) {
     if (view === 'share') {
         if (panelViewShare) panelViewShare.classList.add('is-visible');
         if (panelTitle) panelTitle.textContent = '共有';
-        var currentUrl = window.location.origin + window.location.pathname + '?room=' + encodeURIComponent(myRoomId);
+        var base = window.location.origin + (window.location.pathname.replace(/\/room\/?$/, '').replace(/\?.*$/, '') || '/');
+        if (!base.endsWith('/')) base += '/';
+        var currentUrl = base + '?room_id=' + encodeURIComponent(myRoomId || '');
         if (roomUrlP) roomUrlP.textContent = currentUrl;
         if (qrcodeDiv) {
             qrcodeDiv.innerHTML = '';
@@ -470,15 +769,17 @@ function closePanel() {
     }
 }
 
+var menuDrawerBtn = document.getElementById('menuDrawerBtn');
 if (qrBtn) qrBtn.addEventListener('click', function () { openPanel('share'); });
 if (sidebarShareBtn) sidebarShareBtn.addEventListener('click', function () { openPanel('share'); });
 if (sidebarSettingsBtn) sidebarSettingsBtn.addEventListener('click', function () { openPanel('settings'); });
+if (menuDrawerBtn) menuDrawerBtn.addEventListener('click', function () { openPanel('share'); });
 if (panelClose) panelClose.addEventListener('click', closePanel);
 if (panelBackdrop) panelBackdrop.addEventListener('click', closePanel);
 
 if (copyUrlBtn && roomUrlP) {
     copyUrlBtn.addEventListener('click', function () {
-        var url = roomUrlP.textContent || (window.location.origin + window.location.pathname + '?room=' + myRoomId);
+        var url = roomUrlP.textContent || (window.location.origin + '/' + (window.location.pathname.replace(/\/room\/?$/, '') || '') + '?room_id=' + (myRoomId || ''));
         navigator.clipboard.writeText(url).then(function () {
             copyUrlBtn.textContent = 'コピーしました';
             setTimeout(function () { copyUrlBtn.textContent = 'URLをコピー'; }, 2000);
@@ -497,9 +798,16 @@ var privateChatMessages = document.getElementById('privateChatMessages');
 var privateChatInput = document.getElementById('privateChatInput');
 var privateChatSendBtn = document.getElementById('privateChatSendBtn');
 var privatePhotoInput = document.getElementById('privatePhotoInput');
+var privateAudioUnlockBanner = document.getElementById('privateAudioUnlockBanner');
+var privateAudioUnlockBtn = document.getElementById('privateAudioUnlockBtn');
+
+function setRoomContext(context) {
+    if (document.body) document.body.setAttribute('data-room-context', context === 'private' ? 'private' : 'main');
+}
 
 function closePrivateRoom() {
     currentPrivateSessionId = null;
+    setRoomContext('main');
     if (privatePeers) {
         Object.keys(privatePeers).forEach(function (sid) {
             if (privatePeers[sid] && privatePeers[sid].connection) privatePeers[sid].connection.close();
@@ -510,6 +818,15 @@ function closePrivateRoom() {
         privateLocalStream.getTracks().forEach(function (t) { t.stop(); });
         privateLocalStream = null;
     }
+    if (privateMicBtn) {
+        privateMicBtn.classList.remove('on');
+        privateMicBtn.classList.add('muted');
+    }
+    if (privateCameraBtn) {
+        privateCameraBtn.classList.remove('on');
+        privateCameraBtn.classList.add('muted');
+    }
+    if (privateAudioUnlockBanner) privateAudioUnlockBanner.hidden = true;
     if (privateVideosContainer) privateVideosContainer.innerHTML = '';
     if (privateChatMessages) privateChatMessages.innerHTML = '';
     if (mainRoomContent) mainRoomContent.hidden = false;
@@ -531,15 +848,22 @@ socket.on('private_participants', function (data) {
 function addPrivateVideoElement(peerId, stream, labelText) {
     if (!privateVideosContainer || document.getElementById('private-video-' + peerId)) return;
     var wrap = document.createElement('div');
-    wrap.className = 'private-video-wrapper video-wrapper';
+    wrap.className = 'private-video-wrapper video-wrapper video-has-mosaic';
     wrap.id = 'private-video-' + peerId;
     var label = document.createElement('h3');
     label.textContent = labelText || '';
     var video = document.createElement('video');
-    video.autoplay = true;
-    video.playsInline = true;
+    video.className = 'video-mosaic';
+    video.setAttribute('autoplay', '');
+    video.setAttribute('playsinline', '');
+    video.setAttribute('data-local', peerId === 'local' ? 'true' : 'false');
     video.muted = (peerId === 'local');
+    if (peerId !== 'local') {
+        video.muted = false;
+        video.volume = typeof privateRemoteVolume === 'number' ? privateRemoteVolume : 1;
+    }
     video.srcObject = stream;
+    video.play().catch(function () {});
     wrap.appendChild(label);
     wrap.appendChild(video);
     privateVideosContainer.appendChild(wrap);
@@ -551,12 +875,58 @@ function privateCreatePeerConnection(targetId, userName, isInitiator) {
     if (privateLocalStream) privateLocalStream.getTracks().forEach(function (t) { pc.addTrack(t, privateLocalStream); });
     pc.ontrack = function (event) {
         var remoteStream = event.streams[0];
-        if (!document.getElementById('private-video-' + targetId)) addPrivateVideoElement(targetId, remoteStream, userName);
+        if (!remoteStream) return;
+        var audioTracks = remoteStream.getAudioTracks ? remoteStream.getAudioTracks() : [];
+        var videoTracks = remoteStream.getVideoTracks ? remoteStream.getVideoTracks() : [];
+        if (WEBRTC_DEBUG) console.log('[WebRTC] private ontrack →' + targetId.substr(0, 8) + ': stream id=' + remoteStream.id + ' audioTracks=' + audioTracks.length + ' videoTracks=' + videoTracks.length);
+        audioTracks.forEach(function (t) { t.enabled = true; });
+        if (!document.getElementById('private-video-' + targetId)) {
+            addPrivateVideoElement(targetId, remoteStream, userName);
+            var el = document.getElementById('private-video-' + targetId);
+            if (el) {
+                var v = el.querySelector('video');
+                if (v) {
+                    v.setAttribute('autoplay', '');
+                    v.setAttribute('playsinline', '');
+                    v.muted = false;
+                    v.volume = typeof privateRemoteVolume === 'number' ? privateRemoteVolume : 1;
+                    v.srcObject = remoteStream;
+                    v.play().then(function () {
+                        if (WEBRTC_DEBUG) console.log('[WebRTC] private video.play() ok →' + targetId.substr(0, 8));
+                    }).catch(function (err) {
+                        console.warn('[WebRTC] private video.play() blocked', err);
+                        var overlay = document.createElement('button');
+                        overlay.type = 'button';
+                        overlay.className = 'private-audio-click-overlay';
+                        overlay.textContent = '音声を開始するには画面をクリックしてください';
+                        overlay.addEventListener('click', function () {
+                            v.muted = false;
+                            v.play().catch(function () {});
+                            overlay.remove();
+                        });
+                        el.appendChild(overlay);
+                    });
+                }
+            }
+        }
+    };
+    pc.oniceconnectionstatechange = function () {
+        if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+            if (privatePeers[targetId] && privatePeers[targetId].connection === pc) {
+                try {
+                    pc.createOffer({ iceRestart: true }).then(function (offer) {
+                        return pc.setLocalDescription(offer);
+                    }).then(function () {
+                        socket.emit('offer', { target: targetId, description: pc.localDescription, sender: socket.id });
+                    }).catch(function (err) { console.warn('Private ICE restart error', err); });
+                } catch (e) { console.warn('Private ICE restart', e); }
+            }
+        }
     };
     pc.onicecandidate = function (event) {
         if (event.candidate) socket.emit('ice_candidate', { target: targetId, candidate: event.candidate, sender: socket.id });
     };
-    privatePeers[targetId] = { connection: pc };
+    privatePeers[targetId] = { connection: pc, pendingCandidates: [] };
     if (isInitiator) privateMakeOffer(pc, targetId);
     return pc;
 }
@@ -575,7 +945,7 @@ socket.on('redirect_to_main_room', function (data) {
     mainRoomIdForReturn = null;
     if (mainRoom) {
         myRoomId = mainRoom;
-        socket.emit('join_room', { room: mainRoom, user_name: USER_NAME, role: ROLE });
+        socket.emit('join_room', { room: mainRoom, user_name: USER_NAME, role: ROLE, user_id: USER_ID || undefined });
         if (statusDiv) statusDiv.innerText = '接続済み: ' + mainRoom;
         updateRoomIdDisplay();
     }
@@ -592,6 +962,7 @@ socket.on('redirect_to_private', function (data) {
     mainRoomIdForReturn = data.main_room;
     if (!sessionId || !mainRoomIdForReturn) return;
     currentPrivateSessionId = sessionId;
+    setRoomContext('private');
     if (mainRoomContent) mainRoomContent.hidden = true;
     if (privateRoomContent) privateRoomContent.hidden = false;
     socket.emit('join_private_room', { session_id: sessionId, user_name: USER_NAME, role: ROLE });
@@ -602,19 +973,71 @@ socket.on('redirect_to_private', function (data) {
         if (mainRoomContent) mainRoomContent.hidden = false;
         return;
     }
-    navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 } }, audio: true }).then(function (stream) {
+    var audioConstraints = { echoCancellation: true, noiseSuppression: true };
+    navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: audioConstraints
+    }).then(function (stream) {
         privateLocalStream = stream;
-        if (privateVideosContainer) addPrivateVideoElement('local', stream, ROLE === 'admin' ? '管理者' : USER_NAME);
-        if (privateMicBtn) privateMicBtn.classList.add('on');
+        var audioTrack = stream.getAudioTracks()[0];
+        if (audioTrack) {
+            audioTrack.enabled = true;
+            if (privateMicBtn) {
+                privateMicBtn.classList.add('on');
+                privateMicBtn.classList.remove('muted');
+            }
+        }
+        if (privateAudioUnlockBanner) privateAudioUnlockBanner.hidden = false;
         if (privateCameraBtn) privateCameraBtn.classList.add('on');
+        if (privateVideosContainer) addPrivateVideoElement('local', stream, ROLE === 'admin' ? '管理者' : USER_NAME);
+        socket.emit('private_media_ready', {});
     }).catch(function (err) {
         logMediaError('Private room getUserMedia', err);
         showMediaErrorAlert('個別ルームのカメラ・マイクにアクセスできません。' + (err.message ? '\n' + err.message : ''), err);
+        setRoomContext('main');
         if (privateRoomContent) privateRoomContent.hidden = true;
         if (mainRoomContent) mainRoomContent.hidden = false;
     });
 });
 
+var privateRemoteVolume = 1;
+
+function privateUnmuteAllRemoteVideos() {
+    if (!privateVideosContainer) return;
+    privateVideosContainer.querySelectorAll('video').forEach(function (v) {
+        if (v.getAttribute('data-local') !== 'true') {
+            v.muted = false;
+            v.volume = typeof privateRemoteVolume === 'number' ? privateRemoteVolume : 1;
+            v.play().then(function () {}).catch(function () {});
+        }
+    });
+    privateVideosContainer.querySelectorAll('.private-audio-click-overlay').forEach(function (o) { o.remove(); });
+}
+
+socket.on('private_audio_sync', function () {
+    if (!currentPrivateSessionId) return;
+    if (privateLocalStream) {
+        var at = privateLocalStream.getAudioTracks()[0];
+        if (at) at.enabled = true;
+        if (privateMicBtn) { privateMicBtn.classList.add('on'); privateMicBtn.classList.remove('muted'); }
+    }
+    privateUnmuteAllRemoteVideos();
+});
+
+if (privateAudioUnlockBtn) {
+    privateAudioUnlockBtn.addEventListener('click', function () {
+        if (privateLocalStream) {
+            var audioTrack = privateLocalStream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = true;
+                if (privateMicBtn) { privateMicBtn.classList.add('on'); privateMicBtn.classList.remove('muted'); }
+            }
+        }
+        privateUnmuteAllRemoteVideos();
+        if (privateAudioUnlockBanner) privateAudioUnlockBanner.hidden = true;
+        showToast('音声が有効になりました。会話が可能です');
+    });
+}
 if (privateMicBtn) privateMicBtn.addEventListener('click', function () {
     if (!privateLocalStream) return;
     var audioTrack = privateLocalStream.getAudioTracks()[0];
@@ -633,6 +1056,17 @@ if (privateCameraBtn) privateCameraBtn.addEventListener('click', function () {
         privateCameraBtn.classList.toggle('muted', !videoTrack.enabled);
     }
 });
+var privateRemoteVolumeSlider = document.getElementById('privateRemoteVolumeSlider');
+if (privateRemoteVolumeSlider) {
+    privateRemoteVolumeSlider.addEventListener('input', function () {
+        privateRemoteVolume = parseInt(this.value, 10) / 100;
+        if (privateVideosContainer) {
+            privateVideosContainer.querySelectorAll('video').forEach(function (v) {
+                if (v.getAttribute('data-local') !== 'true') v.volume = privateRemoteVolume;
+            });
+        }
+    });
+}
 
 function appendChatMessage(userName, text, isImage, dataUrl) {
     if (!privateChatMessages) return;
@@ -656,9 +1090,12 @@ function appendChatMessage(userName, text, isImage, dataUrl) {
 }
 
 socket.on('private_chat', function (data) {
+    // 送信者本人にはサーバーから返さない（ローカルで既に追加済みのため二重表示を防ぐ）
+    if (data.sender_sid === socket.id) return;
     appendChatMessage(data.user_name || '', data.text || '', false);
 });
 socket.on('private_chat_image', function (data) {
+    if (data.sender_sid === socket.id) return;
     appendChatMessage(data.user_name || '', '', true, data.data_url);
 });
 
