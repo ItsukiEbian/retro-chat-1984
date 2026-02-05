@@ -42,27 +42,19 @@
     </div>
 
     <aside class="sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-logo">
-                <span class="logo-icon">◉</span>
-                <span class="logo-text">Video Desk</span>
-            </div>
-        </div>
         <nav class="sidebar-nav">
-            <a href="#" class="nav-item nav-item-active" data-view="meeting">
-                <span class="nav-icon">📹</span>
-                <span class="nav-label">ミーティング</span>
-            </a>
-            <button type="button" class="nav-item" id="sidebarShareBtn" aria-label="共有">
-                <span class="nav-icon">🔗</span>
-                <span class="nav-label">共有</span>
+            <button type="button" class="nav-item nav-item-active" id="sidebarShareBtn" aria-label="QRコードで共有">
+                <span class="nav-icon" aria-hidden="true">▣</span>
             </button>
             <button type="button" class="nav-item" id="sidebarSettingsBtn" aria-label="設定">
                 <span class="nav-icon">⚙</span>
-                <span class="nav-label">設定</span>
             </button>
         </nav>
         <div class="sidebar-footer">
+            <div class="sidebar-role-row">
+                <span class="host-badge host-badge-sidebar" id="hostBadge" aria-label="あなたがホストです">ホスト</span>
+                <span class="role-badge role-badge-{{ role }}">{{ '管理者' if role == 'admin' else '学習者' }}</span>
+            </div>
             <div class="sidebar-room">
                 <span class="sidebar-room-label">ルームID</span>
                 <span class="sidebar-room-value" id="sidebarRoomId">—</span>
@@ -73,19 +65,9 @@
 
     <div class="main-with-panel">
     <main class="main">
-        <header class="main-header">
-            <div class="main-header-left">
-                <h2 class="main-title">自習室</h2>
-                <span class="room-badge" id="roomBadge">ルーム: <span id="headerRoomId">—</span></span>
-                <span class="host-badge" id="hostBadge" aria-label="あなたがホストです">あなたがホストです</span>
-                <span class="role-badge role-badge-{{ role }}">{{ '管理者' if role == 'admin' else '学習者' }}</span>
-            </div>
-            <div class="main-header-actions">
-                {% if role == 'admin' %}
-                <button type="button" class="btn-secondary" id="soundTestBtn">通知音テスト</button>
-                {% endif %}
-                <button type="button" class="btn-secondary" id="qrBtn">QRコードで共有</button>
-            </div>
+        <header class="main-header main-header-compact">
+            <div class="main-header-left"></div>
+            <div class="main-header-actions"></div>
         </header>
 
         <div class="main-content" id="mainRoomContent">
@@ -99,9 +81,8 @@
                 </div>
             </div>
             {% endif %}
-            <div class="card card-video">
-                <div class="card-header">
-                    <h3>ビデオ通話</h3>
+            <div class="card card-video card-video-main">
+                <div class="card-header card-header-mini">
                     <div id="status" class="status-text">待機中...</div>
                 </div>
                 <div class="card-body card-body-video">
@@ -126,19 +107,22 @@
                 <button type="button" class="btn-primary" id="endPrivateSessionBtn">指導を終了して戻る</button>
             </div>
             <div class="private-room-body">
-                <div class="private-audio-unlock-banner" id="privateAudioUnlockBanner" hidden>
-                    <button type="button" class="btn-primary" id="privateAudioUnlockBtn">音声を有効にする（クリック）</button>
+                <div class="private-media-start-banner" id="privateMediaStartBanner">
+                    <p class="private-media-start-desc">通話を開始するには、下のボタンをクリックしてカメラ・マイクへのアクセスを許可してください。</p>
+                    <button type="button" class="btn-primary" id="privateMediaStartBtn">カメラ・マイクを開始</button>
                 </div>
-                <div class="private-video-section">
+                <div class="private-video-section" id="privateVideoSection">
                     <div class="private-videos" id="privateVideosContainer"></div>
                     <div class="private-video-controls">
-                        <button type="button" class="control-btn" id="privateMicBtn" title="マイク">
-                            <span class="control-btn-icon">🎤</span>
-                            <span class="control-btn-label">マイク</span>
+                        <button type="button" class="control-btn control-btn-icon-only" id="privateMicBtn" title="マイク" aria-label="マイク">
+                            <span class="control-btn-icon control-btn-icon-svg">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                            </span>
                         </button>
-                        <button type="button" class="control-btn" id="privateCameraBtn" title="カメラ">
-                            <span class="control-btn-icon">📷</span>
-                            <span class="control-btn-label">カメラ</span>
+                        <button type="button" class="control-btn control-btn-icon-only" id="privateCameraBtn" title="カメラ" aria-label="カメラ">
+                            <span class="control-btn-icon control-btn-icon-svg">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            </span>
                         </button>
                         <label class="private-volume-control">
                             <span class="private-volume-label">相手の音量</span>
@@ -161,32 +145,17 @@
         </div>
     </main>
 
-    <div class="panel-backdrop" id="panelBackdrop" aria-hidden="true"></div>
-    <aside class="panel panel-right" id="rightPanel" aria-label="共有・設定パネル">
-        <div class="panel-header">
-            <h2 class="panel-title" id="panelTitle">共有</h2>
-            <button type="button" class="panel-close" id="panelClose" aria-label="閉じる">&times;</button>
+    <div class="panel-backdrop qr-popup-backdrop" id="qrPopupBackdrop" aria-hidden="true"></div>
+    <div class="bottom-popup" id="qrPopup" aria-hidden="true">
+        <div class="bottom-popup-content">
+            <button type="button" class="bottom-popup-close" id="qrPopupClose" aria-label="閉じる">&times;</button>
+            <p class="bottom-popup-desc">このQRコードをスキャンしてルームに参加</p>
+            <div id="qrcodePopup" class="qrcode-wrap"></div>
+            <p id="roomUrlPopup" class="room-url room-url-popup"></p>
+            <button type="button" class="btn-secondary btn-copy" id="copyUrlBtnPopup">URLをコピー</button>
         </div>
-        <div class="panel-content">
-            <div class="panel-view panel-view-share" id="panelViewShare">
-                <div class="share-section">
-                    <p class="share-desc">このQRコードをスキャンしてルームに参加</p>
-                    <div id="qrcode" class="qrcode-wrap"></div>
-                    <p id="roomUrl" class="room-url"></p>
-                    <button type="button" class="btn-secondary btn-copy" id="copyUrlBtn">URLをコピー</button>
-                </div>
-            </div>
-            <div class="panel-view panel-view-settings" id="panelViewSettings" hidden>
-                <div class="settings-section">
-                    <h4>設定</h4>
-                    <p class="settings-desc">オーディオ・ビデオ設定は今後追加予定です。</p>
-                </div>
-            </div>
-        </div>
-    </aside>
     </div>
-
-    <button type="button" class="menu-drawer-btn" id="menuDrawerBtn" aria-label="メニュー" title="共有・設定">メニュー</button>
+    </div>
 
     <script src="{{ url_for('static', filename='js/room.js') }}"></script>
 </body>

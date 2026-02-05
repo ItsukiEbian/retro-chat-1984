@@ -124,16 +124,18 @@ def room():
         if room_arg:
             return redirect(url_for('index', room=room_arg))
         return redirect(url_for('index'))
+    # ルームIDは「明示的に指定されたもの（招待URLやフォーム）」のみを採用し、
+    # ここでランダムIDを自動生成しない。
+    # 何も指定がなければ、サーバー側の join_room ロジックが空きルームを自動割り当てする。
     room_arg = request.args.get('room')
     if room_arg and not session.get('room'):
         session['room'] = room_arg
-    if not session.get('room'):
-        session['room'] = secrets.token_hex(4)
+    room_id = session.get('room', '')
     return render_template(
         'room.html',
         role=session.get('role'),
         user_name=session.get('user_name', ''),
-        room_id=session.get('room'),
+        room_id=room_id,
     )
 
 
@@ -190,12 +192,19 @@ def on_join_room(data):
     # ----- メインルーム: 4人制限・サーバーが唯一の正解（Source of Truth） -----
     room = None
 
-    # 1) 招待URLで指定ルームへ（空きがあれば）。満室なら新規ルームへ強制
+    # 1) 招待URL/セッションで指定されたルームIDがあれば、それを最優先で使用する
+    #    （最初の1人目の場合でも、そのIDで room_participants を初期化する）
     if req_room and is_main_room(req_room):
-        if req_room in room_participants and len(room_participants[req_room]) >= 4:
-            req_room = None  # 5人目は別室へ
-        elif req_room in room_participants and len(room_participants[req_room]) < 4:
+        if req_room in room_participants:
+            # 既存ルームが満室なら、新しいルームへ（5人目以降）
+            if len(room_participants[req_room]) >= 4:
+                req_room = None  # 5人目は別室へ
+            else:
+                room = req_room
+        else:
+            # まだ誰もいない指定ルーム → そのIDでルームを作成
             room = req_room
+            room_participants[room] = []
 
     # 2) 空きがある既存ルームを探す（4未満のみ）
     if not room:
@@ -216,7 +225,7 @@ def on_join_room(data):
         plist = room_participants[room]
 
     old_room = sid_to_room.get(sid)
-    if old_room and old_room != room and is_main_room(old_room):
+    if old_room and old_room != room:
         leave_room(old_room)
     join_room(room)
     sid_to_room[sid] = room
@@ -232,10 +241,20 @@ def on_join_room(data):
     hand_raise_states.setdefault(room, {})[sid] = False
 
     is_host = (len(plist) == 1)
-    emit('room_assigned', {'room_id': room, 'is_host': is_host}, room=sid)
-    emit('room_state', build_room_state(room), room=room)
+    state = build_room_state(room)
+    # #region agent log
+    try:
+        _log_path = os.path.join(os.path.dirname(__file__), '.cursor', 'debug.log')
+        _plist_sids = [p.get('sid') for p in plist]
+        with open(_log_path, 'a', encoding='utf-8') as _f:
+            import json
+            _f.write(json.dumps({'location': 'app.py:on_join_room', 'message': 'main_room_join_emit_user_joined', 'data': {'room_id': room, 'joiner_sid': sid, 'plist_sids': _plist_sids, 'emit_to_room': room}, 'timestamp': __import__('time').time() * 1000, 'sessionId': 'debug-session', 'hypothesisId': 'H4'}) + '\n')
+    except Exception:
+        pass
+    # #endregion
+    emit('room_assigned', {'room_id': room, 'is_host': is_host, 'participants': state['participants']}, room=sid)
+    emit('user_joined', {'sid': sid, 'user_name': user_name, 'role': role}, room=room, include_self=False)
     emit('hand_states', {"states": get_hand_states(room)}, room=room)
-    emit('request_offer_to', {'new_sid': sid}, room=room, include_self=False)
 
 
 @socketio.on('request_room_state')
@@ -271,12 +290,12 @@ def on_hand_raise(data):
 
 
 def _same_room(sid, target_sid):
-    """同一メインルームにいるか（ICE/offer/answer の送信先チェック）"""
+    """同一ルーム（メイン or 対面用）にいるか（ICE/offer/answer の送信先チェック）"""
     if not target_sid or not sid:
         return False
     r1 = sid_to_room.get(sid)
     r2 = sid_to_room.get(target_sid)
-    return r1 and r2 and r1 == r2 and is_main_room(r1)
+    return r1 and r2 and r1 == r2
 
 
 @socketio.on('offer')
@@ -340,7 +359,6 @@ def on_disconnect():
                                     'new_host_sid': new_host['sid'],
                                     'new_host_name': new_host.get('user_name', ''),
                                 }, room=room)
-                            emit('room_state', build_room_state(room), room=room)
                         break
 
 
@@ -381,6 +399,14 @@ def on_join_private_room(data):
                 del room_users[old_room][sid]
             if old_room in hand_raise_states and sid in hand_raise_states[old_room]:
                 del hand_raise_states[old_room][sid]
+            if is_main_room(old_room) and old_room in room_participants:
+                plist = room_participants[old_room]
+                for idx, p in enumerate(plist):
+                    if p.get('sid') == sid:
+                        plist.pop(idx)
+                        if not plist:
+                            del room_participants[old_room]
+                        break
             emit('user_left', {'sid': sid}, room=old_room)
     join_room(session_id)
     sid_to_room[sid] = session_id
