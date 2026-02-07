@@ -38,7 +38,9 @@
 body {
     margin: 0;
     height: 100vh;
+    height: 100dvh;
     min-height: 100vh;
+    min-height: 100dvh;
     font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 14px;
     line-height: 1.5;
@@ -52,6 +54,8 @@ body {
 .overlay {
     position: fixed;
     inset: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
     background: rgba(32, 33, 36, 0.6);
     backdrop-filter: blur(8px);
     z-index: 10000;
@@ -195,6 +199,7 @@ body {
     width: var(--sidebar-width);
     min-width: var(--sidebar-width);
     height: 100vh;
+    height: 100dvh;
     background: var(--bg-sidebar);
     border-right: 1px solid var(--border-sidebar);
     display: flex;
@@ -284,6 +289,7 @@ body {
 
 .sidebar-footer {
     padding: 12px 8px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
     border-top: 1px solid var(--border-subtle);
     text-align: center;
 }
@@ -655,6 +661,7 @@ body {
     transform: translateY(100%);
     transition: transform 0.3s ease-out;
     max-height: 85vh;
+    max-height: 85dvh;
     overflow-y: auto;
 }
 
@@ -667,6 +674,7 @@ body {
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
     padding: 24px 24px 32px;
+    padding-bottom: max(32px, env(safe-area-inset-bottom));
     position: relative;
     text-align: center;
 }
@@ -728,6 +736,7 @@ body {
     max-width: var(--panel-width);
     min-width: 280px;
     height: 100vh;
+    height: 100dvh;
     background: var(--bg-panel);
     box-shadow: -4px 0 24px rgba(60, 64, 67, 0.15);
     display: flex;
@@ -911,7 +920,9 @@ body {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
+    min-height: 100dvh;
     padding: 24px;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
 }
 
 .auth-center {
@@ -1032,6 +1043,7 @@ body {
     justify-content: center;
     gap: 12px;
     padding: 6px 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
     background: transparent;
     border: none;
     margin: 0;
@@ -1606,6 +1618,7 @@ body[data-room-context="private"] #mainRoomContent {
 
     .sidebar-footer {
         padding: 12px;
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
     }
 
     .main {
@@ -1631,6 +1644,8 @@ body[data-room-context="private"] #mainRoomContent {
         z-index: 1001;
         transform: translateY(100%);
         transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        padding-bottom: env(safe-area-inset-bottom);
+        box-sizing: border-box;
     }
 
     .panel.is-open {
@@ -1641,6 +1656,7 @@ body[data-room-context="private"] #mainRoomContent {
         display: flex;
         align-items: center;
         justify-content: center;
+        bottom: max(24px, env(safe-area-inset-bottom));
     }
 
     /* スマホでも常に2x2グリッドを維持（縦長の2x2） */
