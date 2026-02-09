@@ -9,7 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         window.ROLE = {{ role | tojson }};
         window.USER_NAME = {{ user_name | tojson }};
@@ -42,24 +41,6 @@
             </details>
         </div>
     </div>
-
-    <aside class="sidebar">
-        <nav class="sidebar-nav">
-            <button type="button" class="nav-item nav-item-active" id="sidebarShareBtn" aria-label="QRコードで共有">
-                <span class="nav-icon" aria-hidden="true">▣</span>
-            </button>
-        </nav>
-        <div class="sidebar-footer">
-            <div class="sidebar-role-row">
-                <span class="host-badge host-badge-sidebar" id="hostBadge" aria-label="あなたがホストです">ホスト</span>
-                <span class="role-badge role-badge-{{ role }}">{{ '管理者' if role == 'admin' else '学習者' }}</span>
-            </div>
-            <div class="sidebar-room">
-                <span class="sidebar-room-label">ルームID</span>
-                <span class="sidebar-room-value" id="sidebarRoomId">—</span>
-            </div>
-        </div>
-    </aside>
 
     <div class="main-with-panel">
     <main class="main">
@@ -102,6 +83,10 @@
                     <span class="control-btn-label">挙手する (Raise Hand)</span>
                 </button>
                 {% endif %}
+                <a href="{{ url_for('room_exit') }}" class="control-btn control-btn-exit" title="退室してロビーへ">
+                    <span class="control-btn-icon">⏏</span>
+                    <span class="control-btn-label">退室</span>
+                </a>
             </footer>
         </div>
 
@@ -148,17 +133,6 @@
             </div>
         </div>
     </main>
-
-    <div class="panel-backdrop qr-popup-backdrop" id="qrPopupBackdrop" aria-hidden="true"></div>
-    <div class="bottom-popup" id="qrPopup" aria-hidden="true">
-        <div class="bottom-popup-content">
-            <button type="button" class="bottom-popup-close" id="qrPopupClose" aria-label="閉じる">&times;</button>
-            <p class="bottom-popup-desc">このQRコードをスキャンしてルームに参加</p>
-            <div id="qrcodePopup" class="qrcode-wrap"></div>
-            <p id="roomUrlPopup" class="room-url room-url-popup"></p>
-            <button type="button" class="btn-secondary btn-copy" id="copyUrlBtnPopup">URLをコピー</button>
-        </div>
-    </div>
     </div>
 
     <script src="{{ url_for('static', filename='js/room.js') }}"></script>

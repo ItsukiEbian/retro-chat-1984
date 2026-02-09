@@ -89,17 +89,7 @@ function showMediaErrorAlert(userMessage, err) {
     alert(userMessage);
 }
 
-function updateRoomIdDisplay() {
-    const sid = document.getElementById('sidebarRoomId');
-    if (sid) sid.textContent = myRoomId || '—';
-}
-
-function updateHostBadge() {
-    const el = document.getElementById('hostBadge');
-    if (el) el.style.display = amHost ? 'inline-block' : 'none';
-}
-
-updateRoomIdDisplay();
+// ルームIDとホストバッジの表示はサイドバー撤去に伴い無効化
 
 // ---------- Notification sound (admin) ----------
 function playNotificationSound() {
@@ -484,8 +474,6 @@ socket.on('room_assigned', (data) => {
     var remotes = participantSids.filter(function (sid) { return sid !== socket.id; });
     debugLog('room.js:room_assigned', 'room_assigned', { mySid: socket.id, participantSids: participantSids, remotes: remotes, willCreatePc200ms: remotes.map(function (sid) { return { targetSid: sid, isInitiator: socket.id < sid }; }) }, 'H2');
     // #endregion
-    updateRoomIdDisplay();
-    updateHostBadge();
     if (statusDiv) statusDiv.innerText = "";
     renderVideoGrid();
 });
@@ -506,7 +494,6 @@ socket.on('host_changed', (data) => {
     const name = data.new_host_name || '参加者';
     showToast(name + 'さんが新しいホストになりました');
     amHost = (data.new_host_sid === socket.id);
-    updateHostBadge();
 });
 
 socket.on('user_joined', (data) => {
@@ -832,47 +819,6 @@ if (handRaiseBtn) {
         handRaiseState[socket.id] = handRaiseState[socket.id] || { user_name: USER_NAME, raised: false };
         handRaiseState[socket.id].raised = myHandRaised;
         applyHandStates();
-    });
-}
-
-var qrPopup = document.getElementById('qrPopup');
-var qrPopupBackdrop = document.getElementById('qrPopupBackdrop');
-var qrPopupClose = document.getElementById('qrPopupClose');
-var sidebarShareBtn = document.getElementById('sidebarShareBtn');
-var sidebarSettingsBtn = document.getElementById('sidebarSettingsBtn');
-var qrcodePopupDiv = document.getElementById('qrcodePopup');
-var roomUrlPopupP = document.getElementById('roomUrlPopup');
-var copyUrlBtnPopup = document.getElementById('copyUrlBtnPopup');
-
-function openQrPopup() {
-    var base = window.location.origin + (window.location.pathname.replace(/\/room\/?$/, '').replace(/\?.*$/, '') || '/');
-    if (!base.endsWith('/')) base += '/';
-    var currentUrl = base + '?room_id=' + encodeURIComponent(myRoomId || '');
-    if (roomUrlPopupP) roomUrlPopupP.textContent = currentUrl;
-    if (qrcodePopupDiv) {
-        qrcodePopupDiv.innerHTML = '';
-        new QRCode(qrcodePopupDiv, { text: currentUrl, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.H });
-    }
-    if (qrPopup) { qrPopup.classList.add('is-open'); qrPopup.setAttribute('aria-hidden', 'false'); }
-    if (qrPopupBackdrop) { qrPopupBackdrop.classList.add('is-open'); qrPopupBackdrop.setAttribute('aria-hidden', 'false'); }
-}
-
-function closeQrPopup() {
-    if (qrPopup) { qrPopup.classList.remove('is-open'); qrPopup.setAttribute('aria-hidden', 'true'); }
-    if (qrPopupBackdrop) { qrPopupBackdrop.classList.remove('is-open'); qrPopupBackdrop.setAttribute('aria-hidden', 'true'); }
-}
-
-if (sidebarShareBtn) sidebarShareBtn.addEventListener('click', openQrPopup);
-if (qrPopupClose) qrPopupClose.addEventListener('click', closeQrPopup);
-if (qrPopupBackdrop) qrPopupBackdrop.addEventListener('click', closeQrPopup);
-
-if (copyUrlBtnPopup && roomUrlPopupP) {
-    copyUrlBtnPopup.addEventListener('click', function () {
-        var url = roomUrlPopupP.textContent || (window.location.origin + '/' + (window.location.pathname.replace(/\/room\/?$/, '') || '') + '?room_id=' + (myRoomId || ''));
-        navigator.clipboard.writeText(url).then(function () {
-            copyUrlBtnPopup.textContent = 'コピーしました';
-            setTimeout(function () { copyUrlBtnPopup.textContent = 'URLをコピー'; }, 2000);
-        });
     });
 }
 
