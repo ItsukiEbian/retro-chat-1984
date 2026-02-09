@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Video Desk — 設定</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="page-auth">
+    <div class="auth-center">
+        <div class="auth-card settings-card">
+            <div class="auth-card-header">
+                <span class="auth-logo">⚙</span>
+                <h1>設定</h1>
+                <p>表示名などを変更できます</p>
+            </div>
+            {% if error %}
+            <p class="auth-error">{{ error }}</p>
+            {% endif %}
+            <form method="post" action="{{ url_for('settings') }}" class="auth-form settings-form">
+                <label class="auth-label" for="display_name">表示名（ユーザー名）</label>
+                <input type="text" id="display_name" name="display_name" class="auth-input" value="{{ current_display_name }}" placeholder="表示名を入力" maxlength="64">
+                <!-- 今後アイコン設定などを追加する場合はここにブロックを追加 -->
+                <div class="settings-actions">
+                    <a href="{{ url_for('dashboard') }}" class="btn-secondary">キャンセル</a>
+                    <button type="submit" class="btn-primary auth-submit">保存する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

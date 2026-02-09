@@ -23,6 +23,11 @@ app = Flask(__name__)
 
 app.secret_key = os.environ.get("SECRET_KEY") or "fallback_secret_key_for_local"
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+# セッション・永続ログイン: 30日間
+app.config['PERMANENT_SESSION_LIFETIME'] = 30 * 24 * 60 * 60  # 30日（秒）
+app.config['REMEMBER_COOKIE_DURATION'] = 30 * 24 * 60 * 60    # 30日（秒）
+app.config['REMEMBER_COOKIE_SECURE'] = False  # HTTPS でない環境でも動作させる場合
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # DB: Render の DATABASE_URL があれば優先、なければ SQLite
 db_url = os.environ.get('DATABASE_URL', 'sqlite:///db.sqlite3')
@@ -114,21 +119,33 @@ def get_connected_count(participants_list):
     return sum(1 for p in participants_list if p.get('connected'))
 
 
+def _participant_total_study_minutes(user_db_id):
+    """DBの user_db_id (User.id) から総勉強時間（分）を返す。"""
+    if user_db_id is None:
+        return 0
+    try:
+        u = User.query.get(int(user_db_id))
+        return (u.total_study_time or 0) if u else 0
+    except (ValueError, TypeError):
+        return 0
+
+
 def build_room_state(room_id):
     """メインルーム用: 最大4スロットの参加者リストとホストsidを返す。"""
     if not is_main_room(room_id) or room_id not in room_participants:
         return {'participants': [], 'host_sid': None}
     plist = room_participants[room_id]
     host_sid = plist[0]['sid'] if plist else None
-    # 各スロットを { sid, user_name, role, connected, is_host } で送る（空きは送らないのでクライアントで4枠にパディング）
     participants = []
     for i, p in enumerate(plist):
+        total_min = _participant_total_study_minutes(p.get('user_db_id'))
         participants.append({
             'sid': p['sid'],
             'user_name': p.get('user_name', ''),
             'role': p.get('role', 'student'),
             'connected': p.get('connected', True),
             'is_host': (i == 0),
+            'total_study_time_minutes': total_min,
         })
     return {'participants': participants, 'host_sid': host_sid}
 
@@ -202,7 +219,8 @@ def google_authorized():
         user.email = userinfo.get('email') or user.email
         user.profile_image = userinfo.get('picture') or user.profile_image
         db.session.commit()
-    login_user(user)
+    session.permanent = True
+    login_user(user, remember=True)
     session['role'] = 'student'
     session['user_name'] = user.name or user.email or 'ユーザー'
     return redirect(url_for('dashboard'))
@@ -222,9 +240,18 @@ def dashboard():
     )
 
 
-@app.route('/admin_login', methods=['GET', 'POST'])
+@app.route('/admin_login')
+def admin_login_redirect():
+    """旧管理者ログインURLはダッシュボードへリダイレクト（裏口のみ有効）"""
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('index'))
+
+
+@app.route('/admin_login_secret', methods=['GET', 'POST'])
 @login_required
-def admin_login():
+def admin_login_secret():
+    """管理者用裏口ログイン（URLを知っている者のみパスワードで管理者に昇格）"""
     if session.get('role') == 'admin':
         return redirect(url_for('dashboard'))
     if request.method == 'GET':
@@ -238,6 +265,23 @@ def admin_login():
     return render_template('admin_login.html', error='パスワードが正しくありません'), 401
 
 
+@app.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings():
+    if request.method == 'POST':
+        display_name = (request.form.get('display_name') or '').strip()
+        if display_name:
+            current_user.name = display_name
+            db.session.commit()
+            session['user_name'] = display_name
+        return redirect(url_for('dashboard'))
+    return render_template(
+        'settings.html',
+        user=current_user,
+        current_display_name=current_user.name or current_user.email or 'ユーザー',
+    )
+
+
 @app.route('/room')
 @login_required
 def room():
@@ -246,12 +290,17 @@ def room():
     if room_arg:
         session['room'] = room_arg
     room_id = session.get('room', '')
+    total_min = current_user.total_study_time or 0
+    hours, mins = divmod(total_min, 60)
+    total_study_time_display = f'{hours}時間 {mins}分'
     return render_template(
         'room.html',
         role=session.get('role', 'student'),
         user_name=session.get('user_name', current_user.name or ''),
         room_id=room_id,
         profile_image=current_user.profile_image or '',
+        total_study_time_display=total_study_time_display,
+        total_study_time_minutes=total_min,
     )
 
 
@@ -291,7 +340,8 @@ def on_join_room(data):
     req_room = data.get('room')  # 招待URL等で指定されたルーム（あれば）
     user_name = data.get('user_name', '')
     role = data.get('role', 'student')
-    user_id = (data.get('user_id') or '').strip()
+    user_id = (data.get('user_id') or '').strip()  # クライアント用UUID（永続用）
+    user_db_id = data.get('user_db_id')  # DBのUser.id（総勉強時間取得用）
     sid = req.sid
 
     # 個別ルーム（private_）の場合は従来どおり
@@ -359,6 +409,7 @@ def on_join_room(data):
         'user_name': user_name,
         'role': role,
         'user_id': user_id or None,
+        'user_db_id': user_db_id,
         'connected': True,
     })
     room_users.setdefault(room, {})[sid] = {"user_name": user_name, "role": role}
@@ -376,8 +427,9 @@ def on_join_room(data):
     except Exception:
         pass
     # #endregion
+    join_total_min = _participant_total_study_minutes(user_db_id)
     emit('room_assigned', {'room_id': room, 'is_host': is_host, 'participants': state['participants']}, room=sid)
-    emit('user_joined', {'sid': sid, 'user_name': user_name, 'role': role}, room=room, include_self=False)
+    emit('user_joined', {'sid': sid, 'user_name': user_name, 'role': role, 'total_study_time_minutes': join_total_min}, room=room, include_self=False)
     emit('hand_states', {"states": get_hand_states(room)}, room=room)
 
 

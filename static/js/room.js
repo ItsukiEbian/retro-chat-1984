@@ -7,6 +7,8 @@ const startBtn = document.getElementById('startBtn');
 const ROLE = window.ROLE || 'student';
 const USER_NAME = window.USER_NAME || '';
 let myRoomId = window.ROOM_ID || '';
+const USER_DB_ID = window.USER_DB_ID || null;
+const TOTAL_STUDY_TIME_MINUTES = typeof window.TOTAL_STUDY_TIME_MINUTES !== 'undefined' ? window.TOTAL_STUDY_TIME_MINUTES : 0;
 
 // 再接続・席キープ用。localStorage で永続化
 function getOrCreateUserId() {
@@ -166,12 +168,13 @@ async function startSystem() {
         if (overlayWarning) { overlayWarning.hidden = true; overlayWarning.textContent = ''; }
         statusDiv.innerText = "接続中...";
 
-        roomParticipants[socket.id] = { user_name: USER_NAME, role: ROLE };
+        roomParticipants[socket.id] = { user_name: USER_NAME, role: ROLE, total_study_time_minutes: TOTAL_STUDY_TIME_MINUTES };
         socket.emit('join_room', {
             room: myRoomId || undefined,
             user_name: USER_NAME,
             role: ROLE,
-            user_id: USER_ID || undefined
+            user_id: USER_ID || undefined,
+            user_db_id: USER_DB_ID || undefined
         });
         if (ROLE === 'admin') renderStudentList();
     } catch (err) {
@@ -237,6 +240,16 @@ function applyHandStates() {
     });
 }
 
+function formatStudyTime(minutes) {
+    if (minutes == null || minutes === undefined) return '';
+    var m = parseInt(minutes, 10) || 0;
+    var h = Math.floor(m / 60);
+    var min = m % 60;
+    if (h > 0 && min > 0) return h + '時間 ' + min + '分';
+    if (h > 0) return h + '時間';
+    return min + '分';
+}
+
 function createLocalWrapper(stream, labelText) {
     var wrapper = document.createElement('div');
     wrapper.className = 'video-wrapper video-has-mosaic';
@@ -244,6 +257,9 @@ function createLocalWrapper(stream, labelText) {
     wrapper.setAttribute('data-peer-id', 'local');
     var label = document.createElement('h3');
     label.innerText = labelText || '';
+    var studyTimeEl = document.createElement('div');
+    studyTimeEl.className = 'video-wrapper-study-time';
+    studyTimeEl.textContent = '総勉強時間: ' + formatStudyTime(TOTAL_STUDY_TIME_MINUTES);
     var video = document.createElement('video');
     video.className = 'video-mosaic';
     video.autoplay = true;
@@ -252,6 +268,7 @@ function createLocalWrapper(stream, labelText) {
     video.srcObject = stream;
     video.play().catch(function () {});
     wrapper.appendChild(label);
+    wrapper.appendChild(studyTimeEl);
     wrapper.appendChild(video);
     if (handRaiseState[socket.id]) updateHandIndicator(wrapper, handRaiseState[socket.id].raised);
     return wrapper;
@@ -285,6 +302,10 @@ function addVideoElement(peerId, stream, labelText) {
 
     const label = document.createElement('h3');
     label.innerText = labelText || '';
+    const studyTimeEl = document.createElement('div');
+    studyTimeEl.className = 'video-wrapper-study-time';
+    const studyMin = (peerId === 'local' ? TOTAL_STUDY_TIME_MINUTES : (roomParticipants[peerId] && roomParticipants[peerId].total_study_time_minutes));
+    studyTimeEl.textContent = studyMin != null ? ('総勉強時間: ' + formatStudyTime(studyMin)) : '';
 
     const video = document.createElement('video');
     video.className = 'video-mosaic';
@@ -300,6 +321,7 @@ function addVideoElement(peerId, stream, labelText) {
     });
 
     wrapper.appendChild(label);
+    wrapper.appendChild(studyTimeEl);
     if (peerId !== 'local') wrapper.appendChild(createSpinnerEl());
     wrapper.appendChild(video);
     videosContainer.appendChild(wrapper);
@@ -355,6 +377,9 @@ function createRemotePlaceholder(slotInfo) {
     el.setAttribute('data-sid', slotInfo.sid);
     var label = document.createElement('h3');
     label.textContent = slotInfo.connected ? (slotInfo.user_name || '接続中') : '接続切れ';
+    var studyTimeEl = document.createElement('div');
+    studyTimeEl.className = 'video-wrapper-study-time';
+    studyTimeEl.textContent = (slotInfo.total_study_time_minutes != null) ? ('総勉強時間: ' + formatStudyTime(slotInfo.total_study_time_minutes)) : '';
     var connLabel = document.createElement('div');
     connLabel.className = 'video-connecting-label';
     connLabel.textContent = '接続中...';
@@ -365,6 +390,7 @@ function createRemotePlaceholder(slotInfo) {
     video.muted = true;
     video.setAttribute('data-local', 'false');
     el.appendChild(label);
+    el.appendChild(studyTimeEl);
     el.appendChild(connLabel);
     el.appendChild(createSpinnerEl());
     el.appendChild(video);
@@ -451,7 +477,7 @@ socket.on('room_assigned', (data) => {
     while (orderedSlots.length < 4) orderedSlots.push(null);
     roomParticipants = {};
     orderedSlots.forEach(function (s) {
-        if (s && s.sid) roomParticipants[s.sid] = { user_name: s.user_name || '', role: s.role || 'student' };
+        if (s && s.sid) roomParticipants[s.sid] = { user_name: s.user_name || '', role: s.role || 'student', total_study_time_minutes: s.total_study_time_minutes };
     });
     // #region agent log
     var participantSids = raw.filter(function (s) { return s && s.sid; }).map(function (s) { return s.sid; });
@@ -471,7 +497,7 @@ socket.on('room_state', (data) => {
     while (orderedSlots.length < 4) orderedSlots.push(null);
     roomParticipants = {};
     orderedSlots.forEach(function (s) {
-        if (s && s.sid) roomParticipants[s.sid] = { user_name: s.user_name || '', role: s.role || 'student' };
+        if (s && s.sid) roomParticipants[s.sid] = { user_name: s.user_name || '', role: s.role || 'student', total_study_time_minutes: s.total_study_time_minutes };
     });
     renderVideoGrid();
 });
@@ -491,10 +517,11 @@ socket.on('user_joined', (data) => {
     // #endregion
     const userName = data.user_name || ('参加者 ' + targetId.substr(0, 6));
     const role = data.role || 'student';
-    roomParticipants[targetId] = { user_name: userName, role: role };
+    const totalMin = data.total_study_time_minutes != null ? data.total_study_time_minutes : 0;
+    roomParticipants[targetId] = { user_name: userName, role: role, total_study_time_minutes: totalMin };
     if (handRaiseState[targetId] === undefined) handRaiseState[targetId] = { user_name: userName, raised: false };
     else handRaiseState[targetId].user_name = userName;
-    var slotInfo = { sid: targetId, user_name: userName, role: role, connected: true, is_host: false };
+    var slotInfo = { sid: targetId, user_name: userName, role: role, connected: true, is_host: false, total_study_time_minutes: totalMin };
     for (var i = 0; i < 4; i++) {
         if (!orderedSlots[i]) { orderedSlots[i] = slotInfo; break; }
     }
@@ -551,7 +578,10 @@ socket.on('hand_raise_update', (data) => {
 socket.on('hand_states', (data) => {
     (data.states || []).forEach(s => {
         handRaiseState[s.sid] = { user_name: s.user_name, raised: !!s.raised };
-        if (s.role) roomParticipants[s.sid] = { user_name: s.user_name, role: s.role };
+        if (s.role) {
+            var existing = roomParticipants[s.sid] || {};
+            roomParticipants[s.sid] = { user_name: s.user_name, role: s.role, total_study_time_minutes: existing.total_study_time_minutes };
+        }
     });
     applyHandStates();
     if (ROLE === 'admin') renderStudentList();
@@ -747,10 +777,21 @@ function createPeerConnection(targetId, isInitiator) {
             }
             var label = wrap.querySelector('h3');
             if (label) label.textContent = (handRaiseState[targetId] && handRaiseState[targetId].user_name) || (roomParticipants[targetId] && roomParticipants[targetId].user_name) || ('参加者 ' + targetId.substr(0, 6));
+            var studyTimeEl = wrap.querySelector('.video-wrapper-study-time');
+            if (studyTimeEl && roomParticipants[targetId] && roomParticipants[targetId].total_study_time_minutes != null) {
+                studyTimeEl.textContent = '総勉強時間: ' + formatStudyTime(roomParticipants[targetId].total_study_time_minutes);
+            }
             if (handRaiseState[targetId]) updateHandIndicator(wrap, handRaiseState[targetId].raised);
         } else if (!wrap) {
             const userName = (handRaiseState[targetId] && handRaiseState[targetId].user_name) || (roomParticipants[targetId] && roomParticipants[targetId].user_name) || ('参加者 ' + targetId.substr(0, 6));
             addVideoElement(targetId, remoteStream, userName);
+            var wrapAfter = document.getElementById('video-wrapper-' + targetId);
+            if (wrapAfter) {
+                var st = wrapAfter.querySelector('.video-wrapper-study-time');
+                if (st && roomParticipants[targetId] && roomParticipants[targetId].total_study_time_minutes != null) {
+                    st.textContent = '総勉強時間: ' + formatStudyTime(roomParticipants[targetId].total_study_time_minutes);
+                }
+            }
         }
     };
 
@@ -822,7 +863,6 @@ function closeQrPopup() {
 }
 
 if (sidebarShareBtn) sidebarShareBtn.addEventListener('click', openQrPopup);
-if (sidebarSettingsBtn) sidebarSettingsBtn.addEventListener('click', function () { showToast('設定は今後追加予定です'); });
 if (qrPopupClose) qrPopupClose.addEventListener('click', closeQrPopup);
 if (qrPopupBackdrop) qrPopupBackdrop.addEventListener('click', closeQrPopup);
 

@@ -34,9 +34,7 @@
             </div>
             <div class="dashboard-actions">
                 <a href="{{ url_for('room') }}" class="btn-primary dashboard-btn-enter">自習室へ入室</a>
-                {% if session.get('role') != 'admin' %}
-                <a href="{{ url_for('admin_login') }}" class="auth-admin-link dashboard-admin-link">管理者ログイン</a>
-                {% endif %}
+                <a href="{{ url_for('settings') }}" class="btn-secondary dashboard-btn-settings">設定</a>
                 <a href="{{ url_for('logout') }}" class="btn-secondary dashboard-btn-logout">ログアウト</a>
             </div>
         </div>
