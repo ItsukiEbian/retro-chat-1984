@@ -22,7 +22,7 @@ load_dotenv()
 app = Flask(__name__)
 
 app.secret_key = os.environ.get("SECRET_KEY") or "fallback_secret_key_for_local"
-pp.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # DB: Render の DATABASE_URL があれば優先、なければ SQLite
 db_url = os.environ.get('DATABASE_URL', 'sqlite:///db.sqlite3')
