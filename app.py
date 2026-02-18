@@ -8,29 +8,51 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import time
 import secrets
+from functools import wraps
+from datetime import timedelta
 import eventlet
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
+import stripe
 
 # ローカル .env を読む（Render 等で設定した環境変数は上書きしない＝Render の値を優先）
 load_dotenv()
 
+# ---------- Stripe 初期設定 ----------
+stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', '')
+STRIPE_PRICE_ID = os.environ.get('STRIPE_PRICE_ID', '')
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+
 app = Flask(__name__)
 
+# セッション鍵: Render では SECRET_KEY を環境変数で固定し、なければコード内の固定文字列を使用
 app.secret_key = os.environ.get("SECRET_KEY") or "fallback_secret_key_for_local"
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-# セッション・永続ログイン: 30日間
-app.config['PERMANENT_SESSION_LIFETIME'] = 30 * 24 * 60 * 60  # 30日（秒）
-app.config['REMEMBER_COOKIE_DURATION'] = 30 * 24 * 60 * 60    # 30日（秒）
-app.config['REMEMBER_COOKIE_SECURE'] = False  # HTTPS でない環境でも動作させる場合
+
+# セッション・永続ログイン: 31日間（ブラウザを閉じても維持）
+SESSION_DAYS = 31
+app.config['SESSION_PERMANENT'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=SESSION_DAYS)
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=SESSION_DAYS)
+app.config['REMEMBER_COOKIE_SECURE'] = False  # HTTPS 強制環境では True 推奨
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-# DB: Render の DATABASE_URL があれば優先、なければ SQLite
-db_url = os.environ.get('DATABASE_URL', 'sqlite:///db.sqlite3')
+# DB: Render の DATABASE_URL があれば必ずそれを使う。Render環境で未設定なら起動エラーにする。
+db_url = os.environ.get('DATABASE_URL')
+if not db_url:
+    if os.environ.get('RENDER') == 'true':
+        raise RuntimeError(
+            "DATABASE_URL is not set. On Render, configure an external PostgreSQL "
+            "and set DATABASE_URL to avoid data loss on ephemeral filesystem."
+        )
+    # ローカル開発のみ SQLite を許可
+    db_url = 'sqlite:///db.sqlite3'
+
 if db_url.startswith('postgres://'):
     db_url = db_url.replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
@@ -52,6 +74,11 @@ class User(db.Model):
     email = db.Column(db.String(256))
     profile_image = db.Column(db.String(512))
     total_study_time = db.Column(db.Integer, default=0)  # 分単位
+
+    # --- Stripe サブスクリプション ---
+    stripe_customer_id = db.Column(db.String(255), nullable=True)
+    stripe_subscription_id = db.Column(db.String(255), nullable=True)
+    is_active_subscription = db.Column(db.Boolean, default=False)
 
     def get_id(self):
         return str(self.id)
@@ -177,7 +204,32 @@ def record_study_time_if_entered():
         db.session.rollback()
 
 
+# ---------- アクセス制御デコレータ ----------
+
+def subscription_required(f):
+    """ログイン済み ＋ 課金済みユーザーのみアクセスを許可するデコレータ。
+    ・未ログイン → ログインページへ（@login_required と同等）
+    ・ログイン済み＆未課金 → サブスクリプション案内ページへ
+    """
+    @wraps(f)
+    @login_required
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_active_subscription:
+            return redirect(url_for('subscription_page'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 # ---------- Routes ----------
+
+# ★★★ 一時的なDBリセット用ルート（テスト後に削除すること） ★★★
+@app.route('/reset-db-super-secret')
+def reset_db():
+    db.drop_all()
+    db.create_all()
+    return 'DBリセット完了！新しい名簿ができました！'
+# ★★★ ここまで削除 ★★★
+
 
 @app.route('/')
 def index():
@@ -283,7 +335,7 @@ def settings():
 
 
 @app.route('/room')
-@login_required
+@subscription_required
 def room():
     session['enter_time'] = time.time()
     room_arg = request.args.get('room')
@@ -313,7 +365,7 @@ def room_exit():
 
 
 @app.route('/room/<room_id>')
-@login_required
+@subscription_required
 def room_by_id(room_id):
     session['room'] = room_id
     return redirect(url_for('room'))
@@ -325,6 +377,137 @@ def logout():
     logout_user()
     session.clear()
     return redirect(url_for('index'))
+
+
+# ---------- Stripe 決済 ----------
+
+@app.route('/create-checkout-session', methods=['POST'])
+@login_required
+def create_checkout_session():
+    """未課金ユーザー向け: Stripe Checkout Session を作成しリダイレクト"""
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            mode='subscription',
+            line_items=[{
+                'price': STRIPE_PRICE_ID,
+                'quantity': 1,
+            }],
+            client_reference_id=str(current_user.id),
+            customer_email=current_user.email,
+            success_url=url_for('dashboard', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=url_for('subscription_page', _external=True) + '?canceled=true',
+        )
+        return redirect(checkout_session.url, code=303)
+    except Exception as e:
+        app.logger.error(f'Stripe Checkout error: {e}')
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/create-portal-session', methods=['POST'])
+@login_required
+def create_portal_session():
+    """課金済みユーザー向け: Stripe Customer Portal Session を作成しリダイレクト"""
+    if not current_user.stripe_customer_id:
+        return redirect(url_for('subscription_page'))
+    try:
+        portal_session = stripe.billing_portal.Session.create(
+            customer=current_user.stripe_customer_id,
+            return_url=url_for('dashboard', _external=True),
+        )
+        return redirect(portal_session.url, code=303)
+    except Exception as e:
+        app.logger.error(f'Stripe Portal error: {e}')
+        return jsonify(error=str(e)), 500
+
+
+@app.route('/subscription')
+@login_required
+def subscription_page():
+    """サブスクリプション案内ページ"""
+    return render_template(
+        'subscription.html',
+        user=current_user,
+        stripe_publishable_key=STRIPE_PUBLISHABLE_KEY,
+    )
+
+
+# ---------- Stripe Webhook ----------
+
+@app.route('/stripe/webhook', methods=['POST'])
+def stripe_webhook():
+    """Stripe からのイベントを受信し、DB を更新する。署名検証必須。"""
+    payload = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature')
+
+    # --- 署名検証 ---
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        app.logger.warning('Stripe webhook: invalid payload')
+        return 'Invalid payload', 400
+    except stripe.error.SignatureVerificationError:
+        app.logger.warning('Stripe webhook: signature verification failed')
+        return 'Invalid signature', 400
+
+    event_type = event['type']
+    data_object = event['data']['object']
+
+    # --- checkout.session.completed: 決済完了 ---
+    if event_type == 'checkout.session.completed':
+        client_ref_id = data_object.get('client_reference_id')
+        stripe_customer_id = data_object.get('customer')
+        stripe_subscription_id = data_object.get('subscription')
+
+        if client_ref_id:
+            user = User.query.get(int(client_ref_id))
+            if user:
+                user.stripe_customer_id = stripe_customer_id
+                user.stripe_subscription_id = stripe_subscription_id
+                user.is_active_subscription = True
+                db.session.commit()
+                app.logger.info(
+                    f'Subscription activated: user_id={user.id}, '
+                    f'customer={stripe_customer_id}'
+                )
+            else:
+                app.logger.warning(
+                    f'Webhook: user not found for client_reference_id={client_ref_id}'
+                )
+
+    # --- customer.subscription.deleted: 解約 ---
+    elif event_type == 'customer.subscription.deleted':
+        stripe_customer_id = data_object.get('customer')
+        if stripe_customer_id:
+            user = User.query.filter_by(
+                stripe_customer_id=stripe_customer_id
+            ).first()
+            if user:
+                user.is_active_subscription = False
+                db.session.commit()
+                app.logger.info(
+                    f'Subscription canceled: user_id={user.id}, '
+                    f'customer={stripe_customer_id}'
+                )
+
+    # --- customer.subscription.updated: プラン変更・更新失敗など ---
+    elif event_type == 'customer.subscription.updated':
+        stripe_customer_id = data_object.get('customer')
+        status = data_object.get('status')
+        if stripe_customer_id:
+            user = User.query.filter_by(
+                stripe_customer_id=stripe_customer_id
+            ).first()
+            if user:
+                user.is_active_subscription = status in ('active', 'trialing')
+                db.session.commit()
+                app.logger.info(
+                    f'Subscription updated: user_id={user.id}, status={status}'
+                )
+
+    return 'OK', 200
 
 
 # ---------- SocketIO ----------

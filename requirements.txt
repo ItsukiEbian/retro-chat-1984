@@ -12,3 +12,5 @@ authlib
 flask-login
 flask-sqlalchemy
 requests
+# 決済（Stripe サブスクリプション）
+stripe

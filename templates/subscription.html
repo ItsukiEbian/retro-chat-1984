@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Video Desk — サブスクリプション</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .subscription-card {
+            max-width: 480px;
+            width: 100%;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: 40px 32px;
+            text-align: center;
+        }
+        .subscription-icon {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+        .subscription-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 8px;
+        }
+        .subscription-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin: 0 0 28px;
+            line-height: 1.6;
+        }
+        .plan-box {
+            background: var(--primary-light);
+            border: 2px solid var(--primary);
+            border-radius: var(--radius-md);
+            padding: 24px 20px;
+            margin-bottom: 28px;
+        }
+        .plan-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--primary);
+            margin: 0 0 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .plan-price {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+            line-height: 1.2;
+        }
+        .plan-price-unit {
+            font-size: 15px;
+            font-weight: 400;
+            color: var(--text-secondary);
+        }
+        .plan-features {
+            list-style: none;
+            padding: 0;
+            margin: 16px 0 0;
+            text-align: left;
+        }
+        .plan-features li {
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 4px 0;
+        }
+        .plan-features li::before {
+            content: '✓';
+            color: var(--primary);
+            font-weight: 700;
+            margin-right: 8px;
+        }
+        .subscription-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .btn-subscribe {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 48px;
+            padding: 0 32px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            background: var(--primary);
+            color: #fff;
+            transition: background 0.15s;
+        }
+        .btn-subscribe:hover {
+            background: var(--primary-hover);
+        }
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 40px;
+            padding: 0 24px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: transparent;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .btn-back:hover {
+            background: var(--surface-hover);
+        }
+        .canceled-msg {
+            background: #fef7e0;
+            color: #b06000;
+            border-radius: var(--radius-sm);
+            padding: 10px 16px;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body class="page-dashboard">
+    <div class="dashboard-center">
+        <div class="subscription-card">
+            <div class="subscription-icon">◉</div>
+            <h1 class="subscription-title">自習室プランに登録</h1>
+            <p class="subscription-desc">
+                オンライン自習室のすべての機能をご利用いただくには、<br>
+                月額プランへの登録が必要です。
+            </p>
+
+            {% if request.args.get('canceled') %}
+            <div class="canceled-msg">決済がキャンセルされました。いつでも再度お申し込みいただけます。</div>
+            {% endif %}
+
+            <div class="plan-box">
+                <p class="plan-name">Monthly Plan</p>
+                <p class="plan-price">¥20,000 <span class="plan-price-unit">/ 月</span></p>
+                <ul class="plan-features">
+                    <li>オンライン自習室への入室</li>
+                    <li>ビデオ通話・画面共有</li>
+                    <li>学習時間の自動記録</li>
+                    <li>いつでも解約可能</li>
+                </ul>
+            </div>
+
+            <div class="subscription-actions">
+                <form action="{{ url_for('create_checkout_session') }}" method="POST">
+                    <button type="submit" class="btn-subscribe">月額プランに登録する</button>
+                </form>
+                <a href="{{ url_for('dashboard') }}" class="btn-back">ダッシュボードに戻る</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
