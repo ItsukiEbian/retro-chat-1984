@@ -14,3 +14,4 @@ flask-sqlalchemy
 requests
 # 決済（Stripe サブスクリプション）
 stripe
+psycopg2-binary
