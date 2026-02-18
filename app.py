@@ -222,13 +222,6 @@ def subscription_required(f):
 
 # ---------- Routes ----------
 
-# ★★★ 一時的なDBリセット用ルート（テスト後に削除すること） ★★★
-@app.route('/reset-db-super-secret')
-def reset_db():
-    db.drop_all()
-    db.create_all()
-    return 'DBリセット完了！新しい名簿ができました！'
-# ★★★ ここまで削除 ★★★
 
 
 @app.route('/')
