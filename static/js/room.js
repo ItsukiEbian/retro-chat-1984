@@ -89,7 +89,13 @@ if (goalSubmitBtn) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ goal: text }),
             });
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ccf34'},body:JSON.stringify({sessionId:'0ccf34',location:'room.js:fetch_response',message:'API response status',data:{status:res.status,ok:res.ok},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+            // #endregion
             var data = await res.json();
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ccf34'},body:JSON.stringify({sessionId:'0ccf34',location:'room.js:parsed_data',message:'Parsed API data',data:{is_valid:data.is_valid,comment:data.comment,typeof_is_valid:typeof data.is_valid},timestamp:Date.now(),hypothesisId:'H4,H5'})}).catch(()=>{});
+            // #endregion
 
             if (data.is_valid) {
                 goalFeedback.className = 'goal-feedback goal-feedback-success';
@@ -102,6 +108,9 @@ if (goalSubmitBtn) {
                 goalSubmitBtn.textContent = '目標を設定して入室する';
             }
         } catch (err) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ccf34'},body:JSON.stringify({sessionId:'0ccf34',location:'room.js:catch_block',message:'Catch block fired',data:{error:String(err)},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+            // #endregion
             goalFeedback.className = 'goal-feedback goal-feedback-success';
             goalFeedback.textContent = 'エラーが発生しましたが、自習室へご案内します！';
             setTimeout(dismissGoalAndStart, 1000);

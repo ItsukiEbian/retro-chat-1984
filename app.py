@@ -558,15 +558,33 @@ def validate_goal():
             f'以下の学習目標を判定してください:\n\n{goal_text}'
         )
         content = response.text.strip()
+        # #region agent log
+        _dl = os.path.join(os.path.dirname(__file__), 'debug-0ccf34.log')
+        with open(_dl, 'a', encoding='utf-8') as _f:
+            _f.write(json.dumps({'sessionId':'0ccf34','location':'app.py:raw_response','message':'Gemini raw response','data':{'raw_content':content,'goal_text':goal_text},'timestamp':__import__('time').time()*1000,'hypothesisId':'H1,H3'},ensure_ascii=False)+'\n')
+        # #endregion
         if content.startswith('```'):
             content = content.split('\n', 1)[-1]
             content = content.rsplit('```', 1)[0].strip()
+        # #region agent log
+        with open(_dl, 'a', encoding='utf-8') as _f:
+            _f.write(json.dumps({'sessionId':'0ccf34','location':'app.py:after_strip','message':'After markdown strip','data':{'stripped_content':content},'timestamp':__import__('time').time()*1000,'hypothesisId':'H1'},ensure_ascii=False)+'\n')
+        # #endregion
         result = json.loads(content)
+        # #region agent log
+        with open(_dl, 'a', encoding='utf-8') as _f:
+            _f.write(json.dumps({'sessionId':'0ccf34','location':'app.py:parsed_result','message':'Parsed JSON result','data':{'is_valid':result.get('is_valid'),'comment':result.get('comment',''),'has_is_valid_key':'is_valid' in result},'timestamp':__import__('time').time()*1000,'hypothesisId':'H3,H5'},ensure_ascii=False)+'\n')
+        # #endregion
         return jsonify({
             'is_valid': bool(result.get('is_valid', True)),
             'comment': result.get('comment', '頑張りましょう！'),
         })
     except Exception as e:
+        # #region agent log
+        _dl = os.path.join(os.path.dirname(__file__), 'debug-0ccf34.log')
+        with open(_dl, 'a', encoding='utf-8') as _f:
+            _f.write(json.dumps({'sessionId':'0ccf34','location':'app.py:exception','message':'Exception in validate_goal','data':{'error':str(e),'error_type':type(e).__name__},'timestamp':__import__('time').time()*1000,'hypothesisId':'H2'},ensure_ascii=False)+'\n')
+        # #endregion
         app.logger.error(f'Goal coach error: {e}')
         return jsonify({'is_valid': True, 'comment': '今日も一歩ずつ前進しよう！応援しています！'})
 
