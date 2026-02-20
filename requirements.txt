@@ -15,3 +15,5 @@ requests
 # 決済（Stripe サブスクリプション）
 stripe
 psycopg2-binary
+# AI 目標判定（Gemini API）
+google-generativeai

@@ -58,6 +58,67 @@ function debugLog(location, message, data, hypothesisId) {
 }
 // #endregion
 
+// ---------- Goal Setting ----------
+const goalOverlay = document.getElementById('goalOverlay');
+const goalInput = document.getElementById('goalInput');
+const goalSubmitBtn = document.getElementById('goalSubmitBtn');
+const goalFeedback = document.getElementById('goalFeedback');
+
+if (goalSubmitBtn) {
+    goalSubmitBtn.addEventListener('click', async function () {
+        var text = (goalInput.value || '').trim();
+        if (!text) {
+            goalFeedback.hidden = false;
+            goalFeedback.className = 'goal-feedback goal-feedback-error';
+            goalFeedback.textContent = '目標を入力してください。';
+            return;
+        }
+
+        goalSubmitBtn.disabled = true;
+        goalSubmitBtn.textContent = 'AIが判定中...';
+        goalFeedback.hidden = false;
+        goalFeedback.className = 'goal-feedback goal-feedback-loading';
+        goalFeedback.textContent = 'AIがあなたの目標を分析しています...';
+
+        try {
+            var res = await fetch('/api/validate_goal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ goal: text }),
+            });
+            var data = await res.json();
+
+            if (data.is_valid) {
+                goalFeedback.className = 'goal-feedback goal-feedback-success';
+                goalFeedback.textContent = data.feedback || '素晴らしい目標です！';
+                setTimeout(function () {
+                    if (goalOverlay) goalOverlay.style.display = 'none';
+                    if (overlay) overlay.style.display = 'flex';
+                }, 800);
+            } else {
+                goalFeedback.className = 'goal-feedback goal-feedback-error';
+                goalFeedback.textContent = data.feedback || 'もっと具体的に書いてみましょう。';
+                goalSubmitBtn.disabled = false;
+                goalSubmitBtn.textContent = '目標を設定して判定へ';
+            }
+        } catch (err) {
+            goalFeedback.className = 'goal-feedback goal-feedback-error';
+            goalFeedback.textContent = '通信エラーが発生しました。もう一度お試しください。';
+            goalSubmitBtn.disabled = false;
+            goalSubmitBtn.textContent = '目標を設定して判定へ';
+        }
+    });
+}
+
+if (goalInput) {
+    goalInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (goalSubmitBtn && !goalSubmitBtn.disabled) goalSubmitBtn.click();
+        }
+    });
+}
+
 const hiddenVideo = document.createElement('video');
 hiddenVideo.playsInline = true;
 hiddenVideo.muted = true;
