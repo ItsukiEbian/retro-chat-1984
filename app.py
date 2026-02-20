@@ -505,12 +505,19 @@ def stripe_webhook():
     return 'OK', 200
 
 
-# ---------- AI 目標応援 API ----------
+# ---------- AI 目標判定＋応援 API ----------
 
 GOAL_COACH_SYSTEM_PROMPT = (
-    "あなたは優しくて熱血な学習コーチです。"
-    "ユーザーの学習目標に対して、1〜2文で短く、モチベーションが上がる応援コメントやアドバイスを返してください。\n\n"
-    '出力は必ずJSON形式で、{"comment": "応援メッセージ"} のみを出力すること。'
+    "あなたは厳格かつ熱血な学習コーチです。"
+    "ユーザーの学習目標が「数字ベースで具体的に」書かれているかを判定してください。\n"
+    "例：\n"
+    "- 「数学をやる」→ 数字がないので不合格\n"
+    "- 「数学の問題集の10ページ〜12ページを解く」→ 数字があるので合格\n"
+    "- 「英単語を50個覚える」→ 数字があるので合格\n"
+    "- 「英語を勉強する」→ 数字がないので不合格\n\n"
+    "不合格（false）の場合は、もっと数字を入れて具体的にするように促すアドバイスを comment に入れてください。\n"
+    "合格（true）の場合は、1〜2文で短くモチベーションが上がる応援コメントを comment に入れてください。\n\n"
+    '出力は必ずJSON形式で、{"is_valid": true/false, "comment": "メッセージ"} のみを出力すること。'
 )
 
 
@@ -520,12 +527,12 @@ def validate_goal():
     data = request.get_json(silent=True) or {}
     goal_text = (data.get('goal') or '').strip()
     if not goal_text:
-        return jsonify({'comment': '目標を書いてくれてありがとう！さあ、始めよう！'})
+        return jsonify({'is_valid': False, 'comment': '目標を入力してください。'})
 
     api_key = os.environ.get('GEMINI_API_KEY')
     if not api_key:
         app.logger.warning('GEMINI_API_KEY is not set')
-        return jsonify({'comment': '今日も頑張ろう！応援しています！'})
+        return jsonify({'is_valid': True, 'comment': '今日も頑張ろう！応援しています！'})
 
     try:
         genai.configure(api_key=api_key)
@@ -533,22 +540,25 @@ def validate_goal():
             'gemini-2.0-flash-lite',
             system_instruction=GOAL_COACH_SYSTEM_PROMPT,
             generation_config=genai.types.GenerationConfig(
-                temperature=0.7,
+                temperature=0.5,
                 max_output_tokens=200,
             ),
         )
         response = model.generate_content(
-            f'以下の学習目標に応援コメントをください:\n\n{goal_text}'
+            f'以下の学習目標を判定してください:\n\n{goal_text}'
         )
         content = response.text.strip()
         if content.startswith('```'):
             content = content.split('\n', 1)[-1]
             content = content.rsplit('```', 1)[0].strip()
         result = json.loads(content)
-        return jsonify({'comment': result.get('comment', '素晴らしい目標ですね！頑張りましょう！')})
+        return jsonify({
+            'is_valid': bool(result.get('is_valid', True)),
+            'comment': result.get('comment', '頑張りましょう！'),
+        })
     except Exception as e:
         app.logger.error(f'Goal coach error: {e}')
-        return jsonify({'comment': '今日も一歩ずつ前進しよう！応援しています！'})
+        return jsonify({'is_valid': True, 'comment': '今日も一歩ずつ前進しよう！応援しています！'})
 
 
 # ---------- SocketIO ----------

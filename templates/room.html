@@ -39,29 +39,6 @@
         </div>
     </div>
 
-    <!-- ビデオ開始モーダル（目標合格後に表示） -->
-    <div id="overlay" class="overlay" style="display:none">
-        <div class="overlay-card">
-            <div class="overlay-card-header">
-                <span class="overlay-icon">▶</span>
-                <h1>ビデオを開始</h1>
-                <p>カメラにアクセスして自習室に参加します</p>
-            </div>
-            <p id="overlayCameraWarning" class="overlay-warning" hidden aria-live="polite"></p>
-            <div class="overlay-card-actions">
-                <button id="startBtn" class="btn-primary">開始する</button>
-            </div>
-            <details class="overlay-help">
-                <summary>スマホ・他端末でカメラが使えない場合</summary>
-                <p>ブラウザのセキュリティのため、<strong>HTTP（例: 192.168.x.x）ではカメラが使えません</strong>。次のいずれかで対応できます。</p>
-                <ul>
-                    <li><strong>ngrok / cloudflared</strong> で HTTPS のURLを発行して、そのURLでアクセスする（推奨）。手順はプロジェクトの README を参照。</li>
-                    <li><strong>Chrome（Android等）</strong>: <code>chrome://flags</code> で <code>Insecure origin treated as secure</code> を検索し、<code>http://あなたのPCのIP:10000</code> を追加して有効化し、ブラウザを再起動。</li>
-                </ul>
-            </details>
-        </div>
-    </div>
-
     <div class="main-with-panel">
     <main class="main">
         <header class="main-header main-header-compact">

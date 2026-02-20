@@ -1,8 +1,6 @@
 const socket = io();
 const videosContainer = document.getElementById('videosContainer');
 const statusDiv = document.getElementById('status');
-const overlay = document.getElementById('overlay');
-const startBtn = document.getElementById('startBtn');
 
 const ROLE = window.ROLE || 'student';
 const USER_NAME = window.USER_NAME || '';
@@ -64,9 +62,9 @@ const goalInput = document.getElementById('goalInput');
 const goalSubmitBtn = document.getElementById('goalSubmitBtn');
 const goalFeedback = document.getElementById('goalFeedback');
 
-function proceedToVideoOverlay() {
+function dismissGoalAndStart() {
     if (goalOverlay) goalOverlay.style.display = 'none';
-    if (overlay) overlay.style.display = 'flex';
+    startSystem();
 }
 
 if (goalSubmitBtn) {
@@ -80,10 +78,10 @@ if (goalSubmitBtn) {
         }
 
         goalSubmitBtn.disabled = true;
-        goalSubmitBtn.textContent = 'AIコーチがメッセージを作成中...';
+        goalSubmitBtn.textContent = 'AIコーチが判定中...';
         goalFeedback.hidden = false;
         goalFeedback.className = 'goal-feedback goal-feedback-loading';
-        goalFeedback.textContent = 'AIコーチがあなたへのメッセージを考えています...';
+        goalFeedback.textContent = 'AIコーチがあなたの目標をチェックしています...';
 
         try {
             var res = await fetch('/api/validate_goal', {
@@ -92,13 +90,21 @@ if (goalSubmitBtn) {
                 body: JSON.stringify({ goal: text }),
             });
             var data = await res.json();
-            goalFeedback.className = 'goal-feedback goal-feedback-success';
-            goalFeedback.textContent = data.comment || '素晴らしい目標ですね！頑張りましょう！';
-            setTimeout(proceedToVideoOverlay, 2500);
+
+            if (data.is_valid) {
+                goalFeedback.className = 'goal-feedback goal-feedback-success';
+                goalFeedback.textContent = data.comment || '素晴らしい目標ですね！頑張りましょう！';
+                setTimeout(dismissGoalAndStart, 2000);
+            } else {
+                goalFeedback.className = 'goal-feedback goal-feedback-error';
+                goalFeedback.textContent = data.comment || 'もっと数字を入れて具体的にしてみましょう！';
+                goalSubmitBtn.disabled = false;
+                goalSubmitBtn.textContent = '目標を設定して入室する';
+            }
         } catch (err) {
             goalFeedback.className = 'goal-feedback goal-feedback-success';
             goalFeedback.textContent = 'エラーが発生しましたが、自習室へご案内します！';
-            setTimeout(proceedToVideoOverlay, 1000);
+            setTimeout(dismissGoalAndStart, 1000);
         }
     });
 }
@@ -207,9 +213,7 @@ async function startSystem() {
         const localLabel = ROLE === 'admin' ? '管理者' : USER_NAME || 'あなた';
         addVideoElement('local', localStream, localLabel);
 
-        overlay.style.display = 'none';
-        var overlayWarning = document.getElementById('overlayCameraWarning');
-        if (overlayWarning) { overlayWarning.hidden = true; overlayWarning.textContent = ''; }
+        if (goalOverlay) goalOverlay.style.display = 'none';
         statusDiv.innerText = "接続中...";
 
         roomParticipants[socket.id] = { user_name: USER_NAME, role: ROLE, total_study_time_minutes: TOTAL_STUDY_TIME_MINUTES };
@@ -228,27 +232,17 @@ async function startSystem() {
     }
 }
 
-if (startBtn) startBtn.addEventListener('click', startSystem);
-
-// ページ読み込み時にカメラ対応をチェックし、非対応ならボタン無効化・警告表示
+// カメラ非対応チェック（目標モーダル送信ボタンに反映）
 function initMediaDevicesCheck() {
     var support = checkMediaDevicesSupport();
-    var overlayWarning = document.getElementById('overlayCameraWarning');
-    if (!support.supported) {
-        if (startBtn) {
-            startBtn.disabled = true;
-            startBtn.setAttribute('aria-disabled', 'true');
+    if (!support.supported && goalSubmitBtn) {
+        goalSubmitBtn.disabled = true;
+        goalSubmitBtn.textContent = 'カメラを利用できません';
+        if (goalFeedback) {
+            goalFeedback.hidden = false;
+            goalFeedback.className = 'goal-feedback goal-feedback-error';
+            goalFeedback.textContent = support.message;
         }
-        if (overlayWarning) {
-            overlayWarning.hidden = false;
-            overlayWarning.textContent = support.message;
-        }
-    } else {
-        if (startBtn) {
-            startBtn.disabled = false;
-            startBtn.removeAttribute('aria-disabled');
-        }
-        if (overlayWarning) overlayWarning.hidden = true;
     }
 }
 if (document.readyState === 'loading') {
