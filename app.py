@@ -505,17 +505,12 @@ def stripe_webhook():
     return 'OK', 200
 
 
-# ---------- AI 目標判定 API ----------
+# ---------- AI 目標応援 API ----------
 
-GOAL_VALIDATION_SYSTEM_PROMPT = (
-    "あなたは厳格な学習コーチです。ユーザーの学習目標が「数字ベースで具体的に」書かれているかを判定してください。\n"
-    "例：\n"
-    "- 「数学をやる」→ 不合格\n"
-    "- 「数学の問題集の10ページ〜12ページを解く」→ 合格\n"
-    "- 「英単語を50個覚える」→ 合格\n"
-    "- 「英語を勉強する」→ 不合格\n"
-    "- 「TOEICの模試を1回分解く」→ 合格\n\n"
-    '出力は必ずJSON形式で、{"is_valid": true/false, "feedback": "具体的なアドバイス"} のみを出力すること。'
+GOAL_COACH_SYSTEM_PROMPT = (
+    "あなたは優しくて熱血な学習コーチです。"
+    "ユーザーの学習目標に対して、1〜2文で短く、モチベーションが上がる応援コメントやアドバイスを返してください。\n\n"
+    '出力は必ずJSON形式で、{"comment": "応援メッセージ"} のみを出力すること。'
 )
 
 
@@ -525,49 +520,35 @@ def validate_goal():
     data = request.get_json(silent=True) or {}
     goal_text = (data.get('goal') or '').strip()
     if not goal_text:
-        return jsonify({'is_valid': False, 'feedback': '目標を入力してください。'}), 400
+        return jsonify({'comment': '目標を書いてくれてありがとう！さあ、始めよう！'})
 
     api_key = os.environ.get('GEMINI_API_KEY')
     if not api_key:
-        return jsonify({
-            'is_valid': False,
-            'feedback': 'Gemini APIキーが設定されていません。管理者に連絡してください。',
-        }), 500
+        app.logger.warning('GEMINI_API_KEY is not set')
+        return jsonify({'comment': '今日も頑張ろう！応援しています！'})
 
     try:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(
             'gemini-2.0-flash-lite',
-            system_instruction=GOAL_VALIDATION_SYSTEM_PROMPT,
+            system_instruction=GOAL_COACH_SYSTEM_PROMPT,
             generation_config=genai.types.GenerationConfig(
-                temperature=0.3,
-                max_output_tokens=300,
+                temperature=0.7,
+                max_output_tokens=200,
             ),
         )
         response = model.generate_content(
-            f'以下の学習目標を判定してください:\n\n{goal_text}'
+            f'以下の学習目標に応援コメントをください:\n\n{goal_text}'
         )
         content = response.text.strip()
         if content.startswith('```'):
             content = content.split('\n', 1)[-1]
             content = content.rsplit('```', 1)[0].strip()
         result = json.loads(content)
-        return jsonify({
-            'is_valid': bool(result.get('is_valid', False)),
-            'feedback': result.get('feedback', ''),
-        })
-    except json.JSONDecodeError:
-        app.logger.warning('Goal validation: failed to parse AI response')
-        return jsonify({
-            'is_valid': False,
-            'feedback': 'AIの判定結果を解析できませんでした。もう一度お試しください。',
-        }), 500
+        return jsonify({'comment': result.get('comment', '素晴らしい目標ですね！頑張りましょう！')})
     except Exception as e:
-        app.logger.error(f'Goal validation error: {e}')
-        return jsonify({
-            'is_valid': False,
-            'feedback': 'AI判定中にエラーが発生しました。もう一度お試しください。',
-        }), 500
+        app.logger.error(f'Goal coach error: {e}')
+        return jsonify({'comment': '今日も一歩ずつ前進しよう！応援しています！'})
 
 
 # ---------- SocketIO ----------
