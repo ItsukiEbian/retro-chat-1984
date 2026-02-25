@@ -45,6 +45,11 @@
             deactivateStudyRoom();
         }
 
+        // Refresh next-reservation card whenever returning to Home
+        if (sectionId === 'home' && typeof window.refreshNextReservation === 'function') {
+            window.refreshNextReservation();
+        }
+
         currentSection = sectionId;
     }
 

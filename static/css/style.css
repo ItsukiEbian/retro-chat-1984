@@ -4397,12 +4397,16 @@ body[data-room-context="private"] #mainRoomContent {
 }
 
 .cal-slot.cal-slot-selected {
-    background: var(--primary);
+    background: transparent;
 }
 
 .cal-slot.cal-slot-selected .cal-slot-time {
-    color: rgba(255, 255, 255, 0.5);
-    border-right-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-tertiary);
+    background: transparent;
+}
+
+.cal-slot.cal-slot-selected .cal-slot-body {
+    background: var(--primary);
 }
 
 .cal-slot.cal-slot-selected .cal-slot-label {
@@ -4411,18 +4415,26 @@ body[data-room-context="private"] #mainRoomContent {
 }
 
 .cal-slot.cal-slot-selected:hover {
+    background: transparent;
+}
+
+.cal-slot.cal-slot-selected:hover .cal-slot-body {
     background: var(--primary-hover);
 }
 
 /* Reserved slots */
 .cal-slot.cal-slot-reserved {
-    background: var(--primary-light);
-    border-left: 3px solid var(--accent);
+    background: transparent;
 }
 
 .cal-slot.cal-slot-reserved .cal-slot-time {
-    color: var(--primary);
-    font-weight: 500;
+    color: var(--text-tertiary);
+    background: transparent;
+}
+
+.cal-slot.cal-slot-reserved .cal-slot-body {
+    background: var(--primary-light);
+    border-left: 3px solid var(--accent);
 }
 
 .cal-slot.cal-slot-reserved .cal-slot-label {
@@ -4431,6 +4443,10 @@ body[data-room-context="private"] #mainRoomContent {
 }
 
 .cal-slot.cal-slot-reserved:hover {
+    background: transparent;
+}
+
+.cal-slot.cal-slot-reserved:hover .cal-slot-body {
     background: #e4e8ee;
 }
 
@@ -4572,13 +4588,12 @@ body[data-room-context="private"] #mainRoomContent {
 
     .cal-date-strip {
         display: flex;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch;
-        scroll-behavior: smooth;
-        gap: 8px;
-        padding: 4px 15px;
-        scrollbar-width: none;
+        justify-content: space-between;
+        width: 100%;
+        padding: 0 2px;
+        box-sizing: border-box;
+        gap: 3px;
+        overflow-x: visible;
     }
 
     .cal-date-strip::-webkit-scrollbar {
@@ -4586,31 +4601,32 @@ body[data-room-context="private"] #mainRoomContent {
     }
 
     .cal-date-cell {
-        scroll-snap-align: center;
-        min-width: 50px;
-        width: 50px;
-        height: 65px;
-        padding: 6px 4px;
+        flex: 1 1 calc(100% / 7);
+        min-width: 0;
+        max-width: calc(100% / 7);
+        width: auto;
+        height: 62px;
+        padding: 5px 2px;
         border-radius: 8px;
-        flex-shrink: 0;
+        flex-shrink: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 2px;
+        gap: 1px;
     }
 
     .cal-date-dow {
-        font-size: 9px;
-        margin-bottom: 2px;
+        font-size: 10px;
+        margin-bottom: 1px;
     }
 
     .cal-date-day {
-        font-size: 18px;
+        font-size: 14px;
     }
 
     .cal-date-month {
-        font-size: 8px;
+        font-size: 7px;
         margin-top: 1px;
     }
 
@@ -4683,9 +4699,10 @@ body[data-room-context="private"] #mainRoomContent {
     }
 
     .cal-slot.cal-slot-selected .cal-slot-time {
-        color: var(--primary);
-        font-weight: 500;
+        color: #8a95a0;
+        font-weight: 300;
         border-right: none;
+        background: transparent;
     }
 
     .cal-slot.cal-slot-selected .cal-slot-label {
@@ -4702,6 +4719,9 @@ body[data-room-context="private"] #mainRoomContent {
 
     .cal-slot.cal-slot-reserved .cal-slot-time {
         border-right: none;
+        color: #8a95a0;
+        font-weight: 300;
+        background: transparent;
     }
 
     /* Locked slot */

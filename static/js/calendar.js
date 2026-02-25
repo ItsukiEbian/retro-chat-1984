@@ -78,7 +78,9 @@
     function getWeekDates(offset) {
         var dates = [];
         var start = new Date(today);
-        start.setDate(start.getDate() + offset * 7);
+        // Always start from Sunday of the current week
+        var dayOfWeek = start.getDay(); // 0=Sun, 1=Mon, ...
+        start.setDate(start.getDate() - dayOfWeek + offset * 7);
         for (var i = 0; i < 7; i++) {
             var d = new Date(start);
             d.setDate(d.getDate() + i);
@@ -399,7 +401,15 @@
                 prefix = (d.getMonth() + 1) + '/' + d.getDate() + '（' + DAY_NAMES[d.getDay()] + '）';
             }
         }
-        return prefix + ' ' + data.time_slot + ' 〜';
+        // Calculate end time (start + 30 min)
+        var tsParts = data.time_slot.split(':');
+        var startH = parseInt(tsParts[0], 10);
+        var startM = parseInt(tsParts[1], 10);
+        var endM = startM + 30;
+        var endH = startH;
+        if (endM >= 60) { endM -= 60; endH += 1; }
+        var endTime = String(endH).padStart(2, '0') + ':' + String(endM).padStart(2, '0');
+        return prefix + ' ' + data.time_slot + ' 〜 ' + endTime;
     }
 
     function refreshNextReservation() {
