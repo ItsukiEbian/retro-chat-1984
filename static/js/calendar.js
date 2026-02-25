@@ -19,7 +19,8 @@
 
     var weekOffset = 0;
     var selectedDate = null;
-    var selectedSlots = {};
+    var pendingSelections = {};
+    var reservedSlots = {};
 
     var toastEl = null;
     var toastTimer = null;
@@ -49,8 +50,29 @@
         return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
     }
 
-    function isPastOrToday(d) {
-        return d <= today;
+    function isPast(d) {
+        var yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return d <= yesterday;
+    }
+
+    function isToday(d) {
+        return isSameDay(d, today);
+    }
+
+    function isFuture(d) {
+        return d > today;
+    }
+
+    function slotTimeLabel(index) {
+        var h = Math.floor(index / 2);
+        var m = (index % 2) * 30;
+        return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    }
+
+    function slotIndexFromTime(ts) {
+        var parts = ts.split(':');
+        return parseInt(parts[0], 10) * 2 + (parseInt(parts[1], 10) >= 30 ? 1 : 0);
     }
 
     function getWeekDates(offset) {
@@ -65,6 +87,14 @@
         return dates;
     }
 
+    function fetchReservations(dateStr, cb) {
+        if (!window.IS_LOGGED_IN) { cb([]); return; }
+        fetch('/api/reservations?date=' + dateStr, { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) { cb(Array.isArray(data) ? data : []); })
+            .catch(function () { cb([]); });
+    }
+
     function renderDateStrip() {
         dateStrip.innerHTML = '';
         var dates = getWeekDates(weekOffset);
@@ -75,15 +105,9 @@
             cell.className = 'cal-date-cell';
             cell.setAttribute('data-date', dateKey(d));
 
-            if (isSameDay(d, today)) {
-                cell.classList.add('cal-date-today');
-            }
-            if (isPastOrToday(d)) {
-                cell.classList.add('cal-date-past');
-            }
-            if (selectedDate && isSameDay(d, selectedDate)) {
-                cell.classList.add('cal-date-active');
-            }
+            if (isToday(d)) cell.classList.add('cal-date-today');
+            if (isPast(d)) cell.classList.add('cal-date-past');
+            if (selectedDate && isSameDay(d, selectedDate)) cell.classList.add('cal-date-active');
 
             var dow = document.createElement('span');
             dow.className = 'cal-date-dow';
@@ -101,48 +125,55 @@
             cell.appendChild(day);
             cell.appendChild(month);
 
-            cell.addEventListener('click', function () {
-                selectDate(d);
-            });
-
+            cell.addEventListener('click', function () { selectDate(d); });
             dateStrip.appendChild(cell);
         });
     }
 
     function selectDate(d) {
         selectedDate = d;
-        selectedSlots = {};
+        pendingSelections = {};
 
         document.querySelectorAll('.cal-date-cell').forEach(function (c) {
             c.classList.remove('cal-date-active');
         });
-        var key = dateKey(d);
-        var target = dateStrip.querySelector('[data-date="' + key + '"]');
+        var target = dateStrip.querySelector('[data-date="' + dateKey(d) + '"]');
         if (target) target.classList.add('cal-date-active');
 
-        renderTimeline();
+        loadAndRenderTimeline();
         updateFab();
     }
 
-    function slotTimeLabel(index) {
-        var h = Math.floor(index / 2);
-        var m = (index % 2) * 30;
-        return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    function loadAndRenderTimeline() {
+        if (!selectedDate) { renderTimeline(); return; }
+        var dk = dateKey(selectedDate);
+        fetchReservations(dk, function (rows) {
+            reservedSlots = {};
+            rows.forEach(function (r) {
+                var idx = slotIndexFromTime(r.time_slot);
+                reservedSlots[dk + '_' + idx] = true;
+            });
+            renderTimeline();
+        });
     }
 
     function renderTimeline() {
         timeline.innerHTML = '';
-        var locked = !selectedDate || isPastOrToday(selectedDate);
-        var dk = selectedDate ? dateKey(selectedDate) : '';
+        if (!selectedDate) return;
+
+        var dk = dateKey(selectedDate);
+        var past = isPast(selectedDate);
+        var todayDate = isToday(selectedDate);
+        var future = isFuture(selectedDate);
 
         for (var i = 0; i < SLOTS_PER_DAY; i++) {
             var slot = document.createElement('div');
             slot.className = 'cal-slot';
             slot.setAttribute('data-slot', i);
 
-            if (locked) {
-                slot.classList.add('cal-slot-locked');
-            }
+            var slotKey = dk + '_' + i;
+            var isReserved = !!reservedSlots[slotKey];
+            var isPending = !!pendingSelections[slotKey];
 
             var timeEl = document.createElement('div');
             timeEl.className = 'cal-slot-time';
@@ -154,15 +185,28 @@
             var label = document.createElement('span');
             label.className = 'cal-slot-label';
 
-            if (locked) {
+            if (past) {
+                slot.classList.add('cal-slot-locked');
                 var lockIcon = document.createElement('span');
                 lockIcon.className = 'material-symbols-outlined cal-slot-lock-icon';
                 lockIcon.textContent = 'lock';
                 body.appendChild(lockIcon);
-                label.textContent = '予約不可';
+                label.textContent = isReserved ? '予約済' : '—';
+            } else if (todayDate) {
+                if (isReserved) {
+                    slot.classList.add('cal-slot-reserved');
+                    label.textContent = '予約済';
+                } else if (isPending) {
+                    slot.classList.add('cal-slot-selected');
+                    label.textContent = '選択中';
+                } else {
+                    label.textContent = '空き';
+                }
             } else {
-                var slotKey = dk + '_' + i;
-                if (selectedSlots[slotKey]) {
+                if (isReserved && !isPending) {
+                    slot.classList.add('cal-slot-reserved');
+                    label.textContent = '予約済（タップで取消）';
+                } else if (isPending) {
                     slot.classList.add('cal-slot-selected');
                     label.textContent = '選択中';
                 } else {
@@ -174,47 +218,78 @@
             slot.appendChild(timeEl);
             slot.appendChild(body);
 
-            (function (idx, isLocked) {
+            (function (idx, locked, isToday_, isFuture_, reserved, key) {
                 slot.addEventListener('click', function () {
-                    if (isLocked) {
-                        showToast('当日の予約追加・変更はできません。今日もしっかり頑張りましょう！');
+                    if (locked) {
+                        showToast('過去の日付の予約は変更できません。');
                         return;
                     }
-                    toggleSlot(idx);
+                    if (isToday_ && reserved) {
+                        showToast('当日の予約キャンセルはできません。今日も頑張りましょう！');
+                        return;
+                    }
+                    if (isFuture_ && reserved && !pendingSelections[key]) {
+                        cancelReservation(idx);
+                        return;
+                    }
+                    togglePending(idx);
                 });
-            })(i, locked);
+            })(i, past, todayDate, future, isReserved, slotKey);
 
             timeline.appendChild(slot);
         }
     }
 
-    function toggleSlot(index) {
+    function togglePending(index) {
         if (!selectedDate) return;
-        var dk = dateKey(selectedDate);
-        var key = dk + '_' + index;
-        if (selectedSlots[key]) {
-            delete selectedSlots[key];
+        var key = dateKey(selectedDate) + '_' + index;
+        if (reservedSlots[key]) return;
+        if (pendingSelections[key]) {
+            delete pendingSelections[key];
         } else {
-            selectedSlots[key] = true;
+            pendingSelections[key] = true;
         }
         renderTimeline();
         updateFab();
     }
 
-    function getSelectedCount() {
+    function cancelReservation(index) {
+        if (!selectedDate) return;
+        var dk = dateKey(selectedDate);
+        var ts = slotTimeLabel(index);
+        fetch('/api/reservations', {
+            method: 'DELETE',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slots: [{ date: dk, time_slot: ts }] })
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.ok) {
+                showToast(ts + ' の予約をキャンセルしました');
+                loadAndRenderTimeline();
+                refreshNextReservation();
+            } else {
+                showToast(data.error || 'キャンセルできませんでした');
+            }
+        })
+        .catch(function () { showToast('通信エラーが発生しました'); });
+    }
+
+    function getPendingCount() {
         var count = 0;
-        for (var k in selectedSlots) {
-            if (selectedSlots.hasOwnProperty(k)) count++;
+        for (var k in pendingSelections) {
+            if (pendingSelections.hasOwnProperty(k)) count++;
         }
         return count;
     }
 
-    function getSelectedRange() {
+    function getPendingRange() {
         if (!selectedDate) return '';
         var indices = [];
         var dk = dateKey(selectedDate);
-        for (var k in selectedSlots) {
-            if (selectedSlots.hasOwnProperty(k) && k.indexOf(dk) === 0) {
+        for (var k in pendingSelections) {
+            if (pendingSelections.hasOwnProperty(k) && k.indexOf(dk) === 0) {
                 indices.push(parseInt(k.split('_').pop(), 10));
             }
         }
@@ -227,25 +302,52 @@
 
     function updateFab() {
         if (!fab) return;
-        var count = getSelectedCount();
+        var count = getPendingCount();
         if (count > 0) {
             fab.classList.add('cal-fab-visible');
-            if (fabText) {
-                fabText.textContent = getSelectedRange() + ' 予約する';
-            }
+            if (fabText) fabText.textContent = getPendingRange() + ' 予約する';
         } else {
             fab.classList.remove('cal-fab-visible');
         }
     }
 
+    function submitReservations() {
+        if (!selectedDate) return;
+        var dk = dateKey(selectedDate);
+        var slots = [];
+        for (var k in pendingSelections) {
+            if (pendingSelections.hasOwnProperty(k) && k.indexOf(dk) === 0) {
+                var idx = parseInt(k.split('_').pop(), 10);
+                slots.push({ date: dk, time_slot: slotTimeLabel(idx) });
+            }
+        }
+        if (slots.length === 0) return;
+
+        fetch('/api/reservations', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slots: slots })
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.ok) {
+                showToast('予約しました（' + getPendingRange() + '）');
+                pendingSelections = {};
+                updateFab();
+                loadAndRenderTimeline();
+                refreshNextReservation();
+            } else {
+                showToast(data.error || '予約できませんでした');
+            }
+        })
+        .catch(function () { showToast('通信エラーが発生しました'); });
+    }
+
     if (fab) {
         fab.addEventListener('click', function () {
-            var count = getSelectedCount();
-            if (count === 0) return;
-            showToast('予約しました（' + getSelectedRange() + '）');
-            selectedSlots = {};
-            renderTimeline();
-            updateFab();
+            if (getPendingCount() === 0) return;
+            submitReservations();
         });
     }
 
@@ -263,13 +365,75 @@
         });
     }
 
+    // ===== Home: Next Reservation =====
+
+    function formatReservationDisplay(data) {
+        if (!data || !data.date || !data.time_slot) return null;
+        var parts = data.date.split('-');
+        var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        var todayCheck = new Date();
+        todayCheck.setHours(0, 0, 0, 0);
+        var prefix;
+        if (d.getTime() === todayCheck.getTime()) {
+            prefix = '本日';
+        } else {
+            var tomorrowCheck = new Date(todayCheck);
+            tomorrowCheck.setDate(tomorrowCheck.getDate() + 1);
+            if (d.getTime() === tomorrowCheck.getTime()) {
+                prefix = '明日';
+            } else {
+                prefix = (d.getMonth() + 1) + '/' + d.getDate() + '（' + DAY_NAMES[d.getDay()] + '）';
+            }
+        }
+        return prefix + ' ' + data.time_slot + ' 〜';
+    }
+
+    function refreshNextReservation() {
+        if (!window.IS_LOGGED_IN) return;
+        var card = document.getElementById('homeNextReservation');
+        var timeEl = document.getElementById('homeNextResTime');
+        if (!card) return;
+
+        fetch('/api/next_reservation', { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data && data.date) {
+                    var display = formatReservationDisplay(data);
+                    if (timeEl) timeEl.textContent = display || '—';
+                    card.classList.remove('home-next-res-empty');
+                    var enterBtn = card.querySelector('.home-next-res-enter-btn');
+                    if (enterBtn) enterBtn.style.display = '';
+                    var emptyMsg = card.querySelector('.home-next-res-empty-msg');
+                    if (emptyMsg) emptyMsg.remove();
+                } else {
+                    if (timeEl) timeEl.textContent = '次の予約はありません';
+                    card.classList.add('home-next-res-empty');
+                    var enterBtn2 = card.querySelector('.home-next-res-enter-btn');
+                    if (enterBtn2) enterBtn2.style.display = 'none';
+                    if (!card.querySelector('.home-next-res-empty-msg')) {
+                        var link = document.createElement('button');
+                        link.type = 'button';
+                        link.className = 'home-next-res-cal-btn home-next-res-empty-msg';
+                        link.innerHTML = '<span class="material-symbols-outlined">calendar_month</span><span>カレンダーで予約する</span>';
+                        link.addEventListener('click', function () {
+                            var navBtn = document.querySelector('.spa-nav-item[data-section="calendar"]');
+                            if (navBtn) navBtn.click();
+                        });
+                        card.querySelector('.home-next-res-inner').appendChild(link);
+                    }
+                }
+            })
+            .catch(function () {});
+    }
+
+    window.refreshNextReservation = refreshNextReservation;
+
     function init() {
-        var tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        selectedDate = tomorrow;
+        selectedDate = new Date(today);
         renderDateStrip();
-        renderTimeline();
+        loadAndRenderTimeline();
         updateFab();
+        refreshNextReservation();
     }
 
     init();

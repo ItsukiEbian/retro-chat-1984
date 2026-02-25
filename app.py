@@ -76,6 +76,8 @@ class User(db.Model):
     email = db.Column(db.String(256))
     profile_image = db.Column(db.String(512))
     total_study_time = db.Column(db.Integer, default=0)  # 分単位
+    grade = db.Column(db.String(32), nullable=True)
+    target_school = db.Column(db.String(256), nullable=True)
 
     # --- Stripe サブスクリプション ---
     stripe_customer_id = db.Column(db.String(255), nullable=True)
@@ -96,6 +98,18 @@ class User(db.Model):
     @property
     def is_anonymous(self):
         return False
+
+
+class StudyReservation(db.Model):
+    __tablename__ = 'study_reservations'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    date = db.Column(db.String(10), nullable=False)
+    time_slot = db.Column(db.String(5), nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'date', 'time_slot', name='uq_user_date_slot'),
+    )
 
 
 @login_manager.user_loader
@@ -381,16 +395,182 @@ def room_exit():
 @app.route('/api/enter_room', methods=['POST'])
 @login_required
 def api_enter_room():
-    session['enter_time'] = time.time()
     return jsonify({'ok': True})
 
 
 @app.route('/api/exit_room', methods=['POST'])
 @login_required
 def api_exit_room():
-    record_study_time_if_entered()
     session.pop('room', None)
     return jsonify({'ok': True})
+
+
+@app.route('/api/update_study_time', methods=['POST'])
+@login_required
+def api_update_study_time():
+    data = request.get_json(silent=True) or {}
+    minutes = int(data.get('minutes', 0))
+    if minutes < 1 or minutes > 10:
+        return jsonify({'ok': False, 'error': 'invalid minutes'}), 400
+    try:
+        current_user.total_study_time = (current_user.total_study_time or 0) + minutes
+        db.session.commit()
+        total = current_user.total_study_time
+        h, m = divmod(total, 60)
+        return jsonify({'ok': True, 'total_minutes': total, 'display': f'{h}時間 {m}分'})
+    except Exception:
+        db.session.rollback()
+        return jsonify({'ok': False}), 500
+
+
+@app.route('/api/get_study_time', methods=['GET'])
+@login_required
+def api_get_study_time():
+    total = current_user.total_study_time or 0
+    h, m = divmod(total, 60)
+    return jsonify({'total_minutes': total, 'display': f'{h}時間 {m}分'})
+
+
+@app.route('/api/update_profile', methods=['POST'])
+@login_required
+def api_update_profile():
+    data = request.get_json(silent=True) or {}
+    nickname = (data.get('nickname') or '').strip()
+    grade = (data.get('grade') or '').strip()
+    target_school = (data.get('target_school') or '').strip()
+
+    if nickname:
+        current_user.name = nickname
+        session['user_name'] = nickname
+    current_user.grade = grade or None
+    current_user.target_school = target_school or None
+
+    try:
+        db.session.commit()
+        return jsonify({
+            'ok': True,
+            'name': current_user.name or '',
+            'grade': current_user.grade or '',
+            'target_school': current_user.target_school or '',
+        })
+    except Exception:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': 'DB error'}), 500
+
+
+# ---------- Reservation API ----------
+
+from datetime import date as date_type, datetime as datetime_type
+
+def _today_str():
+    return date_type.today().isoformat()
+
+
+@app.route('/api/reservations', methods=['GET'])
+@login_required
+def api_get_reservations():
+    date_param = request.args.get('date')
+    q = StudyReservation.query.filter_by(user_id=current_user.id)
+    if date_param:
+        q = q.filter_by(date=date_param)
+    rows = q.order_by(StudyReservation.date, StudyReservation.time_slot).all()
+    return jsonify([{'id': r.id, 'date': r.date, 'time_slot': r.time_slot} for r in rows])
+
+
+@app.route('/api/reservations', methods=['POST'])
+@login_required
+def api_create_reservations():
+    data = request.get_json(silent=True) or {}
+    slots = data.get('slots', [])
+    if not slots:
+        return jsonify({'ok': False, 'error': 'no slots'}), 400
+
+    today_s = _today_str()
+    created = []
+    for s in slots:
+        d = s.get('date', '')
+        ts = s.get('time_slot', '')
+        if not d or not ts:
+            continue
+        if d < today_s:
+            return jsonify({'ok': False, 'error': f'過去の日付 {d} には予約できません'}), 400
+        existing = StudyReservation.query.filter_by(
+            user_id=current_user.id, date=d, time_slot=ts
+        ).first()
+        if existing:
+            continue
+        r = StudyReservation(user_id=current_user.id, date=d, time_slot=ts)
+        db.session.add(r)
+        created.append({'date': d, 'time_slot': ts})
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': 'DB error'}), 500
+
+    return jsonify({'ok': True, 'created': created})
+
+
+@app.route('/api/reservations', methods=['DELETE'])
+@login_required
+def api_delete_reservations():
+    data = request.get_json(silent=True) or {}
+    slots = data.get('slots', [])
+    if not slots:
+        return jsonify({'ok': False, 'error': 'no slots'}), 400
+
+    today_s = _today_str()
+    for s in slots:
+        d = s.get('date', '')
+        if d <= today_s:
+            return jsonify({'ok': False, 'error': '当日以前の予約はキャンセルできません'}), 400
+
+    deleted = 0
+    for s in slots:
+        d = s.get('date', '')
+        ts = s.get('time_slot', '')
+        r = StudyReservation.query.filter_by(
+            user_id=current_user.id, date=d, time_slot=ts
+        ).first()
+        if r:
+            db.session.delete(r)
+            deleted += 1
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': 'DB error'}), 500
+
+    return jsonify({'ok': True, 'deleted': deleted})
+
+
+@app.route('/api/next_reservation', methods=['GET'])
+@login_required
+def api_next_reservation():
+    now = datetime_type.now()
+    today_s = now.strftime('%Y-%m-%d')
+    current_time = now.strftime('%H:%M')
+
+    next_today = StudyReservation.query.filter(
+        StudyReservation.user_id == current_user.id,
+        StudyReservation.date == today_s,
+        StudyReservation.time_slot >= current_time
+    ).order_by(StudyReservation.time_slot).first()
+
+    if next_today:
+        return jsonify({'date': next_today.date, 'time_slot': next_today.time_slot})
+
+    next_future = StudyReservation.query.filter(
+        StudyReservation.user_id == current_user.id,
+        StudyReservation.date > today_s
+    ).order_by(StudyReservation.date, StudyReservation.time_slot).first()
+
+    if next_future:
+        return jsonify({'date': next_future.date, 'time_slot': next_future.time_slot})
+
+    return jsonify(None)
 
 
 @app.route('/room/<room_id>')
@@ -942,6 +1122,17 @@ def on_private_chat_image(data):
 
 with app.app_context():
     db.create_all()
+    # safe column migration for existing tables
+    with db.engine.connect() as conn:
+        import sqlalchemy
+        insp = sqlalchemy.inspect(db.engine)
+        existing = [c['name'] for c in insp.get_columns('users')]
+        if 'grade' not in existing:
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN grade VARCHAR(32)"))
+            conn.commit()
+        if 'target_school' not in existing:
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN target_school VARCHAR(256)"))
+            conn.commit()
 
 if __name__ == '__main__':
     # ローカル開発時のみ（Render では gunicorn で起動する）

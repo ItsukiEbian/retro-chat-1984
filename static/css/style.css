@@ -270,6 +270,50 @@ h1, h2, h3, h4, h5, h6 {
     cursor: not-allowed;
 }
 
+.goal-close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    transition: color 0.25s ease;
+    z-index: 1;
+}
+
+.goal-close-btn .material-symbols-outlined {
+    font-size: 22px;
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+}
+
+.goal-close-btn:hover {
+    color: var(--accent);
+}
+
+.goal-cancel-link {
+    display: block;
+    text-align: center;
+    margin-top: 8px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    letter-spacing: 0.03em;
+    transition: color 0.25s ease;
+}
+
+.goal-cancel-link:hover {
+    color: var(--accent);
+}
+
 /* ---------- Buttons ---------- */
 .btn-primary {
     font-family: var(--font-body);
@@ -1152,23 +1196,93 @@ h1, h2, h3, h4, h5, h6 {
     margin-top: 8px;
 }
 
+.settings-card {
+    max-width: 440px;
+}
+
+.settings-card .auth-card-header h1 {
+    font-family: var(--font-heading);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+}
+
+.settings-card .auth-card-header p {
+    font-family: var(--font-body);
+    font-weight: 300;
+    letter-spacing: 0.02em;
+}
+
 .settings-form .auth-label {
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-tertiary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
+
 .settings-form .auth-input {
     width: 100%;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 300;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 10px 0;
+    background: transparent;
+    transition: border-color 0.3s;
 }
+
+.settings-form .auth-input:focus {
+    outline: none;
+    border-bottom-color: var(--accent);
+    box-shadow: none;
+}
+
 .settings-actions {
     display: flex;
-    gap: 12px;
-    margin-top: 20px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-top: 36px;
 }
-.settings-actions .btn-secondary,
-.settings-actions .btn-primary {
-    flex: 0 0 auto;
+
+.settings-save-btn {
+    width: 100%;
+    padding: 14px 0;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    background: var(--primary);
+    border: 1px solid var(--accent);
+    border-radius: 0;
+    cursor: pointer;
+    transition: background 0.25s;
+}
+
+.settings-save-btn:hover {
+    background: var(--primary-hover);
+}
+
+.settings-cancel-link {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    letter-spacing: 0.03em;
+    transition: color 0.25s;
+}
+
+.settings-cancel-link:hover {
+    color: var(--accent);
 }
 .dashboard-btn-settings {
     display: inline-block;
@@ -3758,6 +3872,169 @@ body[data-room-context="private"] #mainRoomContent {
     color: var(--text-tertiary);
 }
 
+.profile-display-value {
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 300;
+    color: var(--text-primary);
+    letter-spacing: 0.02em;
+    padding: 10px 0;
+    display: block;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.profile-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 24px;
+    padding: 10px 20px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: 0;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.profile-edit-btn:hover {
+    background: rgba(197, 168, 128, 0.08);
+}
+
+.profile-edit-btn .material-symbols-outlined {
+    font-size: 16px;
+}
+
+/* Profile Edit Modal */
+.profile-edit-overlay {
+    z-index: 10001;
+}
+
+.profile-edit-card {
+    max-width: 460px;
+    text-align: left;
+}
+
+.profile-edit-card .overlay-card-header {
+    text-align: center;
+}
+
+.profile-edit-card .overlay-card-header h1 {
+    font-family: var(--font-heading);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+}
+
+.profile-edit-card .overlay-card-header p {
+    font-family: var(--font-body);
+    font-weight: 300;
+    letter-spacing: 0.02em;
+}
+
+.profile-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.profile-edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.profile-edit-label {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-tertiary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.profile-edit-input {
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 300;
+    color: var(--text-primary);
+    letter-spacing: 0.02em;
+    padding: 10px 0;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-subtle);
+    border-radius: 0;
+    outline: none;
+    transition: border-color 0.3s;
+    width: 100%;
+}
+
+.profile-edit-input:focus {
+    border-bottom-color: var(--accent);
+}
+
+.profile-edit-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a95a0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0 center;
+    padding-right: 20px;
+    cursor: pointer;
+}
+
+.profile-edit-select option {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--bg-card);
+}
+
+.profile-edit-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.profile-edit-save-btn {
+    width: 100%;
+    padding: 14px 0;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    background: var(--primary);
+    border: 1px solid var(--accent);
+    border-radius: 0;
+    cursor: pointer;
+    transition: background 0.25s;
+}
+
+.profile-edit-save-btn:hover {
+    background: var(--primary-hover);
+}
+
+.profile-edit-cancel-link {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    letter-spacing: 0.03em;
+    transition: color 0.25s;
+}
+
+.profile-edit-cancel-link:hover {
+    color: var(--accent);
+}
+
 /* ---------- Home: Next Reservation Card ---------- */
 .home-next-reservation {
     width: 100%;
@@ -3823,6 +4100,37 @@ body[data-room-context="private"] #mainRoomContent {
 
 .home-next-res-enter-btn .material-symbols-outlined {
     font-size: 20px;
+}
+
+.home-next-res-cal-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.03em;
+    color: var(--accent);
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: 0;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.home-next-res-cal-btn:hover {
+    background: rgba(197, 168, 128, 0.1);
+}
+
+.home-next-res-cal-btn .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.home-next-res-empty .home-next-res-time {
+    font-size: 16px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.6);
 }
 
 @keyframes homePulse {
@@ -4066,7 +4374,27 @@ body[data-room-context="private"] #mainRoomContent {
     background: var(--primary-hover);
 }
 
-/* Locked slots (today/past) */
+/* Reserved slots */
+.cal-slot.cal-slot-reserved {
+    background: var(--primary-light);
+    border-left: 3px solid var(--accent);
+}
+
+.cal-slot.cal-slot-reserved .cal-slot-time {
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.cal-slot.cal-slot-reserved .cal-slot-label {
+    color: var(--primary);
+    font-weight: 400;
+}
+
+.cal-slot.cal-slot-reserved:hover {
+    background: #e4e8ee;
+}
+
+/* Locked slots (past) */
 .cal-slot.cal-slot-locked {
     background: var(--surface-hover);
     cursor: not-allowed;
@@ -4187,32 +4515,63 @@ body[data-room-context="private"] #mainRoomContent {
         padding: 12px 20px;
     }
 
+    .sec-calendar {
+        padding-bottom: 160px;
+    }
+
+    .cal-date-strip-wrap {
+        gap: 4px;
+    }
+
+    .cal-date-arrow {
+        width: 32px;
+        height: 32px;
+    }
+
+    .cal-date-strip {
+        scroll-behavior: smooth;
+        gap: 6px;
+        scroll-snap-type: x mandatory;
+    }
+
     .cal-date-cell {
-        min-width: 52px;
-        padding: 10px 6px;
+        min-width: 56px;
+        padding: 10px 8px;
+        scroll-snap-align: start;
     }
 
     .cal-date-day {
         font-size: 17px;
     }
 
+    .cal-timeline-wrap {
+        width: 100%;
+        overflow-x: hidden;
+        box-sizing: border-box;
+    }
+
     .cal-slot-time {
-        width: 56px;
-        padding: 0 8px 0 8px;
-        font-size: 12px;
+        width: 52px;
+        padding: 0 6px;
+        font-size: 11px;
+    }
+
+    .cal-slot-body {
+        padding: 8px 12px;
     }
 
     .cal-fab {
-        bottom: 84px;
-        right: 16px;
-        left: 16px;
+        bottom: 96px;
+        right: auto;
+        left: 5%;
+        width: 90%;
         justify-content: center;
         padding: 14px 24px;
         font-size: 14px;
     }
 
     .cal-toast {
-        bottom: 160px;
+        bottom: 170px;
         max-width: calc(100% - 32px);
         padding: 14px 24px;
         font-size: 12px;

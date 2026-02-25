@@ -26,6 +26,9 @@
     <!-- Goal Setting Modal -->
     <div id="goalOverlay" class="overlay goal-overlay" style="display:none">
         <div class="overlay-card goal-card">
+            <button id="goalCloseBtn" class="goal-close-btn" type="button" aria-label="閉じる">
+                <span class="material-symbols-outlined">close</span>
+            </button>
             <div class="overlay-card-header">
                 <span class="overlay-icon goal-icon"><span class="material-symbols-outlined">flag</span></span>
                 <h1>今回の勉強目標を教えてください</h1>
@@ -38,9 +41,53 @@
                 <div class="overlay-card-actions">
                     <button id="goalSubmitBtn" class="btn-primary goal-submit-btn">目標を設定して入室する</button>
                 </div>
+                <a href="#" id="goalCancelLink" class="goal-cancel-link">キャンセルして戻る</a>
             </div>
         </div>
     </div>
+
+    <!-- Profile Edit Modal -->
+    {% if current_user.is_authenticated %}
+    <div id="profileEditOverlay" class="overlay profile-edit-overlay" style="display:none">
+        <div class="overlay-card profile-edit-card">
+            <button id="profileEditCloseBtn" class="goal-close-btn" type="button" aria-label="閉じる">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <div class="overlay-card-header">
+                <h1>プロフィールの編集</h1>
+                <p>自習室や学習記録で表示される情報を設定します。</p>
+            </div>
+            <div class="profile-edit-form">
+                <div class="profile-edit-field">
+                    <label class="profile-edit-label" for="profileEditName">ニックネーム</label>
+                    <input type="text" id="profileEditName" class="profile-edit-input" value="{{ user.name | default('') }}" placeholder="ニックネームを入力" maxlength="64">
+                </div>
+                <div class="profile-edit-field">
+                    <label class="profile-edit-label" for="profileEditGrade">学年</label>
+                    <select id="profileEditGrade" class="profile-edit-input profile-edit-select">
+                        <option value="">選択してください</option>
+                        <option value="中学1年生">中学1年生</option>
+                        <option value="中学2年生">中学2年生</option>
+                        <option value="中学3年生">中学3年生</option>
+                        <option value="高校1年生">高校1年生</option>
+                        <option value="高校2年生">高校2年生</option>
+                        <option value="高校3年生">高校3年生</option>
+                        <option value="既卒">既卒</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+                <div class="profile-edit-field">
+                    <label class="profile-edit-label" for="profileEditSchool">志望校</label>
+                    <input type="text" id="profileEditSchool" class="profile-edit-input" value="{{ user.target_school | default('') }}" placeholder="志望校を入力" maxlength="128">
+                </div>
+                <div class="profile-edit-actions">
+                    <button type="button" id="profileEditSaveBtn" class="profile-edit-save-btn">保存する</button>
+                    <a href="#" id="profileEditCancelLink" class="profile-edit-cancel-link">キャンセルして戻る</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- ===== SPA Sidebar ===== -->
     <aside id="spaSidebar" class="spa-sidebar">
@@ -159,9 +206,7 @@
                     </div>
                 </div>
                 <div class="spa-home-links">
-                    {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('logout') }}" class="btn-secondary">ログアウト</a>
-                    {% else %}
+                    {% if not current_user.is_authenticated %}
                     <a href="{{ url_for('login_google') }}" class="btn-primary spa-home-login-btn">Googleでログイン</a>
                     {% endif %}
                 </div>
@@ -398,11 +443,6 @@
                     </div>
                 </div>
 
-                <div class="route-calendar-placeholder">
-                    <span class="material-symbols-outlined">calendar_month</span>
-                    <p>日程調整カレンダー（Calendly等）埋め込みエリア</p>
-                </div>
-
                 {% elif current_user.is_authenticated and not is_subscribed %}
                 <!-- === Standard/Free: Upsell LP === -->
                 <div class="route-upsell">
@@ -481,24 +521,25 @@
                         <div class="profile-field">
                             <label class="profile-label">ニックネーム</label>
                             <div class="profile-input-wrap">
-                                <input type="text" class="profile-input" value="{{ user.name | default('未設定') }}" readonly>
-                                <a href="{{ url_for('settings') }}" class="profile-edit-link">
-                                    <span class="material-symbols-outlined">edit</span>
-                                </a>
+                                <span class="profile-display-value" id="profileDisplayName">{{ user.name | default('未設定') }}</span>
                             </div>
                         </div>
                         <div class="profile-field">
                             <label class="profile-label">学年</label>
                             <div class="profile-input-wrap">
-                                <input type="text" class="profile-input" value="{{ user.grade | default('未設定') }}" readonly>
+                                <span class="profile-display-value" id="profileDisplayGrade">{{ user.grade | default('未設定') }}</span>
                             </div>
                         </div>
                         <div class="profile-field">
-                            <label class="profile-label">志望校・目標</label>
+                            <label class="profile-label">志望校</label>
                             <div class="profile-input-wrap">
-                                <input type="text" class="profile-input" value="{{ user.target_school | default('未設定') }}" readonly>
+                                <span class="profile-display-value" id="profileDisplaySchool">{{ user.target_school | default('未設定') }}</span>
                             </div>
                         </div>
+                        <button type="button" class="profile-edit-btn" id="profileEditBtn">
+                            <span class="material-symbols-outlined">edit</span>
+                            <span>プロフィールを編集</span>
+                        </button>
                     </div>
                 </div>
 
