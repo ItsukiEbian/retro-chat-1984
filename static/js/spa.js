@@ -118,6 +118,13 @@
         });
     }
 
+    document.querySelectorAll('.js-enter-study').forEach(function (btn) {
+        if (btn === homeEnterBtn) return;
+        btn.addEventListener('click', function () {
+            showGoalModal();
+        });
+    });
+
     if (exitStudyBtn) {
         exitStudyBtn.addEventListener('click', function () {
             switchToSection('home');

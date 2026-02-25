@@ -64,6 +64,10 @@
                 <span class="spa-nav-icon"><span class="material-symbols-outlined">insights</span></span>
                 <span class="spa-nav-label">学習記録・レポート</span>
             </button>
+            <button class="spa-nav-item" data-section="calendar" type="button">
+                <span class="spa-nav-icon"><span class="material-symbols-outlined">calendar_month</span></span>
+                <span class="spa-nav-label">予約・カレンダー</span>
+            </button>
             <button class="spa-nav-item" data-section="route" type="button">
                 <span class="spa-nav-icon"><span class="material-symbols-outlined">explore</span></span>
                 <span class="spa-nav-label">学習ルート・面談</span>
@@ -126,6 +130,21 @@
                 </div>
                 {% endif %}
 
+                {% if current_user.is_authenticated %}
+                <div class="home-next-reservation" id="homeNextReservation">
+                    <div class="home-next-res-inner">
+                        <div class="home-next-res-info">
+                            <span class="home-next-res-label">次の予約</span>
+                            <span class="home-next-res-time" id="homeNextResTime">本日 19:00 〜 20:30</span>
+                        </div>
+                        <button class="home-next-res-enter-btn home-pulse js-enter-study" type="button">
+                            <span class="material-symbols-outlined">auto_stories</span>
+                            <span>自習室に入る</span>
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+
                 <div class="spa-home-cards">
                     <div class="spa-home-card spa-home-card-stat">
                         <span class="spa-home-stat-icon"><span class="material-symbols-outlined">schedule</span></span>
@@ -133,7 +152,7 @@
                         <span class="spa-home-stat-value">{{ total_study_time_display }}</span>
                     </div>
                     <div class="spa-home-card spa-home-card-action">
-                        <button id="homeEnterStudyBtn" class="spa-home-enter-btn" type="button">
+                        <button id="homeEnterStudyBtn" class="spa-home-enter-btn js-enter-study" type="button">
                             <span class="spa-home-enter-icon"><span class="material-symbols-outlined">meeting_room</span></span>
                             <span>自習室へ入室する</span>
                         </button>
@@ -235,25 +254,199 @@
             </div>
         </div>
 
-        <!-- ====== Section: Report (placeholder) ====== -->
+        <!-- ====== Section: Report ====== -->
         <div id="section-report" class="spa-section">
-            <div class="spa-section-placeholder">
-                <div class="spa-placeholder-content">
-                    <span class="spa-placeholder-icon"><span class="material-symbols-outlined">insights</span></span>
-                    <h1>学習記録・レポート</h1>
-                    <p>準備中です。もう少しお待ちください。</p>
+            <div class="sec-report">
+                <header class="sec-report-header">
+                    <h1 class="sec-heading">学習記録・レポート</h1>
+                    <p class="sec-subheading">日々の積み重ねが、確かな実力になります</p>
+                </header>
+
+                {% if current_user.is_authenticated %}
+                <div class="report-summary-cards">
+                    <div class="report-card">
+                        <span class="report-card-icon"><span class="material-symbols-outlined">wb_sunny</span></span>
+                        <span class="report-card-label">今日の学習時間</span>
+                        <span class="report-card-value">{{ today_study_display | default('0時間 0分') }}</span>
+                    </div>
+                    <div class="report-card">
+                        <span class="report-card-icon"><span class="material-symbols-outlined">date_range</span></span>
+                        <span class="report-card-label">今週の合計</span>
+                        <span class="report-card-value">{{ weekly_study_display | default('0時間 0分') }}</span>
+                    </div>
+                    <div class="report-card">
+                        <span class="report-card-icon"><span class="material-symbols-outlined">flag</span></span>
+                        <span class="report-card-label">目標までの残り</span>
+                        <span class="report-card-value">{{ remaining_to_goal | default('--') }}</span>
+                    </div>
                 </div>
+
+                <div class="report-monthly-cta">
+                    <div class="report-monthly-inner">
+                        <span class="material-symbols-outlined report-monthly-icon">summarize</span>
+                        <div class="report-monthly-text">
+                            <h3>月間学習レポート</h3>
+                            <p>先月の学習状況を振り返り、次の目標設定にお役立てください。保護者の方もご確認いただけます。</p>
+                        </div>
+                        <a href="#" class="report-monthly-btn">
+                            <span>先月のレポートを見る</span>
+                            <span class="material-symbols-outlined">arrow_forward</span>
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="sec-login-gate">
+                    <span class="material-symbols-outlined sec-login-gate-icon">lock</span>
+                    <p>学習記録を確認するにはログインが必要です。</p>
+                    <a href="{{ url_for('login_google') }}" class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
+                </div>
+                {% endif %}
             </div>
         </div>
 
-        <!-- ====== Section: Route (placeholder) ====== -->
-        <div id="section-route" class="spa-section">
-            <div class="spa-section-placeholder">
-                <div class="spa-placeholder-content">
-                    <span class="spa-placeholder-icon"><span class="material-symbols-outlined">explore</span></span>
-                    <h1>学習ルート・面談</h1>
-                    <p>準備中です。もう少しお待ちください。</p>
+        <!-- ====== Section: Calendar ====== -->
+        <div id="section-calendar" class="spa-section">
+            <div class="sec-calendar">
+                <header class="sec-calendar-header">
+                    <h1 class="sec-heading">予約・カレンダー</h1>
+                    <p class="sec-subheading">学習時間を予約して、計画的に集中しましょう</p>
+                </header>
+
+                {% if current_user.is_authenticated %}
+                <div class="cal-date-strip-wrap">
+                    <button class="cal-date-arrow cal-date-arrow-prev" id="calPrevWeek" type="button">
+                        <span class="material-symbols-outlined">chevron_left</span>
+                    </button>
+                    <div class="cal-date-strip" id="calDateStrip"></div>
+                    <button class="cal-date-arrow cal-date-arrow-next" id="calNextWeek" type="button">
+                        <span class="material-symbols-outlined">chevron_right</span>
+                    </button>
                 </div>
+
+                <div class="cal-timeline-wrap" id="calTimelineWrap">
+                    <div class="cal-timeline" id="calTimeline"></div>
+                </div>
+
+                <div class="cal-fab" id="calFab">
+                    <span class="material-symbols-outlined">event_available</span>
+                    <span class="cal-fab-text" id="calFabText">予約する</span>
+                </div>
+                {% else %}
+                <div class="sec-login-gate">
+                    <span class="material-symbols-outlined sec-login-gate-icon">lock</span>
+                    <p>予約機能を利用するにはログインが必要です。</p>
+                    <a href="{{ url_for('login_google') }}" class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ====== Section: Route ====== -->
+        <div id="section-route" class="spa-section">
+            <div class="sec-route">
+                {% if current_user.is_authenticated and is_subscribed %}
+                <!-- === Pro Plan: Learning Route & Interview === -->
+                <header class="sec-route-header">
+                    <h1 class="sec-heading">学習ルート・面談</h1>
+                    <p class="sec-subheading">あなた専用の学習計画と、講師による定期面談</p>
+                </header>
+
+                <div class="route-progress-section">
+                    <h2 class="route-section-title">今週の学習目標</h2>
+                    <div class="route-progress-bar-wrap">
+                        <div class="route-progress-bar">
+                            <div class="route-progress-fill" style="width: 40%"></div>
+                        </div>
+                        <span class="route-progress-pct">40%</span>
+                    </div>
+                    <ul class="route-todo-list">
+                        <li class="route-todo-item route-todo-done">
+                            <span class="material-symbols-outlined route-todo-check">check_circle</span>
+                            <span>英単語ターゲット1900：Section 1〜3 暗記</span>
+                        </li>
+                        <li class="route-todo-item route-todo-done">
+                            <span class="material-symbols-outlined route-todo-check">check_circle</span>
+                            <span>数学 青チャート 例題10〜15</span>
+                        </li>
+                        <li class="route-todo-item">
+                            <span class="material-symbols-outlined route-todo-check">radio_button_unchecked</span>
+                            <span>古文単語315：第2章 暗記テスト</span>
+                        </li>
+                        <li class="route-todo-item">
+                            <span class="material-symbols-outlined route-todo-check">radio_button_unchecked</span>
+                            <span>物理 セミナー 波動分野 演習20問</span>
+                        </li>
+                        <li class="route-todo-item">
+                            <span class="material-symbols-outlined route-todo-check">radio_button_unchecked</span>
+                            <span>英語長文 やっておきたい500 1題</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="route-interview-card">
+                    <div class="route-interview-inner">
+                        <span class="material-symbols-outlined route-interview-icon">event</span>
+                        <div class="route-interview-info">
+                            <h3>次回の面談</h3>
+                            <p class="route-interview-date">3月5日（水） 19:00 〜 19:30</p>
+                            <p class="route-interview-note">講師：田中先生</p>
+                        </div>
+                        <a href="#" class="route-interview-btn">
+                            <span>面談ルームに入室する</span>
+                            <span class="material-symbols-outlined">arrow_forward</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="route-calendar-placeholder">
+                    <span class="material-symbols-outlined">calendar_month</span>
+                    <p>日程調整カレンダー（Calendly等）埋め込みエリア</p>
+                </div>
+
+                {% elif current_user.is_authenticated and not is_subscribed %}
+                <!-- === Standard/Free: Upsell LP === -->
+                <div class="route-upsell">
+                    <div class="route-upsell-ornament"></div>
+                    <span class="route-upsell-icon">
+                        <span class="material-symbols-outlined">school</span>
+                    </span>
+                    <h1 class="route-upsell-title">専用の学習ルート設計と<br>月2回の面談で、迷わず勉強しませんか？</h1>
+                    <p class="route-upsell-desc">Proプランでは、あなただけの学習計画を講師が設計。定期面談で進捗を確認し、常に最適なルートで学習を進められます。</p>
+
+                    <ul class="route-upsell-features">
+                        <li>
+                            <span class="material-symbols-outlined">edit_note</span>
+                            <span>志望校・目標に合わせた完全オーダーメイドの学習ルート</span>
+                        </li>
+                        <li>
+                            <span class="material-symbols-outlined">groups</span>
+                            <span>月2回のオンライン面談で進捗確認＆軌道修正</span>
+                        </li>
+                        <li>
+                            <span class="material-symbols-outlined">auto_awesome</span>
+                            <span>AIによる日々の学習分析と最適化提案</span>
+                        </li>
+                        <li>
+                            <span class="material-symbols-outlined">priority_high</span>
+                            <span>質問・相談の優先対応</span>
+                        </li>
+                    </ul>
+
+                    <a href="{{ url_for('subscription_page') }}" class="route-upsell-btn">
+                        <span>Proプランを無料体験する</span>
+                        <span class="material-symbols-outlined">arrow_forward</span>
+                    </a>
+                    <p class="route-upsell-note">7日間無料・いつでもキャンセル可能</p>
+                </div>
+
+                {% else %}
+                <!-- === Guest === -->
+                <div class="sec-login-gate">
+                    <span class="material-symbols-outlined sec-login-gate-icon">lock</span>
+                    <p>学習ルート・面談機能を利用するにはログインが必要です。</p>
+                    <a href="{{ url_for('login_google') }}" class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
+                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -268,19 +461,115 @@
             </div>
         </div>
 
-        <!-- ====== Section: Profile (placeholder) ====== -->
+        <!-- ====== Section: Profile ====== -->
         <div id="section-profile" class="spa-section">
-            <div class="spa-section-placeholder">
-                <div class="spa-placeholder-content">
-                    <span class="spa-placeholder-icon"><span class="material-symbols-outlined">person</span></span>
-                    <h1>プロフィール・設定</h1>
-                    {% if current_user.is_authenticated %}
-                    <p>準備中です。もう少しお待ちください。</p>
-                    {% else %}
-                    <p>この機能を利用するにはログインが必要です。</p>
-                    <a href="{{ url_for('login_google') }}" class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
-                    {% endif %}
+            <div class="sec-profile">
+                {% if current_user.is_authenticated %}
+                <header class="sec-profile-header">
+                    <h1 class="sec-heading">プロフィール・設定</h1>
+                </header>
+
+                <div class="profile-user-area">
+                    <div class="profile-avatar">
+                        {% if user and user.profile_image %}
+                        <img src="{{ user.profile_image }}" alt="プロフィール画像" class="profile-avatar-img">
+                        {% else %}
+                        <span class="material-symbols-outlined profile-avatar-placeholder">account_circle</span>
+                        {% endif %}
+                    </div>
+                    <div class="profile-form">
+                        <div class="profile-field">
+                            <label class="profile-label">ニックネーム</label>
+                            <div class="profile-input-wrap">
+                                <input type="text" class="profile-input" value="{{ user.name | default('未設定') }}" readonly>
+                                <a href="{{ url_for('settings') }}" class="profile-edit-link">
+                                    <span class="material-symbols-outlined">edit</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="profile-field">
+                            <label class="profile-label">学年</label>
+                            <div class="profile-input-wrap">
+                                <input type="text" class="profile-input" value="{{ user.grade | default('未設定') }}" readonly>
+                            </div>
+                        </div>
+                        <div class="profile-field">
+                            <label class="profile-label">志望校・目標</label>
+                            <div class="profile-input-wrap">
+                                <input type="text" class="profile-input" value="{{ user.target_school | default('未設定') }}" readonly>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <div class="profile-plan-area">
+                    <h2 class="profile-section-title">ご契約プラン</h2>
+                    <div class="profile-plan-card">
+                        <div class="profile-plan-info">
+                            <span class="profile-plan-name">
+                                {% if is_subscribed %}Standardプラン{% else %}無料プラン{% endif %}
+                            </span>
+                            <span class="profile-plan-status">
+                                {% if is_subscribed %}
+                                <span class="material-symbols-outlined" style="font-size:14px;color:var(--accent)">verified</span> 有効
+                                {% else %}
+                                未加入
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% if is_subscribed %}
+                        <form action="{{ url_for('create_portal_session') }}" method="POST" class="profile-plan-action">
+                            <button type="submit" class="profile-plan-btn">
+                                <span>ご契約内容の確認・変更</span>
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </button>
+                        </form>
+                        {% else %}
+                        <a href="{{ url_for('subscription_page') }}" class="profile-plan-btn">
+                            <span>プランを見る</span>
+                            <span class="material-symbols-outlined">arrow_forward</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="profile-menu-area">
+                    <h2 class="profile-section-title">その他</h2>
+                    <ul class="profile-menu-list">
+                        <li>
+                            <a href="#" class="profile-menu-link">
+                                <span>利用規約</span>
+                                <span class="material-symbols-outlined">chevron_right</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="profile-menu-link">
+                                <span>よくある質問</span>
+                                <span class="material-symbols-outlined">chevron_right</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="profile-menu-link">
+                                <span>お問い合わせ</span>
+                                <span class="material-symbols-outlined">chevron_right</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('logout') }}" class="profile-menu-link profile-menu-logout">
+                                <span>ログアウト</span>
+                                <span class="material-symbols-outlined">logout</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                {% else %}
+                <div class="sec-login-gate">
+                    <span class="material-symbols-outlined sec-login-gate-icon">lock</span>
+                    <p>プロフィール・設定を利用するにはログインが必要です。</p>
+                    <a href="{{ url_for('login_google') }}" class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
+                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -288,5 +577,6 @@
 
     <script src="{{ url_for('static', filename='js/room.js') }}"></script>
     <script src="{{ url_for('static', filename='js/spa.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
 </body>
 </html>
