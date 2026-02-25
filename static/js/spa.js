@@ -83,7 +83,7 @@
                 credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ minutes: 1 })
-            }).catch(function () {});
+            }).catch(function () { });
         }, 60000);
     }
 
@@ -102,13 +102,13 @@
                 var el = document.querySelector('.spa-home-stat-value');
                 if (el && data.display) el.textContent = data.display;
             })
-            .catch(function () {});
+            .catch(function () { });
     }
 
     function activateStudyRoom() {
         switchToSection('study');
         studyRoomInitialized = true;
-        fetch('/api/enter_room', { method: 'POST', credentials: 'same-origin' }).catch(function () {});
+        fetch('/api/enter_room', { method: 'POST', credentials: 'same-origin' }).catch(function () { });
         startStudyTimer();
     }
 
@@ -118,7 +118,7 @@
             window.teardownStudyRoom();
         }
         studyRoomInitialized = false;
-        fetch('/api/exit_room', { method: 'POST', credentials: 'same-origin' }).catch(function () {});
+        fetch('/api/exit_room', { method: 'POST', credentials: 'same-origin' }).catch(function () { });
         refreshHomeStudyTime();
     }
 
@@ -197,37 +197,129 @@
         });
     }
 
-    // ---- Profile Edit Modal ----
+    // ---- Profile Edit Modal (Dynamic, single-field) ----
     var profileEditOverlay = document.getElementById('profileEditOverlay');
-    var profileEditBtn = document.getElementById('profileEditBtn');
     var profileEditCloseBtn = document.getElementById('profileEditCloseBtn');
     var profileEditCancelLink = document.getElementById('profileEditCancelLink');
     var profileEditSaveBtn = document.getElementById('profileEditSaveBtn');
+    var profileEditTitle = document.getElementById('profileEditTitle');
+    var profileEditDesc = document.getElementById('profileEditDesc');
+    var profileEditFieldWrap = document.getElementById('profileEditFieldWrap');
 
-    function openProfileEditModal() {
-        if (!profileEditOverlay) return;
-        var gradeSelect = document.getElementById('profileEditGrade');
-        if (gradeSelect) {
-            var current = (document.getElementById('profileDisplayGrade') || {}).textContent || '';
-            current = current.trim();
-            for (var i = 0; i < gradeSelect.options.length; i++) {
-                if (gradeSelect.options[i].value === current) {
-                    gradeSelect.selectedIndex = i;
-                    break;
-                }
-            }
+    var PROFILE_FIELDS = {
+        nickname: {
+            title: 'ニックネームの変更',
+            desc: '自習室やレポートに表示される名前です。',
+            type: 'text',
+            placeholder: 'ニックネームを入力',
+            maxlength: 64,
+            displayId: 'profileDisplayName',
+            apiKey: 'nickname',
+            responseKey: 'name'
+        },
+        grade: {
+            title: '学年の変更',
+            desc: '現在の学年を選択してください。',
+            type: 'select',
+            options: [
+                { value: '', label: '選択してください' },
+                { value: '中学1年生', label: '中学1年生' },
+                { value: '中学2年生', label: '中学2年生' },
+                { value: '中学3年生', label: '中学3年生' },
+                { value: '高校1年生', label: '高校1年生' },
+                { value: '高校2年生', label: '高校2年生' },
+                { value: '高校3年生', label: '高校3年生' },
+                { value: '既卒', label: '既卒' },
+                { value: 'その他', label: 'その他' }
+            ],
+            displayId: 'profileDisplayGrade',
+            apiKey: 'grade',
+            responseKey: 'grade'
+        },
+        target_school: {
+            title: '志望校の変更',
+            desc: '志望校を入力してください。',
+            type: 'text',
+            placeholder: '志望校を入力',
+            maxlength: 128,
+            displayId: 'profileDisplaySchool',
+            apiKey: 'target_school',
+            responseKey: 'target_school'
         }
+    };
+
+    var currentEditField = null;
+
+    function openProfileEditModal(fieldKey, currentValue) {
+        if (!profileEditOverlay || !PROFILE_FIELDS[fieldKey]) return;
+        var cfg = PROFILE_FIELDS[fieldKey];
+        currentEditField = fieldKey;
+
+        if (profileEditTitle) profileEditTitle.textContent = cfg.title;
+        if (profileEditDesc) profileEditDesc.textContent = cfg.desc;
+
+        // Build input element dynamically
+        if (profileEditFieldWrap) {
+            profileEditFieldWrap.innerHTML = '';
+            var label = document.createElement('label');
+            label.className = 'profile-edit-label';
+            label.textContent = cfg.title.replace('の変更', '');
+
+            var input;
+            if (cfg.type === 'select') {
+                input = document.createElement('select');
+                input.className = 'profile-edit-input profile-edit-select';
+                input.id = 'profileEditInput';
+                cfg.options.forEach(function (opt) {
+                    var option = document.createElement('option');
+                    option.value = opt.value;
+                    option.textContent = opt.label;
+                    if (opt.value === currentValue) option.selected = true;
+                    input.appendChild(option);
+                });
+            } else {
+                input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'profile-edit-input';
+                input.id = 'profileEditInput';
+                input.value = currentValue || '';
+                input.placeholder = cfg.placeholder || '';
+                if (cfg.maxlength) input.maxLength = cfg.maxlength;
+            }
+
+            label.setAttribute('for', 'profileEditInput');
+            profileEditFieldWrap.appendChild(label);
+            profileEditFieldWrap.appendChild(input);
+        }
+
+        if (profileEditSaveBtn) {
+            profileEditSaveBtn.disabled = false;
+            profileEditSaveBtn.textContent = '保存する';
+        }
+
         profileEditOverlay.style.display = 'flex';
+
+        // Focus the input after display
+        setTimeout(function () {
+            var inp = document.getElementById('profileEditInput');
+            if (inp && inp.focus) inp.focus();
+        }, 100);
     }
 
     function closeProfileEditModal() {
         if (!profileEditOverlay) return;
         profileEditOverlay.style.display = 'none';
+        currentEditField = null;
     }
 
-    if (profileEditBtn) {
-        profileEditBtn.addEventListener('click', openProfileEditModal);
-    }
+    // Bind rows
+    document.querySelectorAll('.profile-row').forEach(function (row) {
+        row.addEventListener('click', function () {
+            var fieldKey = row.getAttribute('data-field');
+            var currentValue = row.getAttribute('data-current') || '';
+            openProfileEditModal(fieldKey, currentValue);
+        });
+    });
 
     if (profileEditCloseBtn) {
         profileEditCloseBtn.addEventListener('click', closeProfileEditModal);
@@ -248,49 +340,64 @@
 
     if (profileEditSaveBtn) {
         profileEditSaveBtn.addEventListener('click', function () {
-            var nickname = (document.getElementById('profileEditName') || {}).value || '';
-            var grade = (document.getElementById('profileEditGrade') || {}).value || '';
-            var school = (document.getElementById('profileEditSchool') || {}).value || '';
+            if (!currentEditField || !PROFILE_FIELDS[currentEditField]) return;
+            var cfg = PROFILE_FIELDS[currentEditField];
+            var input = document.getElementById('profileEditInput');
+            if (!input) return;
+            var newValue = (input.value || '').trim();
 
             profileEditSaveBtn.disabled = true;
             profileEditSaveBtn.textContent = '保存中…';
 
+            var payload = {};
+            payload[cfg.apiKey] = newValue;
+
             fetch('/api/update_profile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    nickname: nickname,
-                    grade: grade,
-                    target_school: school
-                })
+                body: JSON.stringify(payload)
             })
-            .then(function (res) { return res.json(); })
-            .then(function (data) {
-                if (data.ok) {
-                    var dn = document.getElementById('profileDisplayName');
-                    var dg = document.getElementById('profileDisplayGrade');
-                    var ds = document.getElementById('profileDisplaySchool');
-                    if (dn) dn.textContent = data.name || '未設定';
-                    if (dg) dg.textContent = data.grade || '未設定';
-                    if (ds) ds.textContent = data.target_school || '未設定';
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (data.ok) {
+                        // Update the display value in the list row
+                        var displayEl = document.getElementById(cfg.displayId);
+                        var displayValue = data[cfg.responseKey] || '';
+                        if (displayEl) {
+                            displayEl.textContent = displayValue || '未設定';
+                            if (displayValue) {
+                                displayEl.classList.remove('profile-row-placeholder');
+                            } else {
+                                displayEl.classList.add('profile-row-placeholder');
+                            }
+                        }
 
-                    var welcomeName = document.querySelector('.spa-home-wrapper h1');
-                    if (welcomeName && data.name) {
-                        welcomeName.innerHTML = data.name + 'さん、<br>お帰りなさい。';
+                        // Update data-current on the row
+                        var row = document.querySelector('.profile-row[data-field="' + currentEditField + '"]');
+                        if (row) row.setAttribute('data-current', displayValue);
+
+                        // Update user name in profile header and home greeting
+                        if (currentEditField === 'nickname') {
+                            var userName = document.querySelector('.profile-user-name');
+                            if (userName) userName.textContent = data.name || 'ユーザー';
+                            var welcomeName = document.querySelector('.spa-home-wrapper h1');
+                            if (welcomeName && data.name) {
+                                welcomeName.textContent = 'おかえりなさい、' + data.name + ' さん';
+                            }
+                        }
+
+                        closeProfileEditModal();
+                    } else {
+                        alert('保存に失敗しました。もう一度お試しください。');
                     }
-
-                    closeProfileEditModal();
-                } else {
-                    alert('保存に失敗しました。もう一度お試しください。');
-                }
-            })
-            .catch(function () {
-                alert('通信エラーが発生しました。');
-            })
-            .finally(function () {
-                profileEditSaveBtn.disabled = false;
-                profileEditSaveBtn.textContent = '保存する';
-            });
+                })
+                .catch(function () {
+                    alert('通信エラーが発生しました。');
+                })
+                .finally(function () {
+                    profileEditSaveBtn.disabled = false;
+                    profileEditSaveBtn.textContent = '保存する';
+                });
         });
     }
 })();

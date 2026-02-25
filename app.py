@@ -435,15 +435,21 @@ def api_get_study_time():
 @login_required
 def api_update_profile():
     data = request.get_json(silent=True) or {}
-    nickname = (data.get('nickname') or '').strip()
-    grade = (data.get('grade') or '').strip()
-    target_school = (data.get('target_school') or '').strip()
 
-    if nickname:
-        current_user.name = nickname
-        session['user_name'] = nickname
-    current_user.grade = grade or None
-    current_user.target_school = target_school or None
+    # Only update fields that are present in the request payload
+    if 'nickname' in data:
+        nickname = (data['nickname'] or '').strip()
+        if nickname:
+            current_user.name = nickname
+            session['user_name'] = nickname
+
+    if 'grade' in data:
+        grade = (data['grade'] or '').strip()
+        current_user.grade = grade or None
+
+    if 'target_school' in data:
+        target_school = (data['target_school'] or '').strip()
+        current_user.target_school = target_school or None
 
     try:
         db.session.commit()

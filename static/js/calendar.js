@@ -128,6 +128,20 @@
             cell.addEventListener('click', function () { selectDate(d); });
             dateStrip.appendChild(cell);
         });
+
+        // Auto-scroll to center the active date on mobile
+        scrollDateStripToActive();
+    }
+
+    function scrollDateStripToActive() {
+        var activeCell = dateStrip.querySelector('.cal-date-active') || dateStrip.querySelector('.cal-date-today');
+        if (!activeCell) return;
+        requestAnimationFrame(function () {
+            var stripRect = dateStrip.getBoundingClientRect();
+            var cellRect = activeCell.getBoundingClientRect();
+            var scrollTarget = activeCell.offsetLeft - (stripRect.width / 2) + (cellRect.width / 2);
+            dateStrip.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+        });
     }
 
     function selectDate(d) {
@@ -263,17 +277,17 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ slots: [{ date: dk, time_slot: ts }] })
         })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            if (data.ok) {
-                showToast(ts + ' の予約をキャンセルしました');
-                loadAndRenderTimeline();
-                refreshNextReservation();
-            } else {
-                showToast(data.error || 'キャンセルできませんでした');
-            }
-        })
-        .catch(function () { showToast('通信エラーが発生しました'); });
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.ok) {
+                    showToast(ts + ' の予約をキャンセルしました');
+                    loadAndRenderTimeline();
+                    refreshNextReservation();
+                } else {
+                    showToast(data.error || 'キャンセルできませんでした');
+                }
+            })
+            .catch(function () { showToast('通信エラーが発生しました'); });
     }
 
     function getPendingCount() {
@@ -329,19 +343,19 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ slots: slots })
         })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            if (data.ok) {
-                showToast('予約しました（' + getPendingRange() + '）');
-                pendingSelections = {};
-                updateFab();
-                loadAndRenderTimeline();
-                refreshNextReservation();
-            } else {
-                showToast(data.error || '予約できませんでした');
-            }
-        })
-        .catch(function () { showToast('通信エラーが発生しました'); });
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.ok) {
+                    showToast('予約しました（' + getPendingRange() + '）');
+                    pendingSelections = {};
+                    updateFab();
+                    loadAndRenderTimeline();
+                    refreshNextReservation();
+                } else {
+                    showToast(data.error || '予約できませんでした');
+                }
+            })
+            .catch(function () { showToast('通信エラーが発生しました'); });
     }
 
     if (fab) {
@@ -423,7 +437,7 @@
                     }
                 }
             })
-            .catch(function () {});
+            .catch(function () { });
     }
 
     window.refreshNextReservation = refreshNextReservation;

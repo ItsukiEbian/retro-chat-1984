@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Video Desk — ダッシュボード</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
     <script>
@@ -16,10 +22,11 @@
         window.USER_NAME = {{ user_name | tojson }};
         window.ROOM_ID = {{ room_id | tojson }};
         window.USER_DB_ID = {{ user_db_id | tojson }};
-        window.TOTAL_STUDY_TIME_MINUTES = {{ total_study_time_minutes | default(0) | tojson }};
+        window.TOTAL_STUDY_TIME_MINUTES = {{ total_study_time_minutes | default (0) | tojson }};
         window.IS_SUBSCRIBED = {{ is_subscribed | tojson }};
     </script>
 </head>
+
 <body class="page-spa" data-room-context="main">
     <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
@@ -46,7 +53,7 @@
         </div>
     </div>
 
-    <!-- Profile Edit Modal -->
+    <!-- Profile Edit Modal (Dynamic, single-field) -->
     {% if current_user.is_authenticated %}
     <div id="profileEditOverlay" class="overlay profile-edit-overlay" style="display:none">
         <div class="overlay-card profile-edit-card">
@@ -54,31 +61,12 @@
                 <span class="material-symbols-outlined">close</span>
             </button>
             <div class="overlay-card-header">
-                <h1>プロフィールの編集</h1>
-                <p>自習室や学習記録で表示される情報を設定します。</p>
+                <h1 id="profileEditTitle">項目の変更</h1>
+                <p id="profileEditDesc">新しい値を入力してください。</p>
             </div>
             <div class="profile-edit-form">
-                <div class="profile-edit-field">
-                    <label class="profile-edit-label" for="profileEditName">ニックネーム</label>
-                    <input type="text" id="profileEditName" class="profile-edit-input" value="{{ user.name | default('') }}" placeholder="ニックネームを入力" maxlength="64">
-                </div>
-                <div class="profile-edit-field">
-                    <label class="profile-edit-label" for="profileEditGrade">学年</label>
-                    <select id="profileEditGrade" class="profile-edit-input profile-edit-select">
-                        <option value="">選択してください</option>
-                        <option value="中学1年生">中学1年生</option>
-                        <option value="中学2年生">中学2年生</option>
-                        <option value="中学3年生">中学3年生</option>
-                        <option value="高校1年生">高校1年生</option>
-                        <option value="高校2年生">高校2年生</option>
-                        <option value="高校3年生">高校3年生</option>
-                        <option value="既卒">既卒</option>
-                        <option value="その他">その他</option>
-                    </select>
-                </div>
-                <div class="profile-edit-field">
-                    <label class="profile-edit-label" for="profileEditSchool">志望校</label>
-                    <input type="text" id="profileEditSchool" class="profile-edit-input" value="{{ user.target_school | default('') }}" placeholder="志望校を入力" maxlength="128">
+                <div id="profileEditFieldWrap" class="profile-edit-field">
+                    <!-- Dynamically populated by JS -->
                 </div>
                 <div class="profile-edit-actions">
                     <button type="button" id="profileEditSaveBtn" class="profile-edit-save-btn">保存する</button>
@@ -118,7 +106,8 @@
             <button class="spa-nav-item" data-section="route" type="button">
                 <span class="spa-nav-icon"><span class="material-symbols-outlined">explore</span></span>
                 <span class="spa-nav-label">学習ルート・面談</span>
-                <span class="spa-nav-badge-pro"><span class="material-symbols-outlined" style="font-size:11px">lock</span> Pro</span>
+                <span class="spa-nav-badge-pro"><span class="material-symbols-outlined"
+                        style="font-size:11px">lock</span> Pro</span>
             </button>
             <button class="spa-nav-item" data-section="notifications" type="button">
                 <span class="spa-nav-icon"><span class="material-symbols-outlined">notifications</span></span>
@@ -200,7 +189,8 @@
                     </div>
                     <div class="spa-home-card spa-home-card-action">
                         <button id="homeEnterStudyBtn" class="spa-home-enter-btn js-enter-study" type="button">
-                            <span class="spa-home-enter-icon"><span class="material-symbols-outlined">meeting_room</span></span>
+                            <span class="spa-home-enter-icon"><span
+                                    class="material-symbols-outlined">meeting_room</span></span>
                             <span>自習室へ入室する</span>
                         </button>
                     </div>
@@ -216,86 +206,110 @@
         <!-- ====== Section: Study Room ====== -->
         <div id="section-study" class="spa-section">
             <div class="main-with-panel">
-            <div class="main">
-                <header class="main-header main-header-compact">
-                    <div class="main-header-left"></div>
-                    <div class="main-header-actions"></div>
-                </header>
+                <div class="main">
+                    <header class="main-header main-header-compact">
+                        <div class="main-header-left"></div>
+                        <div class="main-header-actions"></div>
+                    </header>
 
-                <div class="main-content" id="mainRoomContent">
-                    {% if role == 'admin' %}
-                    <div class="card card-students" id="studentsCard">
-                        <div class="card-header"><h3>学習者一覧</h3></div>
-                        <div class="card-body">
-                            <ul class="student-list" id="studentList"></ul>
+                    <div class="main-content" id="mainRoomContent">
+                        {% if role == 'admin' %}
+                        <div class="card card-students" id="studentsCard">
+                            <div class="card-header">
+                                <h3>学習者一覧</h3>
+                            </div>
+                            <div class="card-body">
+                                <ul class="student-list" id="studentList"></ul>
+                            </div>
                         </div>
-                    </div>
-                    {% endif %}
-                    <div class="card card-video card-video-main">
-                        <div class="card-header card-header-mini">
-                            <div id="status" class="status-text">待機中...</div>
-                        </div>
-                        <div class="card-body card-body-video">
-                            <div class="videos-container" id="videosContainer"></div>
-                        </div>
-                    </div>
-                    <footer class="control-bar main-room-control-bar" id="mainRoomControlBar">
-                        {% if role == 'student' %}
-                        <button type="button" id="handRaiseBtn" class="control-btn control-btn-hand" aria-pressed="false" title="挙手する">
-                            <span class="control-btn-icon"><span class="material-symbols-outlined">pan_tool</span></span>
-                            <span class="control-btn-label">挙手する</span>
-                        </button>
                         {% endif %}
-                        <button type="button" id="exitStudyRoomBtn" class="control-btn control-btn-exit" title="退室してホームへ">
-                            <span class="control-btn-icon"><span class="material-symbols-outlined">logout</span></span>
-                            <span class="control-btn-label">退室</span>
-                        </button>
-                    </footer>
-                </div>
+                        <div class="card card-video card-video-main">
+                            <div class="card-header card-header-mini">
+                                <div id="status" class="status-text">待機中...</div>
+                            </div>
+                            <div class="card-body card-body-video">
+                                <div class="videos-container" id="videosContainer"></div>
+                            </div>
+                        </div>
+                        <footer class="control-bar main-room-control-bar" id="mainRoomControlBar">
+                            {% if role == 'student' %}
+                            <button type="button" id="handRaiseBtn" class="control-btn control-btn-hand"
+                                aria-pressed="false" title="挙手する">
+                                <span class="control-btn-icon"><span
+                                        class="material-symbols-outlined">pan_tool</span></span>
+                                <span class="control-btn-label">挙手する</span>
+                            </button>
+                            {% endif %}
+                            <button type="button" id="exitStudyRoomBtn" class="control-btn control-btn-exit"
+                                title="退室してホームへ">
+                                <span class="control-btn-icon"><span
+                                        class="material-symbols-outlined">logout</span></span>
+                                <span class="control-btn-label">退室</span>
+                            </button>
+                        </footer>
+                    </div>
 
-                <!-- Private room content -->
-                <div id="privateRoomContent" class="private-room-content" hidden>
-                    <div class="private-room-header">
-                        <button type="button" class="btn-primary" id="endPrivateSessionBtn">指導を終了して戻る</button>
-                    </div>
-                    <div class="private-room-body">
-                        <div class="private-media-start-banner" id="privateMediaStartBanner">
-                            <p class="private-media-start-desc">通話を開始するには、下のボタンをクリックしてカメラ・マイクへのアクセスを許可してください。</p>
-                            <button type="button" class="btn-primary" id="privateMediaStartBtn">カメラ・マイクを開始</button>
+                    <!-- Private room content -->
+                    <div id="privateRoomContent" class="private-room-content" hidden>
+                        <div class="private-room-header">
+                            <button type="button" class="btn-primary" id="endPrivateSessionBtn">指導を終了して戻る</button>
                         </div>
-                        <div class="private-video-section" id="privateVideoSection">
-                            <div class="private-videos" id="privateVideosContainer"></div>
-                            <div class="private-video-controls">
-                                <button type="button" class="control-btn control-btn-icon-only" id="privateMicBtn" title="マイク" aria-label="マイク">
-                                    <span class="control-btn-icon control-btn-icon-svg">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                                    </span>
-                                </button>
-                                <button type="button" class="control-btn control-btn-icon-only" id="privateCameraBtn" title="カメラ" aria-label="カメラ">
-                                    <span class="control-btn-icon control-btn-icon-svg">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                                    </span>
-                                </button>
-                                <label class="private-volume-control">
-                                    <span class="private-volume-label">相手の音量</span>
-                                    <input type="range" id="privateRemoteVolumeSlider" min="0" max="100" value="100" title="相手の音量">
-                                </label>
+                        <div class="private-room-body">
+                            <div class="private-media-start-banner" id="privateMediaStartBanner">
+                                <p class="private-media-start-desc">通話を開始するには、下のボタンをクリックしてカメラ・マイクへのアクセスを許可してください。</p>
+                                <button type="button" class="btn-primary" id="privateMediaStartBtn">カメラ・マイクを開始</button>
                             </div>
-                        </div>
-                        <div class="private-chat-section">
-                            <div class="private-chat-messages" id="privateChatMessages"></div>
-                            <div class="private-chat-input-area">
-                                <label class="btn-primary private-photo-btn private-photo-btn-first">
-                                    <span><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">photo_camera</span> 写真を送る</span>
-                                    <input type="file" id="privatePhotoInput" accept="image/*" capture="environment" hidden>
-                                </label>
-                                <input type="text" id="privateChatInput" class="auth-input" placeholder="メッセージを入力" maxlength="500">
-                                <button type="button" class="btn-secondary" id="privateChatSendBtn">送信</button>
+                            <div class="private-video-section" id="privateVideoSection">
+                                <div class="private-videos" id="privateVideosContainer"></div>
+                                <div class="private-video-controls">
+                                    <button type="button" class="control-btn control-btn-icon-only" id="privateMicBtn"
+                                        title="マイク" aria-label="マイク">
+                                        <span class="control-btn-icon control-btn-icon-svg">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                                                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                                                <line x1="12" y1="19" x2="12" y2="23" />
+                                                <line x1="8" y1="23" x2="16" y2="23" />
+                                            </svg>
+                                        </span>
+                                    </button>
+                                    <button type="button" class="control-btn control-btn-icon-only"
+                                        id="privateCameraBtn" title="カメラ" aria-label="カメラ">
+                                        <span class="control-btn-icon control-btn-icon-svg">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <path
+                                                    d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                                <circle cx="12" cy="13" r="4" />
+                                            </svg>
+                                        </span>
+                                    </button>
+                                    <label class="private-volume-control">
+                                        <span class="private-volume-label">相手の音量</span>
+                                        <input type="range" id="privateRemoteVolumeSlider" min="0" max="100" value="100"
+                                            title="相手の音量">
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="private-chat-section">
+                                <div class="private-chat-messages" id="privateChatMessages"></div>
+                                <div class="private-chat-input-area">
+                                    <label class="btn-primary private-photo-btn private-photo-btn-first">
+                                        <span><span class="material-symbols-outlined"
+                                                style="font-size:16px;vertical-align:middle">photo_camera</span>
+                                            写真を送る</span>
+                                        <input type="file" id="privatePhotoInput" accept="image/*" capture="environment"
+                                            hidden>
+                                    </label>
+                                    <input type="text" id="privateChatInput" class="auth-input" placeholder="メッセージを入力"
+                                        maxlength="500">
+                                    <button type="button" class="btn-secondary" id="privateChatSendBtn">送信</button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
             </div>
         </div>
 
@@ -343,7 +357,8 @@
                 <div class="sec-login-gate">
                     <span class="material-symbols-outlined sec-login-gate-icon">lock</span>
                     <p>学習記録を確認するにはログインが必要です。</p>
-                    <a href="{{ url_for('login_google') }}" class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
+                    <a href="{{ url_for('login_google') }}"
+                        class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
                 </div>
                 {% endif %}
             </div>
@@ -380,7 +395,8 @@
                 <div class="sec-login-gate">
                     <span class="material-symbols-outlined sec-login-gate-icon">lock</span>
                     <p>予約機能を利用するにはログインが必要です。</p>
-                    <a href="{{ url_for('login_google') }}" class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
+                    <a href="{{ url_for('login_google') }}"
+                        class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
                 </div>
                 {% endif %}
             </div>
@@ -484,7 +500,8 @@
                 <div class="sec-login-gate">
                     <span class="material-symbols-outlined sec-login-gate-icon">lock</span>
                     <p>学習ルート・面談機能を利用するにはログインが必要です。</p>
-                    <a href="{{ url_for('login_google') }}" class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
+                    <a href="{{ url_for('login_google') }}"
+                        class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
                 </div>
                 {% endif %}
             </div>
@@ -494,7 +511,8 @@
         <div id="section-notifications" class="spa-section">
             <div class="spa-section-placeholder">
                 <div class="spa-placeholder-content">
-                    <span class="spa-placeholder-icon"><span class="material-symbols-outlined">notifications</span></span>
+                    <span class="spa-placeholder-icon"><span
+                            class="material-symbols-outlined">notifications</span></span>
                     <h1>通知（お知らせ）</h1>
                     <p>準備中です。もう少しお待ちください。</p>
                 </div>
@@ -517,30 +535,41 @@
                         <span class="material-symbols-outlined profile-avatar-placeholder">account_circle</span>
                         {% endif %}
                     </div>
-                    <div class="profile-form">
-                        <div class="profile-field">
-                            <label class="profile-label">ニックネーム</label>
-                            <div class="profile-input-wrap">
-                                <span class="profile-display-value" id="profileDisplayName">{{ user.name | default('未設定') }}</span>
-                            </div>
-                        </div>
-                        <div class="profile-field">
-                            <label class="profile-label">学年</label>
-                            <div class="profile-input-wrap">
-                                <span class="profile-display-value" id="profileDisplayGrade">{{ user.grade | default('未設定') }}</span>
-                            </div>
-                        </div>
-                        <div class="profile-field">
-                            <label class="profile-label">志望校</label>
-                            <div class="profile-input-wrap">
-                                <span class="profile-display-value" id="profileDisplaySchool">{{ user.target_school | default('未設定') }}</span>
-                            </div>
-                        </div>
-                        <button type="button" class="profile-edit-btn" id="profileEditBtn">
-                            <span class="material-symbols-outlined">edit</span>
-                            <span>プロフィールを編集</span>
-                        </button>
-                    </div>
+                    <span class="profile-user-name">{{ user.name or 'ユーザー' }}</span>
+                </div>
+
+                <div class="profile-list-area">
+                    <h2 class="profile-section-title">プロフィール</h2>
+                    <ul class="profile-settings-list">
+                        <li class="profile-row" data-field="nickname"
+                            data-current="{{ user.name | default('', true) }}">
+                            <span class="profile-row-label">ニックネーム</span>
+                            <span class="profile-row-right">
+                                <span class="profile-row-value{% if not user.name %} profile-row-placeholder{% endif %}"
+                                    id="profileDisplayName">{{ user.name or '未設定' }}</span>
+                                <span class="material-symbols-outlined profile-row-chevron">chevron_right</span>
+                            </span>
+                        </li>
+                        <li class="profile-row" data-field="grade" data-current="{{ user.grade | default('', true) }}">
+                            <span class="profile-row-label">学年</span>
+                            <span class="profile-row-right">
+                                <span
+                                    class="profile-row-value{% if not user.grade %} profile-row-placeholder{% endif %}"
+                                    id="profileDisplayGrade">{{ user.grade or '未設定' }}</span>
+                                <span class="material-symbols-outlined profile-row-chevron">chevron_right</span>
+                            </span>
+                        </li>
+                        <li class="profile-row" data-field="target_school"
+                            data-current="{{ user.target_school | default('', true) }}">
+                            <span class="profile-row-label">志望校</span>
+                            <span class="profile-row-right">
+                                <span
+                                    class="profile-row-value{% if not user.target_school %} profile-row-placeholder{% endif %}"
+                                    id="profileDisplaySchool">{{ user.target_school or '未設定' }}</span>
+                                <span class="material-symbols-outlined profile-row-chevron">chevron_right</span>
+                            </span>
+                        </li>
+                    </ul>
                 </div>
 
                 <div class="profile-plan-area">
@@ -552,7 +581,8 @@
                             </span>
                             <span class="profile-plan-status">
                                 {% if is_subscribed %}
-                                <span class="material-symbols-outlined" style="font-size:14px;color:var(--accent)">verified</span> 有効
+                                <span class="material-symbols-outlined"
+                                    style="font-size:14px;color:var(--accent)">verified</span> 有効
                                 {% else %}
                                 未加入
                                 {% endif %}
@@ -608,7 +638,8 @@
                 <div class="sec-login-gate">
                     <span class="material-symbols-outlined sec-login-gate-icon">lock</span>
                     <p>プロフィール・設定を利用するにはログインが必要です。</p>
-                    <a href="{{ url_for('login_google') }}" class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
+                    <a href="{{ url_for('login_google') }}"
+                        class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
                 </div>
                 {% endif %}
             </div>
@@ -620,4 +651,5 @@
     <script src="{{ url_for('static', filename='js/spa.js') }}"></script>
     <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
 </body>
+
 </html>
