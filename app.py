@@ -228,9 +228,7 @@ def subscription_required(f):
 
 @app.route('/')
 def index():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return render_template('landing.html', error=None)
+    return redirect(url_for('dashboard'))
 
 
 @app.route('/login/google')
@@ -274,16 +272,37 @@ def google_authorized():
 
 
 @app.route('/dashboard')
-@login_required
 def dashboard():
-    user = current_user
-    total_min = user.total_study_time or 0
-    hours, mins = divmod(total_min, 60)
-    total_display = f'{hours}時間 {mins}分'
+    if current_user.is_authenticated:
+        user = current_user
+        total_min = user.total_study_time or 0
+        hours, mins = divmod(total_min, 60)
+        total_display = f'{hours}時間 {mins}分'
+        role = session.get('role', 'student')
+        user_name = session.get('user_name', user.name or user.email or 'ユーザー')
+        room_id = session.get('room', '')
+        return render_template(
+            'dashboard.html',
+            user=user,
+            total_study_time_display=total_display,
+            total_study_time_minutes=total_min,
+            role=role,
+            user_name=user_name,
+            room_id=room_id,
+            user_db_id=user.id,
+            is_subscribed=user.is_active_subscription,
+        )
+    # Guest (not logged in)
     return render_template(
         'dashboard.html',
-        user=user,
-        total_study_time_display=total_display,
+        user=None,
+        total_study_time_display='--',
+        total_study_time_minutes=0,
+        role='student',
+        user_name='ゲスト',
+        room_id='',
+        user_db_id=0,
+        is_subscribed=False,
     )
 
 
@@ -357,6 +376,21 @@ def room_exit():
     record_study_time_if_entered()
     session.pop('room', None)
     return redirect(url_for('dashboard'))
+
+
+@app.route('/api/enter_room', methods=['POST'])
+@login_required
+def api_enter_room():
+    session['enter_time'] = time.time()
+    return jsonify({'ok': True})
+
+
+@app.route('/api/exit_room', methods=['POST'])
+@login_required
+def api_exit_room():
+    record_study_time_if_entered()
+    session.pop('room', None)
+    return jsonify({'ok': True})
 
 
 @app.route('/room/<room_id>')

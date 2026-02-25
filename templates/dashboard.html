@@ -6,38 +6,287 @@
     <title>Video Desk — ダッシュボード</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+    <script>
+        window.IS_LOGGED_IN = {{ 'true' if current_user.is_authenticated else 'false' }};
+        window.ROLE = {{ role | tojson }};
+        window.USER_NAME = {{ user_name | tojson }};
+        window.ROOM_ID = {{ room_id | tojson }};
+        window.USER_DB_ID = {{ user_db_id | tojson }};
+        window.TOTAL_STUDY_TIME_MINUTES = {{ total_study_time_minutes | default(0) | tojson }};
+        window.IS_SUBSCRIBED = {{ is_subscribed | tojson }};
+    </script>
 </head>
-<body class="page-dashboard">
-    <div class="dashboard-center">
-        <div class="dashboard-card">
-            <div class="dashboard-card-header">
-                <span class="auth-logo">◉</span>
-                <h1>ロビー</h1>
-                <p>自習室へようこそ</p>
+<body class="page-spa" data-room-context="main">
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+    <!-- Goal Setting Modal -->
+    <div id="goalOverlay" class="overlay goal-overlay" style="display:none">
+        <div class="overlay-card goal-card">
+            <div class="overlay-card-header">
+                <span class="overlay-icon goal-icon"><span class="material-symbols-outlined">flag</span></span>
+                <h1>今回の勉強目標を教えてください</h1>
+                <p>今日の目標を書くと、AIコーチが応援してくれます</p>
             </div>
-            <div class="dashboard-user">
-                {% if user.profile_image %}
-                <img src="{{ user.profile_image }}" alt="" class="dashboard-avatar">
-                {% else %}
-                <span class="dashboard-avatar dashboard-avatar-placeholder" aria-hidden="true">👤</span>
-                {% endif %}
-                <div class="dashboard-user-info">
-                    <span class="dashboard-user-name">{{ user.name or user.email or 'ユーザー' }}</span>
-                    {% if user.email %}<span class="dashboard-user-email">{{ user.email }}</span>{% endif %}
+            <div class="goal-form">
+                <textarea id="goalInput" class="goal-textarea" rows="3"
+                    placeholder="例: 数学の問題集の10ページ〜12ページを解く&#10;例: 英単語を50個覚える"></textarea>
+                <div id="goalFeedback" class="goal-feedback" hidden aria-live="polite"></div>
+                <div class="overlay-card-actions">
+                    <button id="goalSubmitBtn" class="btn-primary goal-submit-btn">目標を設定して入室する</button>
                 </div>
-            </div>
-            <div class="dashboard-stat">
-                <span class="dashboard-stat-label">累計学習時間</span>
-                <span class="dashboard-stat-value">{{ total_study_time_display }}</span>
-            </div>
-            <div class="dashboard-actions">
-                <a href="{{ url_for('room') }}" class="btn-primary dashboard-btn-enter">自習室へ入室</a>
-                <a href="{{ url_for('settings') }}" class="btn-secondary dashboard-btn-settings">設定</a>
-                <a href="{{ url_for('logout') }}" class="btn-secondary dashboard-btn-logout">ログアウト</a>
             </div>
         </div>
     </div>
+
+    <!-- ===== SPA Sidebar ===== -->
+    <aside id="spaSidebar" class="spa-sidebar">
+        <div class="spa-sidebar-header">
+            <div class="spa-logo">
+                <span class="spa-logo-icon"><span class="material-symbols-outlined">school</span></span>
+                <span class="spa-logo-text">Video Desk</span>
+            </div>
+        </div>
+
+        <nav class="spa-sidebar-nav" id="spaSidebarNav">
+            <button class="spa-nav-item spa-nav-active" data-section="home" type="button">
+                <span class="spa-nav-icon"><span class="material-symbols-outlined">home</span></span>
+                <span class="spa-nav-label">ホーム</span>
+            </button>
+            <button class="spa-nav-item" data-section="study" type="button">
+                <span class="spa-nav-icon"><span class="material-symbols-outlined">menu_book</span></span>
+                <span class="spa-nav-label">自習室</span>
+            </button>
+            <button class="spa-nav-item" data-section="report" type="button">
+                <span class="spa-nav-icon"><span class="material-symbols-outlined">insights</span></span>
+                <span class="spa-nav-label">学習記録・レポート</span>
+            </button>
+            <button class="spa-nav-item" data-section="route" type="button">
+                <span class="spa-nav-icon"><span class="material-symbols-outlined">explore</span></span>
+                <span class="spa-nav-label">学習ルート・面談</span>
+                <span class="spa-nav-badge-pro"><span class="material-symbols-outlined" style="font-size:11px">lock</span> Pro</span>
+            </button>
+            <button class="spa-nav-item" data-section="notifications" type="button">
+                <span class="spa-nav-icon"><span class="material-symbols-outlined">notifications</span></span>
+                <span class="spa-nav-label">通知</span>
+            </button>
+            <button class="spa-nav-item" data-section="profile" type="button">
+                <span class="spa-nav-icon"><span class="material-symbols-outlined">person</span></span>
+                <span class="spa-nav-label">プロフィール・設定</span>
+            </button>
+        </nav>
+
+        <div class="spa-sidebar-footer">
+            <button id="enterStudyRoomBtn" class="spa-enter-study-btn" type="button">
+                <span class="spa-enter-icon"><span class="material-symbols-outlined">auto_stories</span></span>
+                <span class="spa-enter-label">自習室に入る</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- ===== SPA Main Content ===== -->
+    <main id="spaMain" class="spa-main">
+
+        <!-- ====== Section: Home ====== -->
+        <div id="section-home" class="spa-section spa-section-active">
+            <div class="spa-home-wrapper">
+                <div class="spa-home-greeting">
+                    {% if current_user.is_authenticated %}
+                    <h1>おかえりなさい、{{ user.name or 'ユーザー' }} さん</h1>
+                    <p>今日も一緒に頑張りましょう</p>
+                    {% else %}
+                    <h1>Video Desk へようこそ</h1>
+                    <p>みんなで集中できるオンライン自習室</p>
+                    {% endif %}
+                </div>
+
+                {% if not current_user.is_authenticated or not is_subscribed %}
+                <div class="trial-invitation">
+                    <div class="trial-invitation-ornament"></div>
+                    <span class="trial-invitation-icon">
+                        <span class="material-symbols-outlined">workspace_premium</span>
+                    </span>
+                    <h2 class="trial-invitation-title">特別な学習空間を、7日間無料で体験</h2>
+                    <p class="trial-invitation-desc">集中力を最大限に引き出すオンライン自習室を、まずは無料でお試しください。</p>
+                    {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('subscription_page') }}" class="trial-invitation-btn">
+                        <span>7日間無料体験をはじめる</span>
+                        <span class="material-symbols-outlined trial-invitation-btn-arrow">arrow_forward</span>
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('login_google') }}" class="trial-invitation-btn">
+                        <span>7日間無料体験をはじめる</span>
+                        <span class="material-symbols-outlined trial-invitation-btn-arrow">arrow_forward</span>
+                    </a>
+                    {% endif %}
+                    <p class="trial-invitation-note">いつでもキャンセル可能</p>
+                </div>
+                {% endif %}
+
+                <div class="spa-home-cards">
+                    <div class="spa-home-card spa-home-card-stat">
+                        <span class="spa-home-stat-icon"><span class="material-symbols-outlined">schedule</span></span>
+                        <span class="spa-home-stat-label">累計学習時間</span>
+                        <span class="spa-home-stat-value">{{ total_study_time_display }}</span>
+                    </div>
+                    <div class="spa-home-card spa-home-card-action">
+                        <button id="homeEnterStudyBtn" class="spa-home-enter-btn" type="button">
+                            <span class="spa-home-enter-icon"><span class="material-symbols-outlined">meeting_room</span></span>
+                            <span>自習室へ入室する</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="spa-home-links">
+                    {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('logout') }}" class="btn-secondary">ログアウト</a>
+                    {% else %}
+                    <a href="{{ url_for('login_google') }}" class="btn-primary spa-home-login-btn">Googleでログイン</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== Section: Study Room ====== -->
+        <div id="section-study" class="spa-section">
+            <div class="main-with-panel">
+            <div class="main">
+                <header class="main-header main-header-compact">
+                    <div class="main-header-left"></div>
+                    <div class="main-header-actions"></div>
+                </header>
+
+                <div class="main-content" id="mainRoomContent">
+                    {% if role == 'admin' %}
+                    <div class="card card-students" id="studentsCard">
+                        <div class="card-header"><h3>学習者一覧</h3></div>
+                        <div class="card-body">
+                            <ul class="student-list" id="studentList"></ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="card card-video card-video-main">
+                        <div class="card-header card-header-mini">
+                            <div id="status" class="status-text">待機中...</div>
+                        </div>
+                        <div class="card-body card-body-video">
+                            <div class="videos-container" id="videosContainer"></div>
+                        </div>
+                    </div>
+                    <footer class="control-bar main-room-control-bar" id="mainRoomControlBar">
+                        {% if role == 'student' %}
+                        <button type="button" id="handRaiseBtn" class="control-btn control-btn-hand" aria-pressed="false" title="挙手する">
+                            <span class="control-btn-icon"><span class="material-symbols-outlined">pan_tool</span></span>
+                            <span class="control-btn-label">挙手する</span>
+                        </button>
+                        {% endif %}
+                        <button type="button" id="exitStudyRoomBtn" class="control-btn control-btn-exit" title="退室してホームへ">
+                            <span class="control-btn-icon"><span class="material-symbols-outlined">logout</span></span>
+                            <span class="control-btn-label">退室</span>
+                        </button>
+                    </footer>
+                </div>
+
+                <!-- Private room content -->
+                <div id="privateRoomContent" class="private-room-content" hidden>
+                    <div class="private-room-header">
+                        <button type="button" class="btn-primary" id="endPrivateSessionBtn">指導を終了して戻る</button>
+                    </div>
+                    <div class="private-room-body">
+                        <div class="private-media-start-banner" id="privateMediaStartBanner">
+                            <p class="private-media-start-desc">通話を開始するには、下のボタンをクリックしてカメラ・マイクへのアクセスを許可してください。</p>
+                            <button type="button" class="btn-primary" id="privateMediaStartBtn">カメラ・マイクを開始</button>
+                        </div>
+                        <div class="private-video-section" id="privateVideoSection">
+                            <div class="private-videos" id="privateVideosContainer"></div>
+                            <div class="private-video-controls">
+                                <button type="button" class="control-btn control-btn-icon-only" id="privateMicBtn" title="マイク" aria-label="マイク">
+                                    <span class="control-btn-icon control-btn-icon-svg">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                                    </span>
+                                </button>
+                                <button type="button" class="control-btn control-btn-icon-only" id="privateCameraBtn" title="カメラ" aria-label="カメラ">
+                                    <span class="control-btn-icon control-btn-icon-svg">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                    </span>
+                                </button>
+                                <label class="private-volume-control">
+                                    <span class="private-volume-label">相手の音量</span>
+                                    <input type="range" id="privateRemoteVolumeSlider" min="0" max="100" value="100" title="相手の音量">
+                                </label>
+                            </div>
+                        </div>
+                        <div class="private-chat-section">
+                            <div class="private-chat-messages" id="privateChatMessages"></div>
+                            <div class="private-chat-input-area">
+                                <label class="btn-primary private-photo-btn private-photo-btn-first">
+                                    <span><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">photo_camera</span> 写真を送る</span>
+                                    <input type="file" id="privatePhotoInput" accept="image/*" capture="environment" hidden>
+                                </label>
+                                <input type="text" id="privateChatInput" class="auth-input" placeholder="メッセージを入力" maxlength="500">
+                                <button type="button" class="btn-secondary" id="privateChatSendBtn">送信</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <!-- ====== Section: Report (placeholder) ====== -->
+        <div id="section-report" class="spa-section">
+            <div class="spa-section-placeholder">
+                <div class="spa-placeholder-content">
+                    <span class="spa-placeholder-icon"><span class="material-symbols-outlined">insights</span></span>
+                    <h1>学習記録・レポート</h1>
+                    <p>準備中です。もう少しお待ちください。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== Section: Route (placeholder) ====== -->
+        <div id="section-route" class="spa-section">
+            <div class="spa-section-placeholder">
+                <div class="spa-placeholder-content">
+                    <span class="spa-placeholder-icon"><span class="material-symbols-outlined">explore</span></span>
+                    <h1>学習ルート・面談</h1>
+                    <p>準備中です。もう少しお待ちください。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== Section: Notifications (placeholder) ====== -->
+        <div id="section-notifications" class="spa-section">
+            <div class="spa-section-placeholder">
+                <div class="spa-placeholder-content">
+                    <span class="spa-placeholder-icon"><span class="material-symbols-outlined">notifications</span></span>
+                    <h1>通知（お知らせ）</h1>
+                    <p>準備中です。もう少しお待ちください。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== Section: Profile (placeholder) ====== -->
+        <div id="section-profile" class="spa-section">
+            <div class="spa-section-placeholder">
+                <div class="spa-placeholder-content">
+                    <span class="spa-placeholder-icon"><span class="material-symbols-outlined">person</span></span>
+                    <h1>プロフィール・設定</h1>
+                    {% if current_user.is_authenticated %}
+                    <p>準備中です。もう少しお待ちください。</p>
+                    {% else %}
+                    <p>この機能を利用するにはログインが必要です。</p>
+                    <a href="{{ url_for('login_google') }}" class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="{{ url_for('static', filename='js/room.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/spa.js') }}"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const socket = io();
+const socket = io({ autoConnect: false });
 const videosContainer = document.getElementById('videosContainer');
 const statusDiv = document.getElementById('status');
 
@@ -64,6 +64,9 @@ const goalFeedback = document.getElementById('goalFeedback');
 
 function dismissGoalAndStart() {
     if (goalOverlay) goalOverlay.style.display = 'none';
+    if (typeof window._onStudyRoomReady === 'function') {
+        window._onStudyRoomReady();
+    }
     startSystem();
 }
 
@@ -199,6 +202,7 @@ function processVideoFrame() {
 }
 
 async function startSystem() {
+    if (!socket.connected) socket.connect();
     var support = checkMediaDevicesSupport();
     if (!support.supported) {
         statusDiv.innerText = "カメラを利用できません";
@@ -1392,3 +1396,29 @@ if (privatePhotoInput) {
         });
     });
 }
+
+// ---------- SPA: Teardown / Cleanup ----------
+window.teardownStudyRoom = function () {
+    if (rawStream) { rawStream.getTracks().forEach(function (t) { t.stop(); }); rawStream = null; }
+    localStream = null;
+    Object.keys(peers).forEach(function (sid) {
+        if (peers[sid] && peers[sid].connection) peers[sid].connection.close();
+    });
+    peers = {};
+    orderedSlots = [null, null, null, null];
+    roomParticipants = {};
+    handRaiseState = {};
+    myHandRaised = false;
+    if (handRaiseBtn) {
+        handRaiseBtn.setAttribute('aria-pressed', 'false');
+        handRaiseBtn.classList.remove('is-active');
+    }
+    closePrivateRoom();
+    if (socket.connected) socket.disconnect();
+    if (videosContainer) videosContainer.innerHTML = '';
+    if (statusDiv) statusDiv.innerText = '待機中...';
+};
+
+window.studyRoomIsActive = function () {
+    return socket && socket.connected;
+};
