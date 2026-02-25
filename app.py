@@ -500,6 +500,14 @@ def api_create_reservations():
             continue
         if d < today_s:
             return jsonify({'ok': False, 'error': f'過去の日付 {d} には予約できません'}), 400
+        # Block past time slots on today
+        if d == today_s:
+            try:
+                slot_time = datetime_type.strptime(d + ' ' + ts, '%Y-%m-%d %H:%M')
+                if slot_time <= datetime_type.now():
+                    return jsonify({'ok': False, 'error': '過去の時間は予約できません'}), 400
+            except ValueError:
+                return jsonify({'ok': False, 'error': '無効な時間形式です'}), 400
         existing = StudyReservation.query.filter_by(
             user_id=current_user.id, date=d, time_slot=ts
         ).first()

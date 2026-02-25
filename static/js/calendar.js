@@ -191,6 +191,17 @@
             var isReserved = !!reservedSlots[slotKey];
             var isPending = !!pendingSelections[slotKey];
 
+            // Check if this slot's time has already passed (today only)
+            var isPastTime = false;
+            if (todayDate) {
+                var now = new Date();
+                var slotH = Math.floor(i / 2);
+                var slotM = (i % 2) * 30;
+                if (slotH < now.getHours() || (slotH === now.getHours() && slotM < now.getMinutes())) {
+                    isPastTime = true;
+                }
+            }
+
             var timeEl = document.createElement('div');
             timeEl.className = 'cal-slot-time';
             timeEl.textContent = slotTimeLabel(i);
@@ -201,13 +212,13 @@
             var label = document.createElement('span');
             label.className = 'cal-slot-label';
 
-            if (past) {
+            if (past || isPastTime) {
                 slot.classList.add('cal-slot-locked');
                 var lockIcon = document.createElement('span');
                 lockIcon.className = 'material-symbols-outlined cal-slot-lock-icon';
                 lockIcon.textContent = 'lock';
                 body.appendChild(lockIcon);
-                label.textContent = isReserved ? '予約済' : '—';
+                label.textContent = isReserved ? '予約済' : '終了';
             } else if (todayDate) {
                 if (isReserved) {
                     slot.classList.add('cal-slot-reserved');
@@ -234,10 +245,10 @@
             slot.appendChild(timeEl);
             slot.appendChild(body);
 
-            (function (idx, locked, isToday_, isFuture_, reserved, key) {
+            (function (idx, locked, isToday_, isFuture_, reserved, key, pastTime) {
                 slot.addEventListener('click', function () {
-                    if (locked) {
-                        showToast('過去の日付の予約は変更できません。');
+                    if (locked || pastTime) {
+                        showToast('過去の時間は予約できません。');
                         return;
                     }
                     if (isToday_ && reserved) {
@@ -250,7 +261,7 @@
                     }
                     togglePending(idx);
                 });
-            })(i, past, todayDate, future, isReserved, slotKey);
+            })(i, past, todayDate, future, isReserved, slotKey, isPastTime);
 
             timeline.appendChild(slot);
         }
@@ -355,6 +366,9 @@
                     refreshNextReservation();
                 } else {
                     showToast(data.error || '予約できませんでした');
+                    pendingSelections = {};
+                    updateFab();
+                    loadAndRenderTimeline();
                 }
             })
             .catch(function () { showToast('通信エラーが発生しました'); });
