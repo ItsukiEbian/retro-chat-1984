@@ -2869,30 +2869,60 @@ body[data-room-context="private"] #mainRoomContent {
         padding-bottom: 0;
     }
 
+    /* --- Hide duplicate study/enter buttons on mobile --- */
+    .spa-nav-item[data-section="study"] {
+        display: none !important;
+    }
+
+    .spa-sidebar-footer {
+        display: none !important;
+    }
+
     /* --- Home section mobile --- */
     .spa-home-greeting h1 {
         font-size: 22px;
     }
 
     .spa-home-wrapper {
-        padding: 24px 16px;
-        padding-bottom: 16px;
-        gap: 24px;
+        padding: 48px 20px 24px;
+        gap: 28px;
+        justify-content: flex-start;
     }
 
     .spa-home-cards {
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
+        width: 100%;
+        gap: 16px;
     }
 
     .spa-home-card {
         max-width: 100%;
         min-width: 0;
-        padding: 20px;
+        width: 100%;
+        padding: 24px;
+        flex: none;
     }
 
     .spa-home-stat-value {
         font-size: 22px;
+    }
+
+    /* --- Study room: prevent overflow on mobile --- */
+    .private-video-section {
+        min-width: 0;
+    }
+
+    .videos-container {
+        min-width: 0;
+        max-width: 100vw;
+    }
+
+    #section-study .main-with-panel,
+    #section-study .main,
+    #section-study .main-content {
+        max-width: 100vw;
+        overflow: hidden;
     }
 }
 
