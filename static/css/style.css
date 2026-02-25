@@ -4335,8 +4335,8 @@ body[data-room-context="private"] #mainRoomContent {
     flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    border: 1px solid var(--border-subtle);
-    background: var(--bg-card);
+    border: none;
+    background: transparent;
     min-height: 0;
 }
 
@@ -4349,15 +4349,16 @@ body[data-room-context="private"] #mainRoomContent {
     display: flex;
     align-items: stretch;
     min-height: 52px;
-    border-bottom: 1px solid var(--surface-hover);
+    border-top: 1px solid var(--border-subtle);
     cursor: pointer;
     transition: background 0.15s;
     user-select: none;
     -webkit-user-select: none;
+    position: relative;
 }
 
 .cal-slot:last-child {
-    border-bottom: none;
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .cal-slot:hover {
@@ -4366,17 +4367,19 @@ body[data-room-context="private"] #mainRoomContent {
 
 .cal-slot-time {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: flex-end;
-    width: 72px;
-    padding: 0 16px 0 12px;
-    font-family: var(--font-heading);
-    font-size: 13px;
-    font-weight: 400;
+    width: 64px;
+    padding: 0 12px 0 0;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 300;
     color: var(--text-tertiary);
     letter-spacing: 0.02em;
     flex-shrink: 0;
-    border-right: 1px solid var(--surface-hover);
+    border-right: none;
+    transform: translateY(-50%);
+    line-height: 1;
 }
 
 .cal-slot-body {
@@ -4386,6 +4389,7 @@ body[data-room-context="private"] #mainRoomContent {
     padding: 8px 16px;
     min-height: 52px;
     position: relative;
+    border-left: 1px solid var(--border-subtle);
 }
 
 .cal-slot-label {
@@ -4450,29 +4454,34 @@ body[data-room-context="private"] #mainRoomContent {
     background: #e4e8ee;
 }
 
-/* Locked slots (past) */
+/* Locked slots (past) — diagonal stripes */
 .cal-slot.cal-slot-locked {
-    background: var(--surface-hover);
+    background: transparent;
     cursor: not-allowed;
 }
 
 .cal-slot.cal-slot-locked:hover {
-    background: var(--surface-hover);
+    background: transparent;
 }
 
 .cal-slot.cal-slot-locked .cal-slot-time {
     color: var(--text-tertiary);
-    opacity: 0.5;
+    opacity: 0.35;
 }
 
 .cal-slot.cal-slot-locked .cal-slot-body {
-    opacity: 0.5;
+    opacity: 0.4;
+    background: repeating-linear-gradient(-45deg,
+            transparent,
+            transparent 4px,
+            rgba(0, 0, 0, 0.03) 4px,
+            rgba(0, 0, 0, 0.03) 5px);
 }
 
 .cal-slot-lock-icon {
-    font-size: 16px;
+    font-size: 14px;
     color: var(--text-tertiary);
-    margin-right: 8px;
+    margin-right: 6px;
     font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 20;
 }
 
@@ -4577,22 +4586,39 @@ body[data-room-context="private"] #mainRoomContent {
         padding-bottom: 40px;
     }
 
-    /* 1. Date strip — hide arrows, enable swipe-snap */
+    /* 1. Date strip — show arrows, compact fit */
     .cal-date-arrow {
-        display: none;
+        display: flex;
+        width: 28px;
+        min-width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--text-secondary);
+        transition: color 0.2s, background 0.2s;
+    }
+
+    .cal-date-arrow:active {
+        background: var(--surface-hover);
+        color: var(--accent);
+    }
+
+    .cal-date-arrow .material-symbols-outlined {
+        font-size: 18px;
     }
 
     .cal-date-strip-wrap {
-        gap: 0;
+        gap: 2px;
     }
 
     .cal-date-strip {
         display: flex;
         justify-content: space-between;
         width: 100%;
-        padding: 0 2px;
+        padding: 0;
         box-sizing: border-box;
-        gap: 3px;
+        gap: 2px;
         overflow-x: visible;
     }
 
@@ -4605,8 +4631,8 @@ body[data-room-context="private"] #mainRoomContent {
         min-width: 0;
         max-width: calc(100% / 7);
         width: auto;
-        height: 62px;
-        padding: 5px 2px;
+        height: 58px;
+        padding: 4px 2px;
         border-radius: 8px;
         flex-shrink: 1;
         display: flex;
@@ -4617,7 +4643,7 @@ body[data-room-context="private"] #mainRoomContent {
     }
 
     .cal-date-dow {
-        font-size: 10px;
+        font-size: 9px;
         margin-bottom: 1px;
     }
 
@@ -4635,15 +4661,16 @@ body[data-room-context="private"] #mainRoomContent {
     }
 
     .cal-date-cell.cal-date-today::after {
-        bottom: 4px;
+        bottom: 3px;
     }
 
-    /* 2. Timeline — Flex layout, tap-friendly */
+    /* 2. Timeline — seamless, border-based grid */
     .cal-timeline-wrap {
         width: 100%;
         overflow-x: hidden;
         box-sizing: border-box;
         border: none;
+        background: transparent;
     }
 
     .cal-timeline {
@@ -4653,49 +4680,55 @@ body[data-room-context="private"] #mainRoomContent {
     .cal-slot {
         display: flex;
         align-items: stretch;
-        margin-bottom: 6px;
+        margin-bottom: 0;
         border-bottom: none;
-        border-radius: 2px;
-        overflow: hidden;
+        border-top: 1px solid var(--border-subtle);
+        border-radius: 0;
+        overflow: visible;
+        position: relative;
     }
 
     .cal-slot:last-child {
-        border-bottom: none;
+        border-bottom: 1px solid var(--border-subtle);
     }
 
     .cal-slot-time {
-        width: 55px;
-        min-width: 55px;
-        padding: 0 10px 0 0;
-        font-size: 11px;
+        width: 44px;
+        min-width: 44px;
+        padding: 0 6px 0 0;
+        font-size: 10px;
         font-weight: 300;
         color: #8a95a0;
         text-align: right;
         justify-content: flex-end;
+        align-items: flex-start;
         border-right: none;
         background: transparent;
+        transform: translateY(-50%);
+        line-height: 1;
     }
 
     .cal-slot-body {
         flex: 1;
         min-height: 48px;
-        padding: 8px 14px;
-        background: var(--bg-page);
-        border: 1px solid #d8d4cc;
-        border-radius: 2px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-        transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+        padding: 12px 14px;
+        background: transparent;
+        border: none;
+        border-left: 1px solid var(--border-subtle);
+        border-radius: 0;
+        box-shadow: none;
+        transition: background 0.15s, border-color 0.15s;
     }
 
     .cal-slot:active .cal-slot-body {
-        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+        background: var(--surface-hover);
     }
 
     /* Selected slot — deep navy + gold/white */
     .cal-slot.cal-slot-selected .cal-slot-body {
         background: var(--primary);
-        border-color: var(--accent);
-        box-shadow: 0 2px 6px rgba(27, 42, 71, 0.15);
+        border-left-color: var(--accent);
+        border-left-width: 3px;
     }
 
     .cal-slot.cal-slot-selected .cal-slot-time {
@@ -4713,8 +4746,8 @@ body[data-room-context="private"] #mainRoomContent {
     /* Reserved slot */
     .cal-slot.cal-slot-reserved .cal-slot-body {
         background: var(--primary-light);
-        border-color: var(--accent);
-        border-left: 3px solid var(--accent);
+        border-left-color: var(--accent);
+        border-left-width: 3px;
     }
 
     .cal-slot.cal-slot-reserved .cal-slot-time {
@@ -4724,15 +4757,25 @@ body[data-room-context="private"] #mainRoomContent {
         background: transparent;
     }
 
-    /* Locked slot */
+    /* Locked slot — diagonal stripes */
+    .cal-slot.cal-slot-locked {
+        background: transparent;
+    }
+
     .cal-slot.cal-slot-locked .cal-slot-body {
-        background: var(--surface-hover);
+        background: repeating-linear-gradient(-45deg,
+                transparent,
+                transparent 4px,
+                rgba(0, 0, 0, 0.03) 4px,
+                rgba(0, 0, 0, 0.03) 5px);
         border-color: transparent;
         box-shadow: none;
+        opacity: 0.4;
     }
 
     .cal-slot.cal-slot-locked .cal-slot-time {
         border-right: none;
+        opacity: 0.35;
     }
 
     /* FAB — full-width, bottom-fixed */
