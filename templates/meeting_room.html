@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Video Desk — 面談ルーム</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>
+        window.ROOM_TOKEN = {{ room_token | tojson }};
+        window.MEETING_DATE = {{ meeting_date | tojson }};
+        window.MEETING_TIME = {{ meeting_time | tojson }};
+        window.MEETING_STATUS = {{ meeting_status | tojson }};
+        window.USER_NAME = {{ user_name | tojson }};
+        window.ROLE = {{ role | tojson }};
+        window.IS_ADMIN = {{ is_admin | tojson }};
+    </script>
+</head>
+
+<body class="meeting-room-body">
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+    <!-- ===== Early Access: 10分前入室制限 ===== -->
+    <div id="meetingEarlyScreen" class="meeting-screen meeting-early-screen" style="display:none">
+        <div class="meeting-screen-card">
+            <span class="material-symbols-outlined meeting-screen-icon">schedule</span>
+            <h1>面談開始の10分前から入室できます</h1>
+            <p id="meetingEarlyInfo" class="meeting-screen-info"></p>
+            <p class="meeting-screen-countdown" id="meetingEarlyCountdown"></p>
+            <a href="/dashboard" class="meeting-back-link">
+                <span class="material-symbols-outlined">arrow_back</span>
+                <span>ダッシュボードに戻る</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- ===== Waiting Room: メンター待ち ===== -->
+    <div id="meetingWaitingScreen" class="meeting-screen meeting-waiting-screen" style="display:none">
+        <div class="meeting-screen-card">
+            <div class="meeting-waiting-pulse"></div>
+            <span class="material-symbols-outlined meeting-screen-icon meeting-waiting-icon">person_search</span>
+            <h1>メンターの入室を待っています…</h1>
+            <p id="meetingWaitingInfo" class="meeting-screen-info"></p>
+            <p class="meeting-waiting-hint">面談開始時刻になると自動的に接続されます</p>
+        </div>
+    </div>
+
+    <!-- ===== Active Meeting: ビデオチャット ===== -->
+    <div id="meetingActiveScreen" class="meeting-screen meeting-active-screen" style="display:none">
+        <header class="meeting-active-header">
+            <div class="meeting-active-header-left">
+                <span class="material-symbols-outlined">videocam</span>
+                <span class="meeting-active-title">面談中</span>
+                <span class="meeting-active-timer" id="meetingTimer">00:00</span>
+            </div>
+            <a href="/dashboard" class="meeting-active-exit-btn" id="meetingExitBtn">
+                <span class="material-symbols-outlined">logout</span>
+                <span>退出</span>
+            </a>
+        </header>
+        <div class="meeting-video-area">
+            <div class="meeting-video-wrapper meeting-video-local">
+                <video id="meetingLocalVideo" autoplay playsinline muted></video>
+                <span class="meeting-video-label">あなた</span>
+            </div>
+            <div class="meeting-video-wrapper meeting-video-remote" id="meetingRemoteWrapper" style="display:none">
+                <video id="meetingRemoteVideo" autoplay playsinline></video>
+                <span class="meeting-video-label" id="meetingRemoteLabel">メンター</span>
+            </div>
+        </div>
+        <footer class="meeting-controls">
+            <button type="button" class="meeting-control-btn" id="meetingMicBtn" title="マイク">
+                <span class="material-symbols-outlined">mic</span>
+            </button>
+            <button type="button" class="meeting-control-btn" id="meetingCamBtn" title="カメラ">
+                <span class="material-symbols-outlined">videocam</span>
+            </button>
+        </footer>
+    </div>
+
+    <!-- ===== No Show / Expired ===== -->
+    <div id="meetingExpiredScreen" class="meeting-screen meeting-expired-screen" style="display:none">
+        <div class="meeting-screen-card">
+            <span class="material-symbols-outlined meeting-screen-icon meeting-expired-icon">event_busy</span>
+            <h1>面談セッションが終了しました</h1>
+            <p class="meeting-screen-info">開始時刻から30分が経過したため、セッションを自動終了しました。</p>
+            <a href="/dashboard" class="meeting-back-link">
+                <span class="material-symbols-outlined">arrow_back</span>
+                <span>ダッシュボードに戻る</span>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            'use strict';
+
+            var TOKEN = window.ROOM_TOKEN;
+            var DATE_STR = window.MEETING_DATE;
+            var TIME_STR = window.MEETING_TIME;
+            var STATUS = window.MEETING_STATUS;
+            var IS_ADMIN = window.IS_ADMIN;
+
+            // Parse meeting start time
+            var parts = TIME_STR.split(':');
+            var meetingStart = new Date(DATE_STR + 'T' + TIME_STR + ':00');
+            var tenMinBefore = new Date(meetingStart.getTime() - 10 * 60 * 1000);
+            var thirtyMinAfter = new Date(meetingStart.getTime() + 30 * 60 * 1000);
+
+            var earlyScreen = document.getElementById('meetingEarlyScreen');
+            var waitingScreen = document.getElementById('meetingWaitingScreen');
+            var activeScreen = document.getElementById('meetingActiveScreen');
+            var expiredScreen = document.getElementById('meetingExpiredScreen');
+
+            var earlyInfo = document.getElementById('meetingEarlyInfo');
+            var earlyCountdown = document.getElementById('meetingEarlyCountdown');
+            var waitingInfo = document.getElementById('meetingWaitingInfo');
+            var timer = document.getElementById('meetingTimer');
+            var localVideo = document.getElementById('meetingLocalVideo');
+
+            // Format date display
+            var d = new Date(DATE_STR + 'T00:00:00');
+            var wday = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+            var dateDisplay = (d.getMonth() + 1) + '月' + d.getDate() + '日（' + wday + '）';
+            var endH = parseInt(parts[0], 10);
+            var endM = parseInt(parts[1], 10) + 30;
+            if (endM >= 60) { endH++; endM -= 60; }
+            var timeDisplay = TIME_STR + ' 〜 ' + String(endH).padStart(2, '0') + ':' + String(endM).padStart(2, '0');
+
+            if (earlyInfo) earlyInfo.textContent = dateDisplay + ' ' + timeDisplay;
+            if (waitingInfo) waitingInfo.textContent = dateDisplay + ' ' + timeDisplay;
+
+            // If already cancelled/completed/no_show, show expired
+            if (STATUS !== 'scheduled') {
+                showScreen('expired');
+                return;
+            }
+
+            function showScreen(name) {
+                earlyScreen.style.display = 'none';
+                waitingScreen.style.display = 'none';
+                activeScreen.style.display = 'none';
+                expiredScreen.style.display = 'none';
+                switch (name) {
+                    case 'early': earlyScreen.style.display = ''; break;
+                    case 'waiting': waitingScreen.style.display = ''; break;
+                    case 'active': activeScreen.style.display = ''; break;
+                    case 'expired': expiredScreen.style.display = ''; break;
+                }
+            }
+
+            function updateCountdown() {
+                var now = new Date();
+                var diff = tenMinBefore.getTime() - now.getTime();
+                if (diff <= 0) return;
+                var minutes = Math.floor(diff / 60000);
+                var seconds = Math.floor((diff % 60000) / 1000);
+                if (earlyCountdown) {
+                    earlyCountdown.textContent = '入室可能まで あと ' + minutes + '分' + String(seconds).padStart(2, '0') + '秒';
+                }
+            }
+
+            // Meeting timer
+            var timerStart = null;
+            var timerInterval = null;
+            function startMeetingTimer() {
+                timerStart = new Date();
+                timerInterval = setInterval(function () {
+                    var elapsed = Math.floor((new Date() - timerStart) / 1000);
+                    var m = Math.floor(elapsed / 60);
+                    var s = elapsed % 60;
+                    if (timer) timer.textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+                }, 1000);
+            }
+
+            // Camera setup with mosaic (blur filter)
+            var localStream = null;
+
+            async function startCamera() {
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
+                        audio: true
+                    });
+                    if (localVideo) {
+                        localVideo.srcObject = localStream;
+                    }
+                } catch (err) {
+                    console.error('Camera error:', err);
+                }
+            }
+
+            // No-show timeout
+            var noShowTimer = null;
+            function startNoShowTimer() {
+                var now = new Date();
+                var remaining = thirtyMinAfter.getTime() - now.getTime();
+                if (remaining <= 0) {
+                    triggerNoShow();
+                    return;
+                }
+                noShowTimer = setTimeout(function () {
+                    triggerNoShow();
+                }, remaining);
+            }
+
+            function triggerNoShow() {
+                fetch('/api/meeting/' + TOKEN + '/no_show', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                }).finally(function () {
+                    showScreen('expired');
+                    if (localStream) {
+                        localStream.getTracks().forEach(function (t) { t.stop(); });
+                    }
+                    clearInterval(timerInterval);
+                });
+            }
+
+            // Main state machine
+            function checkState() {
+                var now = new Date();
+
+                if (now >= thirtyMinAfter) {
+                    triggerNoShow();
+                    return;
+                }
+
+                if (now < tenMinBefore) {
+                    // Too early
+                    showScreen('early');
+                    updateCountdown();
+                    var countdownInterval = setInterval(function () {
+                        var nowCheck = new Date();
+                        if (nowCheck >= tenMinBefore) {
+                            clearInterval(countdownInterval);
+                            checkState();
+                            return;
+                        }
+                        updateCountdown();
+                    }, 1000);
+                    return;
+                }
+
+                if (now < meetingStart && !IS_ADMIN) {
+                    // Waiting room (student only)
+                    showScreen('waiting');
+                    startCamera();
+                    startNoShowTimer();
+                    var waitInterval = setInterval(function () {
+                        var nowCheck = new Date();
+                        if (nowCheck >= meetingStart) {
+                            clearInterval(waitInterval);
+                            showScreen('active');
+                            startMeetingTimer();
+                        }
+                    }, 1000);
+                    return;
+                }
+
+                // Active meeting
+                showScreen('active');
+                startCamera();
+                startMeetingTimer();
+                startNoShowTimer();
+            }
+
+            // Mic/Cam toggle
+            var micBtn = document.getElementById('meetingMicBtn');
+            var camBtn = document.getElementById('meetingCamBtn');
+            var micOn = true;
+            var camOn = true;
+
+            if (micBtn) {
+                micBtn.addEventListener('click', function () {
+                    micOn = !micOn;
+                    if (localStream) {
+                        localStream.getAudioTracks().forEach(function (t) { t.enabled = micOn; });
+                    }
+                    micBtn.querySelector('.material-symbols-outlined').textContent = micOn ? 'mic' : 'mic_off';
+                    micBtn.classList.toggle('meeting-control-btn-off', !micOn);
+                });
+            }
+
+            if (camBtn) {
+                camBtn.addEventListener('click', function () {
+                    camOn = !camOn;
+                    if (localStream) {
+                        localStream.getVideoTracks().forEach(function (t) { t.enabled = camOn; });
+                    }
+                    camBtn.querySelector('.material-symbols-outlined').textContent = camOn ? 'videocam' : 'videocam_off';
+                    camBtn.classList.toggle('meeting-control-btn-off', !camOn);
+                });
+            }
+
+            checkState();
+        })();
+    </script>
+</body>
+
+</html>

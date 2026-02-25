@@ -109,8 +109,9 @@
                 <span class="spa-nav-badge-pro"><span class="material-symbols-outlined"
                         style="font-size:11px">lock</span> Pro</span>
             </button>
-            <button class="spa-nav-item" data-section="notifications" type="button">
+            <button class="spa-nav-item" data-section="notifications" type="button" id="navNotifications">
                 <span class="spa-nav-icon"><span class="material-symbols-outlined">notifications</span></span>
+                <span class="spa-nav-badge-unread" id="navNotifBadge" style="display:none"></span>
                 <span class="spa-nav-label">通知</span>
             </button>
             <button class="spa-nav-item" data-section="profile" type="button">
@@ -412,87 +413,102 @@
                     <p class="sec-subheading">あなた専用の学習計画と、講師による定期面談</p>
                 </header>
 
-                <div class="route-progress-section">
-                    <h2 class="route-section-title">今週の学習目標</h2>
-                    <div class="route-progress-bar-wrap">
-                        <div class="route-progress-bar">
-                            <div class="route-progress-fill" style="width: 40%"></div>
+                <div class="route-learning-section">
+                    <h2 class="route-section-title">あなた専用の学習ルート</h2>
+                    <div class="route-learning-content">
+                        {% if current_user.learning_route_text %}
+                        <div class="route-learning-text">{{ current_user.learning_route_text | replace('\n', '<br>') |
+                            safe }}</div>
+                        {% else %}
+                        <div class="route-learning-placeholder">
+                            <span class="material-symbols-outlined">edit_note</span>
+                            <p>現在、メンターが学習ルートを作成中です。</p>
                         </div>
-                        <span class="route-progress-pct">40%</span>
+                        {% endif %}
                     </div>
-                    <ul class="route-todo-list">
-                        <li class="route-todo-item route-todo-done">
-                            <span class="material-symbols-outlined route-todo-check">check_circle</span>
-                            <span>英単語ターゲット1900：Section 1〜3 暗記</span>
-                        </li>
-                        <li class="route-todo-item route-todo-done">
-                            <span class="material-symbols-outlined route-todo-check">check_circle</span>
-                            <span>数学 青チャート 例題10〜15</span>
-                        </li>
-                        <li class="route-todo-item">
-                            <span class="material-symbols-outlined route-todo-check">radio_button_unchecked</span>
-                            <span>古文単語315：第2章 暗記テスト</span>
-                        </li>
-                        <li class="route-todo-item">
-                            <span class="material-symbols-outlined route-todo-check">radio_button_unchecked</span>
-                            <span>物理 セミナー 波動分野 演習20問</span>
-                        </li>
-                        <li class="route-todo-item">
-                            <span class="material-symbols-outlined route-todo-check">radio_button_unchecked</span>
-                            <span>英語長文 やっておきたい500 1題</span>
-                        </li>
-                    </ul>
                 </div>
 
-                <div class="route-interview-card">
+                <div class="route-interview-card" id="routeInterviewCard">
                     <div class="route-interview-inner">
                         <span class="material-symbols-outlined route-interview-icon">event</span>
                         <div class="route-interview-info">
                             <h3>次回の面談</h3>
-                            <p class="route-interview-date">3月5日（水） 19:00 〜 19:30</p>
-                            <p class="route-interview-note">講師：田中先生</p>
+                            <p class="route-interview-date" id="routeInterviewDate">読み込み中…</p>
                         </div>
-                        <a href="#" class="route-interview-btn">
+                        <a href="#" class="route-interview-btn" id="routeInterviewBtn" style="display:none">
                             <span>面談ルームに入室する</span>
                             <span class="material-symbols-outlined">arrow_forward</span>
                         </a>
+                        <button type="button" class="route-interview-btn" id="routeBookMeetingBtn" style="display:none">
+                            <span>面談の日程調整をする</span>
+                            <span class="material-symbols-outlined">calendar_month</span>
+                        </button>
+                        <button type="button" class="route-interview-btn route-interview-cancel-btn"
+                            id="routeCancelMeetingBtn" style="display:none">
+                            <span>キャンセル</span>
+                        </button>
                     </div>
                 </div>
 
+                <!-- Admin: 面談予約一覧 + 学習ルート管理 -->
+                {% if role == 'admin' %}
+                <div class="admin-meeting-section">
+                    <h2 class="route-section-title">面談予約一覧（管理者）</h2>
+                    <div class="admin-meeting-list" id="adminMeetingList">
+                        <p class="admin-meeting-loading">読み込み中…</p>
+                    </div>
+                </div>
+
+                <div class="admin-route-section">
+                    <h2 class="route-section-title">生徒の学習ルート管理（管理者）</h2>
+                    <div class="admin-route-student-list" id="adminRouteStudentList">
+                        <p class="admin-meeting-loading">読み込み中…</p>
+                    </div>
+                </div>
+                {% endif %}
+
                 {% elif current_user.is_authenticated and not is_subscribed %}
-                <!-- === Standard/Free: Upsell LP === -->
-                <div class="route-upsell">
-                    <div class="route-upsell-ornament"></div>
-                    <span class="route-upsell-icon">
-                        <span class="material-symbols-outlined">school</span>
-                    </span>
-                    <h1 class="route-upsell-title">専用の学習ルート設計と<br>月2回の面談で、迷わず勉強しませんか？</h1>
-                    <p class="route-upsell-desc">Proプランでは、あなただけの学習計画を講師が設計。定期面談で進捗を確認し、常に最適なルートで学習を進められます。</p>
+                <!-- === Free: Blurred Route + Lock Overlay === -->
+                <header class="sec-route-header">
+                    <h1 class="sec-heading">学習ルート・面談</h1>
+                    <p class="sec-subheading">あなた専用の学習計画と、講師による定期面談</p>
+                </header>
 
-                    <ul class="route-upsell-features">
-                        <li>
-                            <span class="material-symbols-outlined">edit_note</span>
-                            <span>志望校・目標に合わせた完全オーダーメイドの学習ルート</span>
-                        </li>
-                        <li>
-                            <span class="material-symbols-outlined">groups</span>
-                            <span>月2回のオンライン面談で進捗確認＆軌道修正</span>
-                        </li>
-                        <li>
-                            <span class="material-symbols-outlined">auto_awesome</span>
-                            <span>AIによる日々の学習分析と最適化提案</span>
-                        </li>
-                        <li>
-                            <span class="material-symbols-outlined">priority_high</span>
-                            <span>質問・相談の優先対応</span>
-                        </li>
-                    </ul>
-
-                    <a href="{{ url_for('subscription_page') }}" class="route-upsell-btn">
-                        <span>Proプランを無料体験する</span>
-                        <span class="material-symbols-outlined">arrow_forward</span>
-                    </a>
-                    <p class="route-upsell-note">7日間無料・いつでもキャンセル可能</p>
+                <div class="route-locked-wrap">
+                    <!-- Blurred dummy content -->
+                    <div class="route-locked-blur">
+                        <h2 class="route-section-title">あなた専用の学習ルート</h2>
+                        <div class="route-locked-dummy">
+                            <p>■ 英語（毎日）</p>
+                            <p>・英単語ターゲット1900：Section 1〜5 を暗記</p>
+                            <p>・やっておきたい英語長文500：1日1題ペース</p>
+                            <p>&nbsp;</p>
+                            <p>■ 数学（週4日）</p>
+                            <p>・青チャート 数学IA：例題1〜30</p>
+                            <p>・Focus Gold 数学IIB：章末問題 演習</p>
+                            <p>&nbsp;</p>
+                            <p>■ 国語（週3日）</p>
+                            <p>・古文単語315：第1章〜第3章</p>
+                            <p>・現代文キーワード読解：第1部 読了</p>
+                            <p>&nbsp;</p>
+                            <p>■ 理科（週2日）</p>
+                            <p>・セミナー物理：力学分野 基本問題</p>
+                        </div>
+                    </div>
+                    <!-- Lock overlay -->
+                    <div class="route-locked-overlay">
+                        <div class="route-locked-overlay-content">
+                            <span class="material-symbols-outlined route-locked-icon">lock</span>
+                            <h2 class="route-locked-title">あなた専用の学習ルートを解放しましょう</h2>
+                            <p class="route-locked-desc">Proプランに登録すると、メンターがあなたの志望校・目標に合わせた完全オーダーメイドの学習ルートと参考書リストを作成します。
+                            </p>
+                            <a href="{{ url_for('subscription_page') }}" class="route-locked-cta-btn">
+                                <span>Proプランを無料体験する</span>
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </a>
+                            <p class="route-locked-note">7日間無料・いつでもキャンセル可能</p>
+                        </div>
+                    </div>
                 </div>
 
                 {% else %}
@@ -507,15 +523,25 @@
             </div>
         </div>
 
-        <!-- ====== Section: Notifications (placeholder) ====== -->
+        <!-- ====== Section: Notifications ====== -->
         <div id="section-notifications" class="spa-section">
-            <div class="spa-section-placeholder">
-                <div class="spa-placeholder-content">
-                    <span class="spa-placeholder-icon"><span
-                            class="material-symbols-outlined">notifications</span></span>
-                    <h1>通知（お知らせ）</h1>
-                    <p>準備中です。もう少しお待ちください。</p>
+            <div class="sec-notifications">
+                <header class="sec-notifications-header">
+                    <h1 class="sec-heading">通知（お知らせ）</h1>
+                    <p class="sec-subheading">重要なお知らせや面談の通知をお届けします</p>
+                </header>
+                {% if current_user.is_authenticated %}
+                <div class="notif-list" id="notifList">
+                    <p class="notif-loading">読み込み中…</p>
                 </div>
+                {% else %}
+                <div class="sec-login-gate">
+                    <span class="material-symbols-outlined sec-login-gate-icon">lock</span>
+                    <p>通知を確認するにはログインが必要です。</p>
+                    <a href="{{ url_for('login_google') }}"
+                        class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
+                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -645,11 +671,47 @@
             </div>
         </div>
 
+        <!-- ===== Meeting Calendar Modal ===== -->
+        {% if current_user.is_authenticated %}
+        <div id="meetingCalOverlay" class="overlay" style="display:none">
+            <div class="overlay-card meeting-cal-card">
+                <button id="meetingCalCloseBtn" class="goal-close-btn" type="button" aria-label="閉じる">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+                <div class="overlay-card-header">
+                    <span class="overlay-icon"><span class="material-symbols-outlined">event</span></span>
+                    <h1>面談の日程を選択</h1>
+                    <p>30分の面談枠を1つ選んでください</p>
+                </div>
+                <div class="meeting-cal-body">
+                    <div class="cal-date-strip-wrap">
+                        <button class="cal-date-arrow cal-date-arrow-prev" id="mcalPrevWeek" type="button">
+                            <span class="material-symbols-outlined">chevron_left</span>
+                        </button>
+                        <div class="cal-date-strip" id="mcalDateStrip"></div>
+                        <button class="cal-date-arrow cal-date-arrow-next" id="mcalNextWeek" type="button">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </button>
+                    </div>
+                    <div class="cal-timeline-wrap" id="mcalTimelineWrap">
+                        <div class="cal-timeline" id="mcalTimeline"></div>
+                    </div>
+                    <div class="cal-fab" id="mcalFab" style="display:none">
+                        <span class="material-symbols-outlined">event_available</span>
+                        <span class="cal-fab-text" id="mcalFabText">この日時で予約する</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
     </main>
 
     <script src="{{ url_for('static', filename='js/room.js') }}"></script>
     <script src="{{ url_for('static', filename='js/spa.js') }}"></script>
     <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/meeting_calendar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
 </body>
 
 </html>

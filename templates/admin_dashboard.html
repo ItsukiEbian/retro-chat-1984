@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理者ダッシュボード — Video Desk</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --admin-bg: #0f1117;
+            --admin-sidebar: #161822;
+            --admin-card: #1c1f2e;
+            --admin-border: rgba(255, 255, 255, 0.08);
+            --admin-accent: #c5a880;
+            --admin-accent-hover: #d4b890;
+            --admin-text: #e8e6e3;
+            --admin-text-secondary: rgba(255, 255, 255, 0.55);
+            --admin-text-tertiary: rgba(255, 255, 255, 0.3);
+            --admin-danger: #e53935;
+            --admin-success: #43a047;
+            --radius: 8px;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: var(--admin-bg);
+            color: var(--admin-text);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* ===== Sidebar ===== */
+        .admin-sidebar {
+            width: 240px;
+            background: var(--admin-sidebar);
+            border-right: 1px solid var(--admin-border);
+            display: flex;
+            flex-direction: column;
+            padding: 24px 0;
+            flex-shrink: 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 100;
+            transition: transform 0.3s;
+        }
+
+        .admin-sidebar-brand {
+            padding: 0 20px 24px;
+            border-bottom: 1px solid var(--admin-border);
+            margin-bottom: 12px;
+        }
+
+        .admin-sidebar-brand h1 {
+            font-family: 'Noto Serif JP', serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--admin-accent);
+            letter-spacing: 0.04em;
+        }
+
+        .admin-sidebar-brand p {
+            font-size: 12px;
+            color: var(--admin-text-secondary);
+            margin-top: 4px;
+        }
+
+        .admin-nav {
+            flex: 1;
+        }
+
+        .admin-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            cursor: pointer;
+            color: var(--admin-text-secondary);
+            font-size: 14px;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .admin-nav-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--admin-text);
+        }
+
+        .admin-nav-item.active {
+            background: rgba(197, 168, 128, 0.1);
+            color: var(--admin-accent);
+        }
+
+        .admin-nav-item .material-symbols-outlined {
+            font-size: 20px;
+        }
+
+        .admin-sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--admin-border);
+        }
+
+        .admin-sidebar-footer a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--admin-text-tertiary);
+            text-decoration: none;
+            font-size: 13px;
+            transition: color 0.2s;
+        }
+
+        .admin-sidebar-footer a:hover {
+            color: var(--admin-text);
+        }
+
+        .admin-sidebar-footer .material-symbols-outlined {
+            font-size: 18px;
+        }
+
+        /* Mobile toggle */
+        .admin-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 200;
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: var(--radius);
+            color: var(--admin-text);
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        /* ===== Main ===== */
+        .admin-main {
+            margin-left: 240px;
+            flex: 1;
+            padding: 32px 36px;
+            min-height: 100vh;
+        }
+
+        .admin-main-header {
+            margin-bottom: 28px;
+        }
+
+        .admin-main-header h2 {
+            font-family: 'Noto Serif JP', serif;
+            font-size: 22px;
+            font-weight: 500;
+        }
+
+        .admin-main-header p {
+            color: var(--admin-text-secondary);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        /* ===== Panels ===== */
+        .admin-panel {
+            display: none;
+        }
+
+        .admin-panel.active {
+            display: block;
+        }
+
+        /* ===== Table ===== */
+        .admin-table-wrap {
+            overflow-x: auto;
+        }
+
+        table.admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .admin-table th {
+            text-align: left;
+            padding: 10px 14px;
+            font-weight: 500;
+            color: var(--admin-text-secondary);
+            border-bottom: 1px solid var(--admin-border);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .admin-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--admin-border);
+            vertical-align: middle;
+        }
+
+        .admin-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Badges */
+        .badge-pro {
+            font-size: 11px;
+            font-weight: 600;
+            color: #c5a055;
+            background: rgba(197, 160, 85, 0.15);
+            border: 1px solid rgba(197, 160, 85, 0.3);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .badge-free {
+            font-size: 11px;
+            color: var(--admin-text-tertiary);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--admin-border);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .badge-role {
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .badge-role-user {
+            color: var(--admin-text-tertiary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .badge-role-mentor {
+            color: #42a5f5;
+            background: rgba(66, 165, 245, 0.12);
+        }
+
+        .badge-role-super {
+            color: #ef5350;
+            background: rgba(239, 83, 80, 0.12);
+        }
+
+        /* Buttons */
+        .btn-admin {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 18px;
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 13px;
+            cursor: pointer;
+            border: 1px solid var(--admin-border);
+            transition: all 0.2s;
+        }
+
+        .btn-admin-primary {
+            background: var(--admin-accent);
+            color: #0f1117;
+            border-color: var(--admin-accent);
+        }
+
+        .btn-admin-primary:hover {
+            background: var(--admin-accent-hover);
+        }
+
+        .btn-admin-ghost {
+            background: transparent;
+            color: var(--admin-text-secondary);
+        }
+
+        .btn-admin-ghost:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--admin-text);
+        }
+
+        .btn-admin .material-symbols-outlined {
+            font-size: 16px;
+        }
+
+        /* Toggle switch */
+        .toggle-switch {
+            position: relative;
+            width: 42px;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 11px;
+            cursor: pointer;
+            transition: background 0.25s;
+        }
+
+        .toggle-switch.on {
+            background: var(--admin-success);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            transition: transform 0.25s;
+        }
+
+        .toggle-switch.on::after {
+            transform: translateX(20px);
+        }
+
+        /* ===== Student Detail Modal ===== */
+        .admin-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 500;
+        }
+
+        .admin-modal-overlay.visible {
+            display: flex;
+        }
+
+        .admin-modal {
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: 12px;
+            width: calc(100% - 40px);
+            max-width: 560px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 28px;
+        }
+
+        .admin-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .admin-modal-header h3 {
+            font-size: 17px;
+            font-weight: 500;
+        }
+
+        .admin-modal-close {
+            background: none;
+            border: none;
+            color: var(--admin-text-tertiary);
+            cursor: pointer;
+            font-size: 22px;
+        }
+
+        .admin-modal-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--admin-border);
+        }
+
+        .admin-modal-row:last-child {
+            border-bottom: none;
+        }
+
+        .admin-modal-label {
+            font-size: 13px;
+            color: var(--admin-text-secondary);
+        }
+
+        .admin-modal-value {
+            font-size: 14px;
+        }
+
+        .admin-modal-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 10px 12px;
+            font-family: 'Noto Serif JP', serif;
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--admin-text);
+            background: var(--admin-bg);
+            border: 1px solid var(--admin-border);
+            border-radius: var(--radius);
+            resize: vertical;
+        }
+
+        .admin-modal-textarea:focus {
+            outline: none;
+            border-color: var(--admin-accent);
+        }
+
+        .admin-modal-actions {
+            margin-top: 16px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* ===== Notification Form ===== */
+        .notif-form {
+            max-width: 600px;
+        }
+
+        .notif-form-group {
+            margin-bottom: 16px;
+        }
+
+        .notif-form-label {
+            display: block;
+            font-size: 13px;
+            color: var(--admin-text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .notif-form-input,
+        .notif-form-textarea,
+        .notif-form-select {
+            width: 100%;
+            padding: 10px 12px;
+            font-family: inherit;
+            font-size: 14px;
+            color: var(--admin-text);
+            background: var(--admin-bg);
+            border: 1px solid var(--admin-border);
+            border-radius: var(--radius);
+        }
+
+        .notif-form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .notif-form-input:focus,
+        .notif-form-textarea:focus,
+        .notif-form-select:focus {
+            outline: none;
+            border-color: var(--admin-accent);
+        }
+
+        .notif-form-select option {
+            background: var(--admin-bg);
+            color: var(--admin-text);
+        }
+
+        .notif-form-result {
+            margin-top: 12px;
+            font-size: 14px;
+            padding: 10px 14px;
+            border-radius: var(--radius);
+            display: none;
+        }
+
+        .notif-form-result.success {
+            display: block;
+            background: rgba(67, 160, 71, 0.15);
+            color: #66bb6a;
+        }
+
+        .notif-form-result.error {
+            display: block;
+            background: rgba(229, 57, 53, 0.15);
+            color: #ef5350;
+        }
+
+        /* ===== Meeting Card ===== */
+        .meeting-admin-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: var(--radius);
+            margin-bottom: 8px;
+        }
+
+        .meeting-admin-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .meeting-admin-user {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .meeting-admin-time {
+            font-size: 13px;
+            color: var(--admin-text-secondary);
+        }
+
+        .meeting-admin-card .btn-admin {
+            white-space: nowrap;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 768px) {
+            .admin-sidebar {
+                transform: translateX(-100%);
+            }
+
+            .admin-sidebar.open {
+                transform: translateX(0);
+            }
+
+            .admin-main {
+                margin-left: 0;
+                padding: 60px 16px 24px;
+            }
+
+            .admin-menu-toggle {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Mobile toggle -->
+    <button class="admin-menu-toggle" id="adminMenuToggle">
+        <span class="material-symbols-outlined">menu</span>
+    </button>
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="adminSidebar">
+        <div class="admin-sidebar-brand">
+            <h1>Video Desk 管理</h1>
+            <p>{{ admin_user.name or '管理者' }} ({{ admin_role }})</p>
+        </div>
+        <nav class="admin-nav">
+            <button class="admin-nav-item active" data-panel="students" type="button">
+                <span class="material-symbols-outlined">school</span>
+                <span>生徒・学習ルート管理</span>
+            </button>
+            <button class="admin-nav-item" data-panel="meetings" type="button">
+                <span class="material-symbols-outlined">event</span>
+                <span>面談スケジュール管理</span>
+            </button>
+            <button class="admin-nav-item" data-panel="notifications" type="button">
+                <span class="material-symbols-outlined">notifications</span>
+                <span>通知センター</span>
+            </button>
+        </nav>
+        <div class="admin-sidebar-footer">
+            <a href="/dashboard">
+                <span class="material-symbols-outlined">arrow_back</span>
+                <span>ダッシュボードに戻る</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="admin-main">
+
+        <!-- ===== Panel: Students ===== -->
+        <div class="admin-panel active" id="panel-students">
+            <div class="admin-main-header">
+                <h2>生徒・学習ルート管理</h2>
+                <p>全生徒の一覧と専用学習ルートの編集</p>
+            </div>
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>名前</th>
+                            <th>メール</th>
+                            <th>ロール</th>
+                            <th>プラン</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminStudentTableBody">
+                        <tr>
+                            <td colspan="6" style="color:var(--admin-text-tertiary)">読み込み中…</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ===== Panel: Meetings ===== -->
+        <div class="admin-panel" id="panel-meetings">
+            <div class="admin-main-header">
+                <h2>面談スケジュール管理</h2>
+                <p>全生徒の面談予約を直近順で表示</p>
+            </div>
+            <div id="adminMeetingCards">
+                <p style="color:var(--admin-text-tertiary)">読み込み中…</p>
+            </div>
+        </div>
+
+        <!-- ===== Panel: Notifications ===== -->
+        <div class="admin-panel" id="panel-notifications">
+            <div class="admin-main-header">
+                <h2>通知センター</h2>
+                <p>生徒への通知を手動で送信</p>
+            </div>
+            <div class="notif-form">
+                <div class="notif-form-group">
+                    <label class="notif-form-label">送信先</label>
+                    <select class="notif-form-select" id="notifTarget">
+                        <option value="all">全ユーザー</option>
+                    </select>
+                </div>
+                <div class="notif-form-group">
+                    <label class="notif-form-label">タイトル</label>
+                    <input type="text" class="notif-form-input" id="notifTitle" placeholder="通知タイトル">
+                </div>
+                <div class="notif-form-group">
+                    <label class="notif-form-label">メッセージ</label>
+                    <textarea class="notif-form-textarea" id="notifMessage" placeholder="通知メッセージ（省略可）"></textarea>
+                </div>
+                <div class="notif-form-group">
+                    <label class="notif-form-label">遷移先セクション（省略可）</label>
+                    <select class="notif-form-select" id="notifLink">
+                        <option value="">なし</option>
+                        <option value="#section-report">学習記録・レポート</option>
+                        <option value="#section-route">学習ルート・面談</option>
+                        <option value="#section-calendar">予約・カレンダー</option>
+                        <option value="#section-profile">プロフィール</option>
+                    </select>
+                </div>
+                <button type="button" class="btn-admin btn-admin-primary" id="notifSendBtn">
+                    <span class="material-symbols-outlined">send</span>
+                    <span>通知を送信</span>
+                </button>
+                <div class="notif-form-result" id="notifResult"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Student Detail Modal -->
+    <div class="admin-modal-overlay" id="studentModalOverlay">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h3 id="studentModalName">生徒詳細</h3>
+                <button class="admin-modal-close" id="studentModalClose">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="admin-modal-row">
+                <span class="admin-modal-label">メール</span>
+                <span class="admin-modal-value" id="studentModalEmail"></span>
+            </div>
+            <div class="admin-modal-row">
+                <span class="admin-modal-label">ロール</span>
+                <span class="admin-modal-value" id="studentModalRole"></span>
+            </div>
+            <div class="admin-modal-row" id="studentModalProRow">
+                <span class="admin-modal-label">プロプラン</span>
+                <div class="toggle-switch" id="studentModalProToggle"></div>
+            </div>
+            <div style="margin-top: 20px;">
+                <label class="notif-form-label">専用学習ルート（参考書指示）</label>
+                <textarea class="admin-modal-textarea" id="studentModalRoute" rows="6"
+                    placeholder="学習ルート・参考書リストを入力…"></textarea>
+            </div>
+            <div class="admin-modal-actions">
+                <button type="button" class="btn-admin btn-admin-ghost" id="studentModalCancelBtn">キャンセル</button>
+                <button type="button" class="btn-admin btn-admin-primary" id="studentModalSaveBtn">
+                    <span class="material-symbols-outlined">save</span>
+                    <span>保存する</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            'use strict';
+            var ADMIN_ROLE = {{ admin_role | tojson
+        }};
+
+        // ===== Sidebar nav =====
+        var navItems = document.querySelectorAll('.admin-nav-item[data-panel]');
+        var panels = document.querySelectorAll('.admin-panel');
+        navItems.forEach(function (item) {
+            item.addEventListener('click', function () {
+                var panel = item.getAttribute('data-panel');
+                navItems.forEach(function (n) { n.classList.remove('active'); });
+                item.classList.add('active');
+                panels.forEach(function (p) { p.classList.remove('active'); });
+                var target = document.getElementById('panel-' + panel);
+                if (target) target.classList.add('active');
+                // Refresh data on switch
+                if (panel === 'students') loadStudents();
+                if (panel === 'meetings') loadMeetings();
+                if (panel === 'notifications') loadNotifTargets();
+            });
+        });
+
+        // Mobile toggle
+        var menuToggle = document.getElementById('adminMenuToggle');
+        var sidebar = document.getElementById('adminSidebar');
+        if (menuToggle) {
+            menuToggle.addEventListener('click', function () {
+                sidebar.classList.toggle('open');
+            });
+        }
+
+        // ===== Helpers =====
+        function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+        function roleBadge(role) {
+            if (role === 'super_admin') return '<span class="badge-role badge-role-super">Super Admin</span>';
+            if (role === 'mentor') return '<span class="badge-role badge-role-mentor">Mentor</span>';
+            return '<span class="badge-role badge-role-user">User</span>';
+        }
+
+        // ===== Students =====
+        var studentData = [];
+        var selectedStudent = null;
+
+        function loadStudents() {
+            fetch('/api/admin/students').then(function (r) { return r.json(); }).then(function (rows) {
+                studentData = rows;
+                renderStudentTable(rows);
+            });
+        }
+
+        function renderStudentTable(rows) {
+            var tb = document.getElementById('adminStudentTableBody');
+            if (!rows.length) { tb.innerHTML = '<tr><td colspan="6" style="color:var(--admin-text-tertiary)">生徒がいません</td></tr>'; return; }
+            var html = '';
+            rows.forEach(function (s) {
+                html += '<tr>';
+                html += '<td>' + s.id + '</td>';
+                html += '<td>' + esc(s.name || '--') + '</td>';
+                html += '<td>' + esc(s.email || '--') + '</td>';
+                html += '<td>' + roleBadge(s.role || 'user') + '</td>';
+                html += '<td>' + (s.is_subscribed ? '<span class="badge-pro">Pro</span>' : '<span class="badge-free">Free</span>') + '</td>';
+                html += '<td><button class="btn-admin btn-admin-ghost" onclick="openStudentModal(' + s.id + ')"><span class="material-symbols-outlined">edit</span> 詳細</button></td>';
+                html += '</tr>';
+            });
+            tb.innerHTML = html;
+        }
+
+        window.openStudentModal = function (id) {
+            var s = studentData.find(function (x) { return x.id === id; });
+            if (!s) return;
+            selectedStudent = s;
+            document.getElementById('studentModalName').textContent = s.name || 'ID:' + s.id;
+            document.getElementById('studentModalEmail').textContent = s.email || '--';
+            document.getElementById('studentModalRole').innerHTML = roleBadge(s.role || 'user');
+            document.getElementById('studentModalRoute').value = s.learning_route_text || '';
+
+            // Pro toggle — super_admin only
+            var proRow = document.getElementById('studentModalProRow');
+            var proToggle = document.getElementById('studentModalProToggle');
+            if (ADMIN_ROLE === 'super_admin') {
+                proRow.style.display = '';
+                proToggle.className = 'toggle-switch' + (s.is_subscribed ? ' on' : '');
+                proToggle.onclick = function () {
+                    var newVal = !proToggle.classList.contains('on');
+                    proToggle.classList.toggle('on', newVal);
+                    fetch('/api/admin/toggle_subscription/' + s.id, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ is_subscribed: newVal })
+                    }).then(function (r) { return r.json(); }).then(function (d) {
+                        if (d.ok) s.is_subscribed = d.is_subscribed;
+                    });
+                };
+            } else {
+                proRow.style.display = 'none';
+            }
+
+            document.getElementById('studentModalOverlay').classList.add('visible');
+        };
+
+        document.getElementById('studentModalClose').addEventListener('click', closeStudentModal);
+        document.getElementById('studentModalCancelBtn').addEventListener('click', closeStudentModal);
+        document.getElementById('studentModalOverlay').addEventListener('click', function (e) {
+            if (e.target === this) closeStudentModal();
+        });
+        function closeStudentModal() { document.getElementById('studentModalOverlay').classList.remove('visible'); }
+
+        document.getElementById('studentModalSaveBtn').addEventListener('click', function () {
+            if (!selectedStudent) return;
+            var btn = this;
+            var text = document.getElementById('studentModalRoute').value;
+            btn.disabled = true; btn.querySelector('span:last-child').textContent = '保存中…';
+            fetch('/api/admin/update_route/' + selectedStudent.id, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ learning_route_text: text })
+            }).then(function (r) { return r.json(); }).then(function (d) {
+                btn.disabled = false; btn.querySelector('span:last-child').textContent = '保存する';
+                if (d.ok) {
+                    selectedStudent.learning_route_text = text;
+                    btn.querySelector('span:last-child').textContent = '✓ 保存しました';
+                    setTimeout(function () { btn.querySelector('span:last-child').textContent = '保存する'; }, 2000);
+                } else { alert(d.error || '保存に失敗しました'); }
+            }).catch(function () { btn.disabled = false; btn.querySelector('span:last-child').textContent = '保存する'; alert('通信エラー'); });
+        });
+
+        // ===== Meetings =====
+        function loadMeetings() {
+            fetch('/api/admin/meeting_reservations').then(function (r) { return r.json(); }).then(function (rows) {
+                var container = document.getElementById('adminMeetingCards');
+                if (!Array.isArray(rows) || !rows.length) {
+                    container.innerHTML = '<p style="color:var(--admin-text-tertiary)">面談予約はありません。</p>';
+                    return;
+                }
+                var html = '';
+                rows.forEach(function (r) {
+                    var d = new Date(r.date + 'T00:00:00');
+                    var wday = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+                    var display = (d.getMonth() + 1) + '月' + d.getDate() + '日（' + wday + '） ' + r.time_slot;
+                    html += '<div class="meeting-admin-card">';
+                    html += '<div class="meeting-admin-info">';
+                    html += '<span class="meeting-admin-user">' + esc(r.user_name) + '</span>';
+                    html += '<span class="meeting-admin-time">' + display + ' — ' + esc(r.status) + '</span>';
+                    html += '</div>';
+                    html += '<a href="/meeting/' + r.room_token + '" class="btn-admin btn-admin-primary">';
+                    html += '<span class="material-symbols-outlined">video_call</span> 面談ルームに入室</a>';
+                    html += '</div>';
+                });
+                container.innerHTML = html;
+            }).catch(function () {
+                document.getElementById('adminMeetingCards').innerHTML = '<p style="color:var(--admin-text-tertiary)">読み込みエラー</p>';
+            });
+        }
+
+        // ===== Notifications =====
+        function loadNotifTargets() {
+            var sel = document.getElementById('notifTarget');
+            // Keep "all" option, add students
+            fetch('/api/admin/students').then(function (r) { return r.json(); }).then(function (rows) {
+                sel.innerHTML = '<option value="all">全ユーザー</option>';
+                rows.forEach(function (s) {
+                    var opt = document.createElement('option');
+                    opt.value = String(s.id);
+                    opt.textContent = s.name || s.email || 'ID:' + s.id;
+                    sel.appendChild(opt);
+                });
+            });
+        }
+
+        document.getElementById('notifSendBtn').addEventListener('click', function () {
+            var btn = this;
+            var target = document.getElementById('notifTarget').value;
+            var title = document.getElementById('notifTitle').value.trim();
+            var message = document.getElementById('notifMessage').value.trim();
+            var link = document.getElementById('notifLink').value;
+            var result = document.getElementById('notifResult');
+            result.className = 'notif-form-result'; result.style.display = 'none';
+
+            if (!title) { result.textContent = 'タイトルを入力してください'; result.className = 'notif-form-result error'; result.style.display = 'block'; return; }
+
+            btn.disabled = true; btn.querySelector('span:last-child').textContent = '送信中…';
+
+            var body = { title: title, message: message, link_target: link };
+            if (target !== 'all') body.user_id = parseInt(target, 10);
+
+            fetch('/api/admin/notifications', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            }).then(function (r) { return r.json(); }).then(function (d) {
+                btn.disabled = false; btn.querySelector('span:last-child').textContent = '通知を送信';
+                if (d.ok) {
+                    result.textContent = '通知を送信しました！';
+                    result.className = 'notif-form-result success'; result.style.display = 'block';
+                    document.getElementById('notifTitle').value = '';
+                    document.getElementById('notifMessage').value = '';
+                } else {
+                    result.textContent = d.error || '送信に失敗しました';
+                    result.className = 'notif-form-result error'; result.style.display = 'block';
+                }
+            }).catch(function () {
+                btn.disabled = false; btn.querySelector('span:last-child').textContent = '通知を送信';
+                result.textContent = '通信エラー'; result.className = 'notif-form-result error'; result.style.display = 'block';
+            });
+        });
+
+        // ===== Init =====
+        loadStudents();
+    }) ();
+    </script>
+</body>
+
+</html>

@@ -50,6 +50,11 @@
             window.refreshNextReservation();
         }
 
+        // Refresh notifications when switching to notifications tab
+        if (sectionId === 'notifications' && typeof window.refreshNotifications === 'function') {
+            window.refreshNotifications();
+        }
+
         currentSection = sectionId;
     }
 

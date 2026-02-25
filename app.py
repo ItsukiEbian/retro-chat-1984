@@ -8,10 +8,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import time
 import secrets
+import uuid
 from functools import wraps
-from datetime import timedelta
+from datetime import timedelta, datetime as dt_datetime
 import eventlet
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, abort
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
@@ -79,6 +80,16 @@ class User(db.Model):
     grade = db.Column(db.String(32), nullable=True)
     target_school = db.Column(db.String(256), nullable=True)
 
+    # --- ロール (RBAC) ---
+    role = db.Column(db.String(20), default='user')  # user / mentor / super_admin
+
+    # --- 面談利用フラグ ---
+    has_used_free_meeting = db.Column(db.Boolean, default=False)
+    has_used_pro_meeting = db.Column(db.Boolean, default=False)
+
+    # --- 学習ルート（管理者が記入） ---
+    learning_route_text = db.Column(db.Text, nullable=True)
+
     # --- Stripe サブスクリプション ---
     stripe_customer_id = db.Column(db.String(255), nullable=True)
     stripe_subscription_id = db.Column(db.String(255), nullable=True)
@@ -110,6 +121,46 @@ class StudyReservation(db.Model):
     __table_args__ = (
         db.UniqueConstraint('user_id', 'date', 'time_slot', name='uq_user_date_slot'),
     )
+
+
+class MeetingReservation(db.Model):
+    __tablename__ = 'meeting_reservations'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    date = db.Column(db.String(10), nullable=False)      # YYYY-MM-DD
+    time_slot = db.Column(db.String(5), nullable=False)   # HH:MM
+    room_token = db.Column(db.String(64), unique=True, nullable=False)
+    status = db.Column(db.String(20), default='scheduled')  # scheduled / completed / no_show / cancelled
+
+    user = db.relationship('User', backref='meeting_reservations')
+
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    category = db.Column(db.String(20), default='system')   # system / direct / global
+    title = db.Column(db.String(256), nullable=False)
+    message = db.Column(db.Text, nullable=True)
+    link_target = db.Column(db.String(128), default='')      # e.g. '#section-report'
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=dt_datetime.utcnow)
+
+    user = db.relationship('User', backref='notifications')
+
+
+def create_notification(user_id, category, title, message, link_target=''):
+    """ヘルパー: 通知レコードを作成して返す"""
+    n = Notification(
+        user_id=user_id,
+        category=category,
+        title=title,
+        message=message,
+        link_target=link_target,
+    )
+    db.session.add(n)
+    db.session.commit()
+    return n
 
 
 @login_manager.user_loader
@@ -222,6 +273,19 @@ def record_study_time_if_entered():
 
 # ---------- アクセス制御デコレータ ----------
 
+def admin_required(f):
+    """mentor または super_admin ロールのみアクセスを許可するデコレータ。"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('login_google'))
+        user_role = getattr(current_user, 'role', 'user') or 'user'
+        if user_role not in ('mentor', 'super_admin'):
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 def subscription_required(f):
     """ログイン済み ＋ 課金済みユーザーのみアクセスを許可するデコレータ。
     ・未ログイン → ログインページへ（@login_required と同等）
@@ -280,6 +344,12 @@ def google_authorized():
         db.session.commit()
     session.permanent = True
     login_user(user, remember=True)
+    # DB role に基づいてセッション設定
+    user_role = user.role or 'user'
+    if user_role in ('mentor', 'super_admin'):
+        session['role'] = 'admin'
+        session['user_name'] = user.name or '管理者'
+        return redirect(url_for('admin_dashboard_page'))
     session['role'] = 'student'
     session['user_name'] = user.name or user.email or 'ユーザー'
     return redirect(url_for('dashboard'))
@@ -339,10 +409,46 @@ def admin_login_secret():
     password = request.form.get('password', '')
     admin_password = os.environ.get('ADMIN_PASSWORD', '')
     if admin_password and password == admin_password:
+        # DB role を super_admin に昇格
+        if current_user.role not in ('mentor', 'super_admin'):
+            current_user.role = 'super_admin'
+            db.session.commit()
         session['role'] = 'admin'
         session['user_name'] = '管理者'
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('admin_dashboard_page'))
     return render_template('admin_login.html', error='パスワードが正しくありません'), 401
+
+
+# ---------- Admin Dashboard ----------
+
+@app.route('/admin')
+@admin_required
+def admin_dashboard_page():
+    """管理者専用ダッシュボード"""
+    return render_template(
+        'admin_dashboard.html',
+        admin_user=current_user,
+        admin_role=current_user.role or 'mentor',
+    )
+
+
+@app.route('/api/admin/toggle_subscription/<int:user_id>', methods=['POST'])
+@admin_required
+def api_admin_toggle_subscription(user_id):
+    """【super_admin限定】生徒のプロプラン有効/無効切り替え"""
+    if (current_user.role or 'user') != 'super_admin':
+        return jsonify({'ok': False, 'error': 'super_admin only'}), 403
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'ok': False, 'error': 'not found'}), 404
+    data = request.get_json(silent=True) or {}
+    user.is_active_subscription = bool(data.get('is_subscribed', False))
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': 'DB error'}), 500
+    return jsonify({'ok': True, 'is_subscribed': user.is_active_subscription})
 
 
 @app.route('/settings', methods=['GET', 'POST'])
@@ -585,6 +691,301 @@ def api_next_reservation():
         return jsonify({'date': next_future.date, 'time_slot': next_future.time_slot})
 
     return jsonify(None)
+
+
+# ---------- Meeting Reservation API ----------
+
+@app.route('/api/meeting_reservations', methods=['GET'])
+@login_required
+def api_get_meeting_reservations():
+    """ログインユーザーの面談予約一覧（scheduled のみ）"""
+    rows = MeetingReservation.query.filter_by(
+        user_id=current_user.id, status='scheduled'
+    ).order_by(MeetingReservation.date, MeetingReservation.time_slot).all()
+    return jsonify([{
+        'id': r.id, 'date': r.date, 'time_slot': r.time_slot,
+        'room_token': r.room_token, 'status': r.status
+    } for r in rows])
+
+
+@app.route('/api/meeting_reservations', methods=['POST'])
+@login_required
+def api_create_meeting_reservation():
+    """面談を1件予約する。1ユーザーにつき scheduled は1件のみ。"""
+    data = request.get_json(silent=True) or {}
+    d = data.get('date', '')
+    ts = data.get('time_slot', '')
+    if not d or not ts:
+        return jsonify({'ok': False, 'error': '日付・時間は必須です'}), 400
+
+    today_s = _today_str()
+    if d < today_s:
+        return jsonify({'ok': False, 'error': '過去の日付には予約できません'}), 400
+    if d == today_s:
+        try:
+            slot_time = datetime_type.strptime(d + ' ' + ts, '%Y-%m-%d %H:%M')
+            if slot_time <= datetime_type.now():
+                return jsonify({'ok': False, 'error': '過去の時間は予約できません'}), 400
+        except ValueError:
+            return jsonify({'ok': False, 'error': '無効な時間形式です'}), 400
+
+    # 既に scheduled がある場合は拒否
+    existing = MeetingReservation.query.filter_by(
+        user_id=current_user.id, status='scheduled'
+    ).first()
+    if existing:
+        return jsonify({'ok': False, 'error': '既に予約済みの面談があります。キャンセルしてから再予約してください。'}), 400
+
+    # 自習室予約との衝突チェック（同日・同時間帯）
+    study_conflict = StudyReservation.query.filter_by(
+        user_id=current_user.id, date=d, time_slot=ts
+    ).first()
+    if study_conflict:
+        return jsonify({'ok': False, 'error': 'この時間帯は自習室の予約があります'}), 400
+
+    room_token = uuid.uuid4().hex
+    reservation = MeetingReservation(
+        user_id=current_user.id,
+        date=d,
+        time_slot=ts,
+        room_token=room_token,
+        status='scheduled'
+    )
+    db.session.add(reservation)
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': 'DB error'}), 500
+
+    return jsonify({
+        'ok': True,
+        'reservation': {
+            'id': reservation.id, 'date': d, 'time_slot': ts,
+            'room_token': room_token, 'status': 'scheduled'
+        }
+    })
+
+
+@app.route('/api/meeting_reservations', methods=['DELETE'])
+@login_required
+def api_cancel_meeting_reservation():
+    """面談予約をキャンセル"""
+    data = request.get_json(silent=True) or {}
+    reservation_id = data.get('id')
+    if not reservation_id:
+        return jsonify({'ok': False, 'error': 'id is required'}), 400
+    r = MeetingReservation.query.filter_by(
+        id=reservation_id, user_id=current_user.id, status='scheduled'
+    ).first()
+    if not r:
+        return jsonify({'ok': False, 'error': '予約が見つかりません'}), 404
+    r.status = 'cancelled'
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': 'DB error'}), 500
+    return jsonify({'ok': True})
+
+
+@app.route('/api/next_meeting', methods=['GET'])
+@login_required
+def api_next_meeting():
+    """次の面談予約を返す"""
+    now = datetime_type.now()
+    today_s = now.strftime('%Y-%m-%d')
+    current_time = now.strftime('%H:%M')
+
+    next_today = MeetingReservation.query.filter(
+        MeetingReservation.user_id == current_user.id,
+        MeetingReservation.status == 'scheduled',
+        MeetingReservation.date == today_s,
+        MeetingReservation.time_slot >= current_time
+    ).order_by(MeetingReservation.time_slot).first()
+
+    if not next_today:
+        next_today = MeetingReservation.query.filter(
+            MeetingReservation.user_id == current_user.id,
+            MeetingReservation.status == 'scheduled',
+            MeetingReservation.date > today_s
+        ).order_by(MeetingReservation.date, MeetingReservation.time_slot).first()
+
+    if next_today:
+        return jsonify({
+            'id': next_today.id, 'date': next_today.date,
+            'time_slot': next_today.time_slot,
+            'room_token': next_today.room_token, 'status': next_today.status
+        })
+    return jsonify(None)
+
+
+@app.route('/api/meeting/<room_token>/no_show', methods=['POST'])
+@login_required
+def api_meeting_no_show(room_token):
+    """面談を no_show に更新（30分すっぽかし）"""
+    r = MeetingReservation.query.filter_by(room_token=room_token, status='scheduled').first()
+    if not r:
+        return jsonify({'ok': False, 'error': 'not found'}), 404
+    if r.user_id != current_user.id and session.get('role') != 'admin':
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    r.status = 'no_show'
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': 'DB error'}), 500
+    return jsonify({'ok': True})
+
+
+# ---------- Admin: 生徒一覧 & 学習ルート更新 API ----------
+
+@app.route('/api/admin/students', methods=['GET'])
+@admin_required
+def api_admin_students():
+    """管理者向け: 全生徒一覧を返す"""
+    users = User.query.order_by(User.id).all()
+    return jsonify([{
+        'id': u.id, 'name': u.name or '', 'email': u.email or '',
+        'role': u.role or 'user',
+        'is_subscribed': u.is_active_subscription,
+        'learning_route_text': u.learning_route_text or '',
+    } for u in users])
+
+
+@app.route('/api/admin/update_route/<int:user_id>', methods=['POST'])
+@admin_required
+def api_admin_update_route(user_id):
+    """管理者向け: 指定ユーザーの学習ルートを更新"""
+    data = request.get_json(silent=True) or {}
+    text = data.get('learning_route_text', '')
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'ok': False, 'error': 'not found'}), 404
+    user.learning_route_text = text
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': 'DB error'}), 500
+    return jsonify({'ok': True})
+
+
+# ---------- Admin: 面談予約一覧 API ----------
+
+@app.route('/api/admin/meeting_reservations', methods=['GET'])
+@login_required
+def api_admin_meeting_reservations():
+    """管理者向け: scheduled な面談予約を全件返す"""
+    if session.get('role') != 'admin':
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    rows = MeetingReservation.query.filter_by(status='scheduled').order_by(
+        MeetingReservation.date, MeetingReservation.time_slot
+    ).all()
+    result = []
+    for r in rows:
+        u = User.query.get(r.user_id)
+        result.append({
+            'id': r.id, 'user_name': u.name if u else '不明',
+            'date': r.date, 'time_slot': r.time_slot,
+            'room_token': r.room_token, 'status': r.status
+        })
+    return jsonify(result)
+
+
+# ---------- Notification API ----------
+
+@app.route('/api/notifications', methods=['GET'])
+@login_required
+def api_get_notifications():
+    """ログインユーザーの全通知を新しい順で返す"""
+    rows = Notification.query.filter_by(user_id=current_user.id) \
+        .order_by(Notification.created_at.desc()).all()
+    return jsonify([{
+        'id': n.id,
+        'category': n.category,
+        'title': n.title,
+        'message': n.message or '',
+        'link_target': n.link_target or '',
+        'is_read': n.is_read,
+        'created_at': n.created_at.isoformat() if n.created_at else '',
+    } for n in rows])
+
+
+@app.route('/api/notifications/<int:notification_id>/read', methods=['POST'])
+@login_required
+def api_mark_notification_read(notification_id):
+    """通知を既読にする"""
+    n = Notification.query.get(notification_id)
+    if not n or n.user_id != current_user.id:
+        return jsonify({'ok': False, 'error': 'not found'}), 404
+    n.is_read = True
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({'ok': False}), 500
+    return jsonify({'ok': True})
+
+
+@app.route('/api/admin/notifications', methods=['POST'])
+@login_required
+def api_admin_create_notification():
+    """管理者向け: 通知を送信する（個別 or 全体）"""
+    if session.get('role') != 'admin':
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    data = request.get_json(silent=True) or {}
+    title = data.get('title', '').strip()
+    message = data.get('message', '').strip()
+    category = data.get('category', 'direct')
+    link_target = data.get('link_target', '')
+    target_user_id = data.get('user_id')  # None = global (全体)
+
+    if not title:
+        return jsonify({'ok': False, 'error': 'title required'}), 400
+
+    try:
+        if target_user_id:
+            create_notification(int(target_user_id), category, title, message, link_target)
+        else:
+            # 全体通知 — 全ユーザーに送信
+            users = User.query.all()
+            for u in users:
+                n = Notification(
+                    user_id=u.id, category='global', title=title,
+                    message=message, link_target=link_target,
+                )
+                db.session.add(n)
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': 'DB error'}), 500
+    return jsonify({'ok': True})
+
+
+# ---------- Meeting Room ----------
+
+@app.route('/meeting/<room_token>')
+@login_required
+def meeting_room(room_token):
+    """面談ルーム（動的URL）"""
+    r = MeetingReservation.query.filter_by(room_token=room_token).first()
+    if not r:
+        abort(404)
+    # 予約者本人 or admin のみ
+    is_admin = session.get('role') == 'admin'
+    if r.user_id != current_user.id and not is_admin:
+        abort(403)
+    return render_template(
+        'meeting_room.html',
+        room_token=room_token,
+        meeting_date=r.date,
+        meeting_time=r.time_slot,
+        meeting_status=r.status,
+        user_name=session.get('user_name', current_user.name or ''),
+        role=session.get('role', 'student'),
+        is_admin=is_admin,
+    )
 
 
 @app.route('/room/<room_id>')
@@ -1146,6 +1547,18 @@ with app.app_context():
             conn.commit()
         if 'target_school' not in existing:
             conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN target_school VARCHAR(256)"))
+            conn.commit()
+        if 'has_used_free_meeting' not in existing:
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN has_used_free_meeting BOOLEAN DEFAULT FALSE"))
+            conn.commit()
+        if 'has_used_pro_meeting' not in existing:
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN has_used_pro_meeting BOOLEAN DEFAULT FALSE"))
+            conn.commit()
+        if 'learning_route_text' not in existing:
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN learning_route_text TEXT"))
+            conn.commit()
+        if 'role' not in existing:
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user'"))
             conn.commit()
 
 if __name__ == '__main__':
