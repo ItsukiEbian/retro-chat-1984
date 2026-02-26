@@ -29,6 +29,8 @@ load_dotenv()
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
 STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', '')
 STRIPE_PRICE_ID = os.environ.get('STRIPE_PRICE_ID', '')
+STRIPE_PRICE_ID_STANDARD = os.environ.get('STRIPE_PRICE_ID_STANDARD', STRIPE_PRICE_ID)
+STRIPE_PRICE_ID_PRO = os.environ.get('STRIPE_PRICE_ID_PRO', '')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 
 app = Flask(__name__)
@@ -94,6 +96,9 @@ class User(db.Model):
     stripe_customer_id = db.Column(db.String(255), nullable=True)
     stripe_subscription_id = db.Column(db.String(255), nullable=True)
     is_active_subscription = db.Column(db.Boolean, default=False)
+    plan_type = db.Column(db.String(20), default='free')            # free / standard / pro
+    subscription_status = db.Column(db.String(30), default='none')  # none / trialing / active / canceled / past_due
+    trial_end_date = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=dt_datetime.utcnow)
 
     def get_id(self):
@@ -379,6 +384,11 @@ def dashboard():
         role = session.get('role', 'student')
         user_name = session.get('user_name', user.name or user.email or 'ユーザー')
         room_id = session.get('room', '')
+        # プラン表示用
+        plan_type = user.plan_type or 'free'
+        sub_status = user.subscription_status or 'none'
+        trial_end = user.trial_end_date
+        trial_end_display = trial_end.strftime('%Y年%m月%d日') if trial_end else ''
         return render_template(
             'dashboard.html',
             user=user,
@@ -389,6 +399,9 @@ def dashboard():
             room_id=room_id,
             user_db_id=user.id,
             is_subscribed=user.is_active_subscription,
+            plan_type=plan_type,
+            subscription_status=sub_status,
+            trial_end_display=trial_end_display,
         )
     # Guest (not logged in)
     return render_template(
@@ -401,6 +414,9 @@ def dashboard():
         room_id='',
         user_db_id=0,
         is_subscribed=False,
+        plan_type='free',
+        subscription_status='none',
+        trial_end_display='',
     )
 
 
@@ -1206,7 +1222,7 @@ def logout():
 @app.route('/create-checkout-session', methods=['POST'])
 @login_required
 def create_checkout_session():
-    """未課金ユーザー向け: Stripe Checkout Session を作成しリダイレクト"""
+    """未課金ユーザー向け: Stripe Checkout Session を作成しリダイレクト（旧・フォーム送信版）"""
     try:
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
@@ -1215,6 +1231,7 @@ def create_checkout_session():
                 'price': STRIPE_PRICE_ID,
                 'quantity': 1,
             }],
+            subscription_data={'trial_period_days': 7},
             client_reference_id=str(current_user.id),
             customer_email=current_user.email,
             success_url=url_for('dashboard', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
@@ -1224,6 +1241,31 @@ def create_checkout_session():
     except Exception as e:
         app.logger.error(f'Stripe Checkout error: {e}')
         return jsonify(error=str(e)), 500
+
+
+@app.route('/api/create-checkout-session', methods=['POST'])
+@login_required
+def api_create_checkout_session():
+    """API版: price_id を受け取り Stripe Checkout Session URL を返す（7日間無料トライアル付き）"""
+    data = request.get_json(silent=True) or {}
+    price_id = data.get('price_id', '').strip()
+    if not price_id:
+        return jsonify({'ok': False, 'error': 'price_id is required'}), 400
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            mode='subscription',
+            line_items=[{'price': price_id, 'quantity': 1}],
+            subscription_data={'trial_period_days': 7},
+            client_reference_id=str(current_user.id),
+            customer_email=current_user.email,
+            success_url=url_for('dashboard', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=url_for('subscription_page', _external=True) + '?canceled=true',
+        )
+        return jsonify({'ok': True, 'url': checkout_session.url})
+    except Exception as e:
+        app.logger.error(f'Stripe API Checkout error: {e}')
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 
 @app.route('/create-portal-session', methods=['POST'])
@@ -1277,6 +1319,31 @@ def stripe_webhook():
     event_type = event['type']
     data_object = event['data']['object']
 
+    def _resolve_plan_type(sub_obj):
+        """Stripe subscription の price から plan_type を判定"""
+        try:
+            items = sub_obj.get('items', {}).get('data', [])
+            if items:
+                price_id = items[0].get('price', {}).get('id', '')
+                if price_id == STRIPE_PRICE_ID_PRO:
+                    return 'pro'
+                return 'standard'
+        except Exception:
+            pass
+        return 'standard'
+
+    def _update_subscription_fields(user, sub_obj):
+        """subscription オブジェクトから user のプラン情報を一括更新"""
+        status = sub_obj.get('status', '')
+        user.subscription_status = status
+        user.is_active_subscription = status in ('active', 'trialing')
+        user.plan_type = _resolve_plan_type(sub_obj) if status in ('active', 'trialing') else 'free'
+        trial_end = sub_obj.get('trial_end')
+        if trial_end:
+            user.trial_end_date = dt_datetime.utcfromtimestamp(trial_end)
+        else:
+            user.trial_end_date = None
+
     # --- checkout.session.completed: 決済完了 ---
     if event_type == 'checkout.session.completed':
         client_ref_id = data_object.get('client_reference_id')
@@ -1289,14 +1356,36 @@ def stripe_webhook():
                 user.stripe_customer_id = stripe_customer_id
                 user.stripe_subscription_id = stripe_subscription_id
                 user.is_active_subscription = True
+                # Stripe から subscription を取得して詳細を反映
+                if stripe_subscription_id:
+                    try:
+                        sub = stripe.Subscription.retrieve(stripe_subscription_id)
+                        _update_subscription_fields(user, sub)
+                    except Exception as e:
+                        app.logger.warning(f'Webhook: failed to retrieve subscription: {e}')
                 db.session.commit()
                 app.logger.info(
                     f'Subscription activated: user_id={user.id}, '
-                    f'customer={stripe_customer_id}'
+                    f'customer={stripe_customer_id}, plan={user.plan_type}'
                 )
             else:
                 app.logger.warning(
                     f'Webhook: user not found for client_reference_id={client_ref_id}'
+                )
+
+    # --- customer.subscription.created / updated ---
+    elif event_type in ('customer.subscription.created', 'customer.subscription.updated'):
+        stripe_customer_id = data_object.get('customer')
+        if stripe_customer_id:
+            user = User.query.filter_by(
+                stripe_customer_id=stripe_customer_id
+            ).first()
+            if user:
+                _update_subscription_fields(user, data_object)
+                db.session.commit()
+                app.logger.info(
+                    f'Subscription {event_type.split(".")[-1]}: user_id={user.id}, '
+                    f'status={user.subscription_status}, plan={user.plan_type}'
                 )
 
     # --- customer.subscription.deleted: 解約 ---
@@ -1308,25 +1397,13 @@ def stripe_webhook():
             ).first()
             if user:
                 user.is_active_subscription = False
+                user.plan_type = 'free'
+                user.subscription_status = 'canceled'
+                user.trial_end_date = None
                 db.session.commit()
                 app.logger.info(
                     f'Subscription canceled: user_id={user.id}, '
                     f'customer={stripe_customer_id}'
-                )
-
-    # --- customer.subscription.updated: プラン変更・更新失敗など ---
-    elif event_type == 'customer.subscription.updated':
-        stripe_customer_id = data_object.get('customer')
-        status = data_object.get('status')
-        if stripe_customer_id:
-            user = User.query.filter_by(
-                stripe_customer_id=stripe_customer_id
-            ).first()
-            if user:
-                user.is_active_subscription = status in ('active', 'trialing')
-                db.session.commit()
-                app.logger.info(
-                    f'Subscription updated: user_id={user.id}, status={status}'
                 )
 
     return 'OK', 200

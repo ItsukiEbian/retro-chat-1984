@@ -609,12 +609,24 @@
                     <div class="profile-plan-card">
                         <div class="profile-plan-info">
                             <span class="profile-plan-name">
-                                {% if is_subscribed %}Standardプラン{% else %}無料プラン{% endif %}
+                                {% if plan_type == 'pro' %}Proプラン
+                                {% elif plan_type == 'standard' %}Standardプラン
+                                {% else %}無料プラン{% endif %}
                             </span>
                             <span class="profile-plan-status">
-                                {% if is_subscribed %}
+                                {% if subscription_status == 'trialing' %}
+                                <span class="material-symbols-outlined"
+                                    style="font-size:14px;color:#42a5f5">hourglass_top</span>
+                                無料体験中{% if trial_end_display %}：{{ trial_end_display }}まで{% endif %}
+                                {% elif subscription_status == 'active' %}
                                 <span class="material-symbols-outlined"
                                     style="font-size:14px;color:var(--accent)">verified</span> 有効
+                                {% elif subscription_status == 'canceled' %}
+                                <span class="material-symbols-outlined"
+                                    style="font-size:14px;color:#e57373">cancel</span> 解約済み
+                                {% elif subscription_status == 'past_due' %}
+                                <span class="material-symbols-outlined"
+                                    style="font-size:14px;color:#ff9800">warning</span> 支払い遅延
                                 {% else %}
                                 未加入
                                 {% endif %}
