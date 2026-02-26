@@ -402,6 +402,8 @@ def dashboard():
             plan_type=plan_type,
             subscription_status=sub_status,
             trial_end_display=trial_end_display,
+            stripe_price_standard=STRIPE_PRICE_ID_STANDARD,
+            stripe_price_pro=STRIPE_PRICE_ID_PRO,
         )
     # Guest (not logged in)
     return render_template(
@@ -417,6 +419,8 @@ def dashboard():
         plan_type='free',
         subscription_status='none',
         trial_end_display='',
+        stripe_price_standard=STRIPE_PRICE_ID_STANDARD,
+        stripe_price_pro=STRIPE_PRICE_ID_PRO,
     )
 
 

@@ -24,6 +24,8 @@
         window.USER_DB_ID = {{ user_db_id | tojson }};
         window.TOTAL_STUDY_TIME_MINUTES = {{ total_study_time_minutes | default (0) | tojson }};
         window.IS_SUBSCRIBED = {{ is_subscribed | tojson }};
+        window.STRIPE_PRICE_STANDARD = {{ stripe_price_standard | tojson }};
+        window.STRIPE_PRICE_PRO = {{ stripe_price_pro | tojson }};
     </script>
 </head>
 
@@ -640,13 +642,51 @@
                             </button>
                         </form>
                         {% else %}
-                        <a href="{{ url_for('subscription_page') }}" class="profile-plan-btn">
+                        <button type="button" class="profile-plan-btn" id="openPlanModal">
                             <span>プランを見る</span>
                             <span class="material-symbols-outlined">arrow_forward</span>
-                        </a>
+                        </button>
                         {% endif %}
                     </div>
                 </div>
+
+                <!-- ===== Plan Selection Modal ===== -->
+                {% if current_user.is_authenticated and not is_subscribed %}
+                <div id="planModalOverlay" class="overlay" style="display:none">
+                    <div class="overlay-card" style="max-width:420px">
+                        <button id="planModalClose" class="goal-close-btn" type="button" aria-label="閉じる">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                        <div class="overlay-card-header">
+                            <span class="overlay-icon"><span
+                                    class="material-symbols-outlined">workspace_premium</span></span>
+                            <h1>プランを選択</h1>
+                            <p>7日間の無料体験付き。いつでも解約できます。</p>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:12px;padding:0 4px">
+                            <button type="button" class="profile-plan-btn js-checkout-btn" data-plan="standard"
+                                style="background:var(--accent);color:var(--primary);border-radius:10px;padding:16px 20px;font-size:15px;font-weight:500;border:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;width:100%">
+                                <span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
+                                    <span style="font-size:15px;font-weight:600">Standardプラン</span>
+                                    <span style="font-size:12px;opacity:0.8">月額 980円（税込）</span>
+                                </span>
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </button>
+                            <button type="button" class="profile-plan-btn js-checkout-btn" data-plan="pro"
+                                style="background:var(--primary);color:#fff;border-radius:10px;padding:16px 20px;font-size:15px;font-weight:500;border:2px solid var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:space-between;width:100%">
+                                <span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
+                                    <span style="font-size:15px;font-weight:600">Proプラン</span>
+                                    <span style="font-size:12px;opacity:0.7">月額 1,980円（税込）</span>
+                                </span>
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </button>
+                        </div>
+                        <p style="font-size:11px;color:#999;text-align:center;margin-top:16px;line-height:1.6">
+                            ※ 無料体験期間中に解約すれば料金は発生しません
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
 
                 <div class="profile-menu-area">
                     <h2 class="profile-section-title">その他</h2>
@@ -1130,6 +1170,65 @@
     <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
     <script src="{{ url_for('static', filename='js/meeting_calendar.js') }}"></script>
     <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+
+    <!-- Plan Selection Modal Logic -->
+    <script>
+        (function () {
+            var overlay = document.getElementById('planModalOverlay');
+            if (!overlay) return; // modal not rendered (already subscribed or guest)
+
+            var openBtn = document.getElementById('openPlanModal');
+            var closeBtn = document.getElementById('planModalClose');
+
+            function showModal() { overlay.style.display = ''; }
+            function hideModal() { overlay.style.display = 'none'; }
+
+            if (openBtn) openBtn.addEventListener('click', showModal);
+            if (closeBtn) closeBtn.addEventListener('click', hideModal);
+            overlay.addEventListener('click', function (e) {
+                if (e.target === overlay) hideModal();
+            });
+
+            // Checkout buttons
+            var checkoutBtns = document.querySelectorAll('.js-checkout-btn');
+            checkoutBtns.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var plan = btn.getAttribute('data-plan');
+                    var priceId = plan === 'pro' ? window.STRIPE_PRICE_PRO : window.STRIPE_PRICE_STANDARD;
+                    if (!priceId) {
+                        alert('このプランの Price ID が設定されていません。管理者にお問い合わせください。');
+                        return;
+                    }
+
+                    // Loading state
+                    checkoutBtns.forEach(function (b) { b.disabled = true; b.style.opacity = '0.6'; });
+                    var origHTML = btn.innerHTML;
+                    btn.innerHTML = '<span>処理中…</span>';
+
+                    fetch('/api/create-checkout-session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ price_id: priceId })
+                    })
+                        .then(function (res) { return res.json(); })
+                        .then(function (data) {
+                            if (data.ok && data.url) {
+                                window.location.href = data.url;
+                            } else {
+                                alert('エラー: ' + (data.error || '不明なエラーが発生しました'));
+                                btn.innerHTML = origHTML;
+                                checkoutBtns.forEach(function (b) { b.disabled = false; b.style.opacity = ''; });
+                            }
+                        })
+                        .catch(function (err) {
+                            alert('通信エラーが発生しました');
+                            btn.innerHTML = origHTML;
+                            checkoutBtns.forEach(function (b) { b.disabled = false; b.style.opacity = ''; });
+                        });
+                });
+            });
+        })();
+    </script>
 </body>
 
 </html>
