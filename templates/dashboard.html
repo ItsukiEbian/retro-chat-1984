@@ -24,6 +24,8 @@
         window.USER_DB_ID = {{ user_db_id | tojson }};
         window.TOTAL_STUDY_TIME_MINUTES = {{ total_study_time_minutes | default (0) | tojson }};
         window.IS_SUBSCRIBED = {{ is_subscribed | tojson }};
+        window.PLAN_TYPE = {{ plan_type | tojson }};
+        window.SUBSCRIPTION_STATUS = {{ subscription_status | tojson }};
         window.STRIPE_PRICE_STANDARD = {{ stripe_price_standard | tojson }};
         window.STRIPE_PRICE_PRO = {{ stripe_price_pro | tojson }};
     </script>
@@ -396,9 +398,9 @@
 
         <!-- ====== Section: Route ====== -->
         <div id="section-route" class="spa-section">
-            <div class="sec-route">
-                {% if current_user.is_authenticated and is_subscribed %}
-                <!-- === Pro Plan: Learning Route & Interview === -->
+            <div class="sec-route" style="position:relative">
+                {% if current_user.is_authenticated %}
+                <!-- === Learning Route & Interview === -->
                 <div class="section-header">
                     <h2 class="section-title">学習ルート・面談</h2>
                     <p class="section-subtitle">あなた専用の学習計画と、講師による定期面談</p>
@@ -474,47 +476,17 @@
                 </div>
                 {% endif %}
 
-                {% elif current_user.is_authenticated and not is_subscribed %}
-                <!-- === Free: Blurred Route + Lock Overlay === -->
-                <div class="section-header">
-                    <h2 class="section-title">学習ルート・面談</h2>
-                    <p class="section-subtitle">あなた専用の学習計画と、講師による定期面談</p>
-                </div>
-
-                <div class="route-locked-wrap">
-                    <!-- Blurred dummy content -->
-                    <div class="route-locked-blur">
-                        <h2 class="route-section-title">あなた専用の学習ルート</h2>
-                        <div class="route-locked-dummy">
-                            <p>■ 英語（毎日）</p>
-                            <p>・英単語ターゲット1900：Section 1〜5 を暗記</p>
-                            <p>・やっておきたい英語長文500：1日1題ペース</p>
-                            <p>&nbsp;</p>
-                            <p>■ 数学（週4日）</p>
-                            <p>・青チャート 数学IA：例題1〜30</p>
-                            <p>・Focus Gold 数学IIB：章末問題 演習</p>
-                            <p>&nbsp;</p>
-                            <p>■ 国語（週3日）</p>
-                            <p>・古文単語315：第1章〜第3章</p>
-                            <p>・現代文キーワード読解：第1部 読了</p>
-                            <p>&nbsp;</p>
-                            <p>■ 理科（週2日）</p>
-                            <p>・セミナー物理：力学分野 基本問題</p>
-                        </div>
-                    </div>
-                    <!-- Lock overlay -->
-                    <div class="route-locked-overlay">
-                        <div class="route-locked-overlay-content">
-                            <span class="material-symbols-outlined route-locked-icon">lock</span>
-                            <h2 class="route-locked-title">あなた専用の学習ルートを解放しましょう</h2>
-                            <p class="route-locked-desc">Proプランに登録すると、メンターがあなたの志望校・目標に合わせた完全オーダーメイドの学習ルートと参考書リストを作成します。
-                            </p>
-                            <a href="{{ url_for('subscription_page') }}" class="route-locked-cta-btn">
-                                <span>Proプランを無料体験する</span>
-                                <span class="material-symbols-outlined">arrow_forward</span>
-                            </a>
-                            <p class="route-locked-note">7日間無料・いつでもキャンセル可能</p>
-                        </div>
+                <!-- Paywall Overlay -->
+                <div class="locked-overlay" id="routeLockedOverlay" style="display:none">
+                    <div class="locked-overlay-content">
+                        <span class="material-symbols-outlined locked-overlay-icon">lock</span>
+                        <h2 class="locked-overlay-title">この機能は有料プラン限定です</h2>
+                        <p class="locked-overlay-desc">あなた専用の学習ルート作成や、メンターとの定期面談を利用するには、StandardまたはProプランへのアップグレードが必要です。
+                        </p>
+                        <button type="button" class="locked-overlay-btn" id="lockedOverlayBtn">
+                            <span>プランを確認する</span>
+                            <span class="material-symbols-outlined">arrow_forward</span>
+                        </button>
                     </div>
                 </div>
 

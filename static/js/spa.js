@@ -540,3 +540,42 @@
         if (e.target === overlay) overlay.style.display = 'none';
     });
 })();
+
+// ========== Paywall Logic ==========
+(function () {
+    'use strict';
+
+    function checkPaywalls() {
+        if (!window.IS_LOGGED_IN) return;
+
+        // Ensure accurate check for free users
+        var isFreeUser = !window.PLAN_TYPE || window.PLAN_TYPE === 'free' || window.SUBSCRIPTION_STATUS === 'canceled' || window.SUBSCRIPTION_STATUS === 'none';
+
+        var sectionRoute = document.getElementById('section-route');
+        var routeOverlay = document.getElementById('routeLockedOverlay');
+
+        if (sectionRoute && routeOverlay) {
+            if (isFreeUser) {
+                sectionRoute.classList.add('is-locked');
+                routeOverlay.style.display = 'flex';
+            } else {
+                sectionRoute.classList.remove('is-locked');
+                routeOverlay.style.display = 'none';
+            }
+        }
+    }
+
+    // Run on init
+    checkPaywalls();
+
+    // Handle overlay button click to jump to profile settings
+    var lockedOverlayBtn = document.getElementById('lockedOverlayBtn');
+    if (lockedOverlayBtn) {
+        lockedOverlayBtn.addEventListener('click', function () {
+            var profileNavBtn = document.querySelector('.spa-nav-item[data-section="profile"]');
+            if (profileNavBtn) {
+                profileNavBtn.click();
+            }
+        });
+    }
+})();

@@ -6205,3 +6205,92 @@ body[data-room-context="private"] #mainRoomContent {
     text-align: center;
     margin: 0;
 }
+
+/* ============================================
+   Paywall Overlay (.is-locked)
+   ============================================ */
+.is-locked {
+    overflow: hidden;
+    user-select: none;
+    pointer-events: none;
+    /* Block interactions with locked content */
+}
+
+/* Ensure overlay itself can be clicked (for the button) */
+.is-locked .locked-overlay {
+    pointer-events: auto;
+    user-select: auto;
+}
+
+.locked-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 24px;
+    border-radius: var(--radius-lg);
+}
+
+.locked-overlay-content {
+    background: var(--bg-card);
+    padding: 32px 24px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xl);
+    max-width: 400px;
+    width: 100%;
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.locked-overlay-icon {
+    font-size: 48px;
+    color: var(--accent);
+}
+
+.locked-overlay-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.locked-overlay-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.locked-overlay-btn {
+    margin-top: 8px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 30px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.locked-overlay-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
