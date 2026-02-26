@@ -2210,6 +2210,29 @@ body[data-room-context="private"] #mainRoomContent {
 
     .goal-card {
         max-width: 100%;
+        padding: 20px 16px;
+    }
+
+    .goal-card .overlay-icon {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+        margin-bottom: 10px;
+    }
+
+    .goal-card .overlay-card-header h1 {
+        font-size: 15px;
+        white-space: nowrap;
+        letter-spacing: -0.04em;
+        margin-bottom: 4px;
+    }
+
+    .goal-card .overlay-card-header {
+        margin-bottom: 12px;
+    }
+
+    .goal-form {
+        gap: 12px;
     }
 
     .goal-submit-btn {
@@ -6172,7 +6195,7 @@ body[data-room-context="private"] #mainRoomContent {
 .entry-no-reservation-card {
     background: #ffffff;
     border: 1px solid var(--border-subtle);
-    border-radius: 14px;
+    border-radius: 0;
     padding: 24px 20px;
     margin-top: 16px;
     display: flex;
@@ -6186,7 +6209,7 @@ body[data-room-context="private"] #mainRoomContent {
     background: var(--accent);
     color: var(--primary);
     border: none;
-    border-radius: 10px;
+    border-radius: 0;
 }
 
 .entry-no-reservation-card .spa-home-enter-btn:hover {

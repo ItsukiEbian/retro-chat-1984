@@ -12,6 +12,7 @@
     var goalInput = document.getElementById('goalInput');
     var goalSubmitBtn = document.getElementById('goalSubmitBtn');
     var goalFeedback = document.getElementById('goalFeedback');
+    var studyLockedOverlay = document.getElementById('studyLockedOverlay');
 
     var currentSection = 'home';
     var studyRoomInitialized = false;
@@ -68,8 +69,21 @@
 
     // ========== Study Room Activation ==========
 
+    function isFreeUser() {
+        return !window.IS_SUBSCRIBED || !window.PLAN_TYPE || window.PLAN_TYPE === 'free' || window.SUBSCRIPTION_STATUS === 'none';
+    }
+
+    function showStudyLockedModal() {
+        if (studyLockedOverlay) studyLockedOverlay.style.display = 'flex';
+    }
+
+    function closeStudyLockedModal() {
+        if (studyLockedOverlay) studyLockedOverlay.style.display = 'none';
+    }
+
     function showGoalModal() {
         if (!requireLogin()) return;
+        if (isFreeUser()) { showStudyLockedModal(); return; }
         if (!goalOverlay) return;
         goalOverlay.style.display = '';
         if (goalInput) { goalInput.value = ''; goalInput.focus(); }
@@ -204,6 +218,33 @@
     if (goalOverlay) {
         goalOverlay.addEventListener('click', function (e) {
             if (e.target === goalOverlay) closeGoalModal();
+        });
+    }
+
+    // ---- Study Room Locked Modal ----
+    var studyLockedCloseBtn = document.getElementById('studyLockedCloseBtn');
+    var studyLockedPlanBtn = document.getElementById('studyLockedPlanBtn');
+
+    if (studyLockedCloseBtn) {
+        studyLockedCloseBtn.addEventListener('click', closeStudyLockedModal);
+    }
+
+    if (studyLockedOverlay) {
+        studyLockedOverlay.addEventListener('click', function (e) {
+            if (e.target === studyLockedOverlay) closeStudyLockedModal();
+        });
+    }
+
+    if (studyLockedPlanBtn) {
+        studyLockedPlanBtn.addEventListener('click', function () {
+            closeStudyLockedModal();
+            // Navigate to profile section and scroll to plan area
+            var profileNavBtn = document.querySelector('.spa-nav-item[data-section="profile"]');
+            if (profileNavBtn) profileNavBtn.click();
+            setTimeout(function () {
+                var planArea = document.querySelector('.profile-plan-area');
+                if (planArea) planArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 200);
         });
     }
 
@@ -578,4 +619,17 @@
             }
         });
     }
+})();
+
+// ========== Logout Button ==========
+(function () {
+    'use strict';
+    var logoutBtn = document.getElementById('btnLogout');
+    if (!logoutBtn) return;
+    logoutBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (confirm('ログアウトしますか？')) {
+            window.location.href = '/logout';
+        }
+    });
 })();

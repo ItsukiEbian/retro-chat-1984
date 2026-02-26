@@ -43,7 +43,6 @@
             <div class="overlay-card-header">
                 <span class="overlay-icon goal-icon"><span class="material-symbols-outlined">flag</span></span>
                 <h1>今回の勉強目標を教えてください</h1>
-                <p>今日の目標を書くと、AIコーチが応援してくれます</p>
             </div>
             <div class="goal-form">
                 <textarea id="goalInput" class="goal-textarea" rows="3"
@@ -52,7 +51,28 @@
                 <div class="overlay-card-actions">
                     <button id="goalSubmitBtn" class="btn-primary goal-submit-btn">目標を設定して入室する</button>
                 </div>
-                <a href="#" id="goalCancelLink" class="goal-cancel-link">キャンセルして戻る</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Study Room Locked Modal (for free-plan users) -->
+    <div id="studyLockedOverlay" class="overlay" style="display:none">
+        <div class="overlay-card study-locked-card">
+            <button id="studyLockedCloseBtn" class="goal-close-btn" type="button" aria-label="閉じる">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <div class="overlay-card-header">
+                <span class="overlay-icon"><span class="material-symbols-outlined">lock</span></span>
+                <h1>自習室は有料プラン限定です</h1>
+            </div>
+            <p class="locked-overlay-desc"
+                style="margin:0 0 20px;font-size:14px;color:var(--text-secondary);line-height:1.7;">
+                自習室を利用するには、StandardまたはProプランへのアップグレード（または無料体験の開始）が必要です。</p>
+            <div class="overlay-card-actions">
+                <button type="button" class="locked-overlay-btn" id="studyLockedPlanBtn">
+                    <span>プランを確認する</span>
+                    <span class="material-symbols-outlined">arrow_forward</span>
+                </button>
             </div>
         </div>
     </div>
@@ -676,7 +696,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="{{ url_for('logout') }}" class="profile-menu-link profile-menu-logout">
+                            <a href="#" class="profile-menu-link profile-menu-logout" id="btnLogout">
                                 <span>ログアウト</span>
                                 <span class="material-symbols-outlined">logout</span>
                             </a>
