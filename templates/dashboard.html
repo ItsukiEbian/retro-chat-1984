@@ -634,7 +634,9 @@
                                 {% endif %}
                             </span>
                         </div>
-                        {% if is_subscribed %}
+
+                        {% if subscription_status in ['active', 'trialing'] %}
+                        {# ── 有料プラン: カスタマーポータルへ ── #}
                         <form action="{{ url_for('create_portal_session') }}" method="POST" class="profile-plan-action">
                             <button type="submit" class="profile-plan-btn">
                                 <span>ご契約内容の確認・変更</span>
@@ -642,53 +644,31 @@
                             </button>
                         </form>
                         {% else %}
-                        <button type="button" class="profile-plan-btn" id="openPlanModal">
-                            <span>プランを見る</span>
-                            <span class="material-symbols-outlined">arrow_forward</span>
-                        </button>
+                        {# ── 無料プラン: アップグレードボタン ── #}
+                        <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;width:100%">
+                            <button type="button" class="js-checkout-btn btn-upgrade-standard" data-plan="standard"
+                                style="background:var(--accent);color:var(--primary);border-radius:10px;padding:14px 18px;font-size:14px;font-weight:500;border:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;width:100%">
+                                <span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
+                                    <span style="font-size:14px;font-weight:600">Standardプランを7日間無料で試す</span>
+                                    <span style="font-size:11px;opacity:0.8">月額 980円（税込）</span>
+                                </span>
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </button>
+                            <button type="button" class="js-checkout-btn btn-upgrade-pro" data-plan="pro"
+                                style="background:var(--primary);color:#fff;border-radius:10px;padding:14px 18px;font-size:14px;font-weight:500;border:2px solid var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:space-between;width:100%">
+                                <span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
+                                    <span style="font-size:14px;font-weight:600">Proプランを7日間無料で試す</span>
+                                    <span style="font-size:11px;opacity:0.7">月額 1,980円（税込）</span>
+                                </span>
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </button>
+                            <p style="font-size:11px;color:#999;text-align:center;margin:4px 0 0;line-height:1.5">
+                                ※ 無料体験期間中に解約すれば料金は発生しません
+                            </p>
+                        </div>
                         {% endif %}
                     </div>
                 </div>
-
-                <!-- ===== Plan Selection Modal ===== -->
-                {% if current_user.is_authenticated and not is_subscribed %}
-                <div id="planModalOverlay" class="overlay" style="display:none">
-                    <div class="overlay-card" style="max-width:420px">
-                        <button id="planModalClose" class="goal-close-btn" type="button" aria-label="閉じる">
-                            <span class="material-symbols-outlined">close</span>
-                        </button>
-                        <div class="overlay-card-header">
-                            <span class="overlay-icon"><span
-                                    class="material-symbols-outlined">workspace_premium</span></span>
-                            <h1>プランを選択</h1>
-                            <p>7日間の無料体験付き。いつでも解約できます。</p>
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:12px;padding:0 4px">
-                            <button type="button" class="profile-plan-btn js-checkout-btn btn-upgrade-standard"
-                                data-plan="standard"
-                                style="background:var(--accent);color:var(--primary);border-radius:10px;padding:16px 20px;font-size:15px;font-weight:500;border:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;width:100%">
-                                <span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
-                                    <span style="font-size:15px;font-weight:600">Standardプランを7日間無料で試す</span>
-                                    <span style="font-size:12px;opacity:0.8">月額 980円（税込）</span>
-                                </span>
-                                <span class="material-symbols-outlined">arrow_forward</span>
-                            </button>
-                            <button type="button" class="profile-plan-btn js-checkout-btn btn-upgrade-pro"
-                                data-plan="pro"
-                                style="background:var(--primary);color:#fff;border-radius:10px;padding:16px 20px;font-size:15px;font-weight:500;border:2px solid var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:space-between;width:100%">
-                                <span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
-                                    <span style="font-size:15px;font-weight:600">Proプランを7日間無料で試す</span>
-                                    <span style="font-size:12px;opacity:0.7">月額 1,980円（税込）</span>
-                                </span>
-                                <span class="material-symbols-outlined">arrow_forward</span>
-                            </button>
-                        </div>
-                        <p style="font-size:11px;color:#999;text-align:center;margin-top:16px;line-height:1.6">
-                            ※ 無料体験期間中に解約すれば料金は発生しません
-                        </p>
-                    </div>
-                </div>
-                {% endif %}
 
                 <div class="profile-menu-area">
                     <h2 class="profile-section-title">その他</h2>
@@ -1173,26 +1153,12 @@
     <script src="{{ url_for('static', filename='js/meeting_calendar.js') }}"></script>
     <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
 
-    <!-- Plan Selection Modal Logic -->
+    <!-- Stripe Checkout Logic -->
     <script>
         (function () {
-            var overlay = document.getElementById('planModalOverlay');
-            if (!overlay) return; // modal not rendered (already subscribed or guest)
-
-            var openBtn = document.getElementById('openPlanModal');
-            var closeBtn = document.getElementById('planModalClose');
-
-            function showModal() { overlay.style.display = ''; }
-            function hideModal() { overlay.style.display = 'none'; }
-
-            if (openBtn) openBtn.addEventListener('click', showModal);
-            if (closeBtn) closeBtn.addEventListener('click', hideModal);
-            overlay.addEventListener('click', function (e) {
-                if (e.target === overlay) hideModal();
-            });
-
-            // Checkout buttons
             var checkoutBtns = document.querySelectorAll('.js-checkout-btn');
+            if (!checkoutBtns.length) return;
+
             checkoutBtns.forEach(function (btn) {
                 btn.addEventListener('click', function () {
                     var plan = btn.getAttribute('data-plan');
