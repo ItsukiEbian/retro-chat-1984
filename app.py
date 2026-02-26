@@ -1842,6 +1842,25 @@ with app.app_context():
         if 'created_at' not in existing:
             conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN created_at TIMESTAMP"))
             conn.commit()
+        # --- Stripe subscription columns ---
+        if 'stripe_customer_id' not in existing:
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN stripe_customer_id VARCHAR(255)"))
+            conn.commit()
+        if 'stripe_subscription_id' not in existing:
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN stripe_subscription_id VARCHAR(255)"))
+            conn.commit()
+        if 'is_active_subscription' not in existing:
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN is_active_subscription BOOLEAN DEFAULT FALSE"))
+            conn.commit()
+        if 'plan_type' not in existing:
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN plan_type VARCHAR(20) DEFAULT 'free'"))
+            conn.commit()
+        if 'subscription_status' not in existing:
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN subscription_status VARCHAR(30) DEFAULT 'none'"))
+            conn.commit()
+        if 'trial_end_date' not in existing:
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN trial_end_date TIMESTAMP"))
+            conn.commit()
         # meeting_reservations table
         mr_cols = [c['name'] for c in insp.get_columns('meeting_reservations')]
         if 'meeting_type' not in mr_cols:
