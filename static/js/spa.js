@@ -633,12 +633,9 @@
     logoutBtn.addEventListener('click', function (e) {
         e.preventDefault();
         if (confirm('ログアウトしますか？')) {
-            fetch('/api/logout', { method: 'POST', credentials: 'same-origin' })
-                .finally(function () {
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    window.location.replace('/');
-                });
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = '/logout';
         }
     });
 })();

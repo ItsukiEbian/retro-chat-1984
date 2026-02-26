@@ -12,7 +12,7 @@ import uuid
 from functools import wraps
 from datetime import timedelta, datetime as dt_datetime
 import eventlet
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, abort
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, abort, make_response
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
@@ -1213,12 +1213,17 @@ def room_by_id(room_id):
     return redirect(url_for('room'))
 
 
-@app.route('/api/logout', methods=['POST'])
-def api_logout():
+@app.route('/logout', methods=['GET', 'POST'])
+def logout():
     record_study_time_if_entered()
     logout_user()
     session.clear()
-    return jsonify({"success": True}), 200
+
+    response = make_response(redirect(url_for('index')))
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 # ---------- Stripe 決済 ----------
