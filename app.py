@@ -1213,7 +1213,7 @@ def room_by_id(room_id):
     return redirect(url_for('room'))
 
 
-@app.route('/logout')
+@app.route('/logout', methods=['GET', 'POST'])
 def logout():
     record_study_time_if_entered()
     logout_user()

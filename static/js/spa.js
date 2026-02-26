@@ -78,7 +78,14 @@
     }
 
     function closeStudyLockedModal() {
-        if (studyLockedOverlay) studyLockedOverlay.style.display = 'none';
+        if (studyLockedOverlay) {
+            studyLockedOverlay.style.display = 'none';
+            // Reset text back to default for next use
+            var titleEl = studyLockedOverlay.querySelector('.overlay-card-header h1');
+            if (titleEl) titleEl.textContent = 'この機能は有料プラン限定です';
+            var descEl = studyLockedOverlay.querySelector('.locked-overlay-desc');
+            if (descEl) descEl.textContent = '自習室の利用や事前予約、詳細な学習レポートなどの機能を利用するには、StandardまたはProプランへのアップグレード（または無料体験の開始）が必要です。';
+        }
     }
 
     function showGoalModal() {
@@ -161,24 +168,27 @@
             var section = item.getAttribute('data-section');
             if (!section) return;
 
-            if (section === 'study') {
-                if (studyRoomInitialized && typeof window.studyRoomIsActive === 'function' && window.studyRoomIsActive()) {
-                    switchToSection('study');
-                } else {
-                    showGoalModal();
-                }
-                return;
-            }
+            // ---- Plan-based blocks: MUST be checked BEFORE any section switching ----
 
             // Block non-Pro users from route/compass tab
             if (section === 'route' && window.PLAN_TYPE !== 'pro') {
                 var lockedOvl = document.getElementById('studyLockedOverlay');
                 if (lockedOvl) {
-                    var descEl = lockedOvl.querySelector('.locked-overlay-desc');
-                    if (descEl) descEl.textContent = 'あなた専用の学習ルート作成や、メンターとの定期面談を利用するには、Proプランへのアップグレードが必要です。';
                     var titleEl = lockedOvl.querySelector('.overlay-card-header h1');
                     if (titleEl) titleEl.textContent = 'この機能はProプラン限定です';
+                    var descEl = lockedOvl.querySelector('.locked-overlay-desc');
+                    if (descEl) descEl.textContent = 'あなた専用の学習ルート作成や、メンターとの定期面談を利用するには、Proプランへのアップグレードが必要です。';
                     lockedOvl.style.display = 'flex';
+                }
+                return;
+            }
+
+            // Study room entry
+            if (section === 'study') {
+                if (studyRoomInitialized && typeof window.studyRoomIsActive === 'function' && window.studyRoomIsActive()) {
+                    switchToSection('study');
+                } else {
+                    showGoalModal();
                 }
                 return;
             }
@@ -623,7 +633,14 @@
     logoutBtn.addEventListener('click', function (e) {
         e.preventDefault();
         if (confirm('ログアウトしますか？')) {
-            window.location.href = '/logout';
+            fetch('/logout', { method: 'POST', credentials: 'same-origin' })
+                .then(function () {
+                    window.location.href = '/';
+                })
+                .catch(function () {
+                    // Even if fetch fails, force navigate to logout via GET
+                    window.location.href = '/logout';
+                });
         }
     });
 })();
