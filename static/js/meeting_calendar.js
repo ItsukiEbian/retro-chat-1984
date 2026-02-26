@@ -13,6 +13,11 @@
     var cancelBtn = document.getElementById('routeCancelMeetingBtn');
 
     var currentMeeting = null; // { id, date, time_slot, room_token }
+    var currentMeetingType = 'regular'; // 'initial' or 'regular'
+
+    var initialCard = document.getElementById('routeInitialMeetingCard');
+    var initialBookBtn = document.getElementById('routeBookInitialBtn');
+    var remainingEl = document.getElementById('routeMeetingRemaining');
 
     function formatMeetingDisplay(m) {
         if (!m) return '';
@@ -281,13 +286,14 @@
         fetch('/api/meeting_reservations', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ date: selectedSlot.date, time_slot: selectedSlot.time_slot })
+            body: JSON.stringify({ date: selectedSlot.date, time_slot: selectedSlot.time_slot, meeting_type: currentMeetingType })
         })
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (data.ok) {
                     closeMeetingCalendar();
                     refreshMeetingCard();
+                    refreshMeetingStatus();
                     showMeetingToast('面談を予約しました！');
                 } else {
                     alert(data.error || '予約に失敗しました');
@@ -318,6 +324,14 @@
     // Book button opens modal
     if (bookBtn) {
         bookBtn.addEventListener('click', function () {
+            currentMeetingType = 'regular';
+            openMeetingCalendar();
+        });
+    }
+
+    if (initialBookBtn) {
+        initialBookBtn.addEventListener('click', function () {
+            currentMeetingType = 'initial';
             openMeetingCalendar();
         });
     }
@@ -486,9 +500,39 @@
 
     // ========== Init ==========
 
+    function refreshMeetingStatus() {
+        if (!window.IS_LOGGED_IN) return;
+        fetch('/api/meeting_status', { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (s) {
+                // Initial card
+                if (initialCard) {
+                    if (s.is_within_7_days && !s.has_booked_initial && (s.is_pro || true)) {
+                        initialCard.style.display = '';
+                    } else {
+                        initialCard.style.display = 'none';
+                    }
+                }
+                // Remaining count
+                if (remainingEl) {
+                    var rem = s.remaining_regular_meetings;
+                    remainingEl.textContent = '今月のご利用可能回数：あと ' + rem + ' 回';
+                    if (rem <= 0 && bookBtn) {
+                        bookBtn.disabled = true;
+                        bookBtn.querySelector('span:first-child').textContent = '今月の面談枠はすべて消化しました';
+                    } else if (bookBtn) {
+                        bookBtn.disabled = false;
+                        bookBtn.querySelector('span:first-child').textContent = '面談の日程調整をする';
+                    }
+                }
+            })
+            .catch(function () { });
+    }
+
     function init() {
         if (window.IS_LOGGED_IN) {
             refreshMeetingCard();
+            refreshMeetingStatus();
             if (window.ROLE === 'admin') {
                 refreshAdminMeetingList();
                 refreshAdminRouteList();

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Video Desk — ダッシュボード</title>
+    <title>Study Ops — ダッシュボード</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -82,7 +82,7 @@
         <div class="spa-sidebar-header">
             <div class="spa-logo">
                 <span class="spa-logo-icon"><span class="material-symbols-outlined">school</span></span>
-                <span class="spa-logo-text">Video Desk</span>
+                <span class="spa-logo-text">Study Ops</span>
             </div>
         </div>
 
@@ -91,10 +91,7 @@
                 <span class="spa-nav-icon"><span class="material-symbols-outlined">home</span></span>
                 <span class="spa-nav-label">ホーム</span>
             </button>
-            <button class="spa-nav-item" data-section="study" type="button">
-                <span class="spa-nav-icon"><span class="material-symbols-outlined">menu_book</span></span>
-                <span class="spa-nav-label">自習室</span>
-            </button>
+
             <button class="spa-nav-item" data-section="report" type="button">
                 <span class="spa-nav-icon"><span class="material-symbols-outlined">insights</span></span>
                 <span class="spa-nav-label">学習記録・レポート</span>
@@ -121,10 +118,6 @@
         </nav>
 
         <div class="spa-sidebar-footer">
-            <button id="enterStudyRoomBtn" class="spa-enter-study-btn" type="button">
-                <span class="spa-enter-icon"><span class="material-symbols-outlined">auto_stories</span></span>
-                <span class="spa-enter-label">自習室に入る</span>
-            </button>
         </div>
     </aside>
 
@@ -134,13 +127,13 @@
         <!-- ====== Section: Home ====== -->
         <div id="section-home" class="spa-section spa-section-active">
             <div class="spa-home-wrapper">
-                <div class="spa-home-greeting">
+                <div class="section-header">
                     {% if current_user.is_authenticated %}
-                    <h1>おかえりなさい、{{ user.name or 'ユーザー' }} さん</h1>
-                    <p>今日も一緒に頑張りましょう</p>
+                    <h2 class="section-title">おかえりなさい、{{ user.name or 'ユーザー' }} さん</h2>
+                    <p class="section-subtitle">今日も一緒に頑張りましょう</p>
                     {% else %}
-                    <h1>Video Desk へようこそ</h1>
-                    <p>みんなで集中できるオンライン自習室</p>
+                    <h2 class="section-title">Video Desk へようこそ</h2>
+                    <p class="section-subtitle">みんなで集中できるオンライン自習室</p>
                     {% endif %}
                 </div>
 
@@ -192,8 +185,9 @@
                         <button id="homeEnterStudyBtn" class="spa-home-enter-btn js-enter-study" type="button">
                             <span class="spa-home-enter-icon"><span
                                     class="material-symbols-outlined">meeting_room</span></span>
-                            <span>自習室へ入室する</span>
+                            <span>予約なしで入室する</span>
                         </button>
+                        <p class="spa-home-enter-note">※医大生メンターは予約者を優先して対応するため、質問などに対応できない場合があります。</p>
                     </div>
                 </div>
                 <div class="spa-home-links">
@@ -317,10 +311,10 @@
         <!-- ====== Section: Report ====== -->
         <div id="section-report" class="spa-section">
             <div class="sec-report">
-                <header class="sec-report-header">
-                    <h1 class="sec-heading">学習記録・レポート</h1>
-                    <p class="sec-subheading">日々の積み重ねが、確かな実力になります</p>
-                </header>
+                <div class="section-header">
+                    <h2 class="section-title">学習記録・レポート</h2>
+                    <p class="section-subtitle">日々の積み重ねが、確かな実力になります</p>
+                </div>
 
                 {% if current_user.is_authenticated %}
                 <div class="report-summary-cards">
@@ -334,11 +328,6 @@
                         <span class="report-card-label">今週の合計</span>
                         <span class="report-card-value">{{ weekly_study_display | default('0時間 0分') }}</span>
                     </div>
-                    <div class="report-card">
-                        <span class="report-card-icon"><span class="material-symbols-outlined">flag</span></span>
-                        <span class="report-card-label">目標までの残り</span>
-                        <span class="report-card-value">{{ remaining_to_goal | default('--') }}</span>
-                    </div>
                 </div>
 
                 <div class="report-monthly-cta">
@@ -348,10 +337,10 @@
                             <h3>月間学習レポート</h3>
                             <p>先月の学習状況を振り返り、次の目標設定にお役立てください。保護者の方もご確認いただけます。</p>
                         </div>
-                        <a href="#" class="report-monthly-btn">
+                        <button type="button" class="report-monthly-btn" id="reportMonthlyBtn">
                             <span>先月のレポートを見る</span>
                             <span class="material-symbols-outlined">arrow_forward</span>
-                        </a>
+                        </button>
                     </div>
                 </div>
                 {% else %}
@@ -368,10 +357,10 @@
         <!-- ====== Section: Calendar ====== -->
         <div id="section-calendar" class="spa-section">
             <div class="sec-calendar">
-                <header class="sec-calendar-header">
-                    <h1 class="sec-heading">予約・カレンダー</h1>
-                    <p class="sec-subheading">学習時間を予約して、計画的に集中しましょう</p>
-                </header>
+                <div class="section-header">
+                    <h2 class="section-title">予約・カレンダー</h2>
+                    <p class="section-subtitle">学習時間を予約して、計画的に集中しましょう</p>
+                </div>
 
                 {% if current_user.is_authenticated %}
                 <div class="cal-date-strip-wrap">
@@ -408,10 +397,10 @@
             <div class="sec-route">
                 {% if current_user.is_authenticated and is_subscribed %}
                 <!-- === Pro Plan: Learning Route & Interview === -->
-                <header class="sec-route-header">
-                    <h1 class="sec-heading">学習ルート・面談</h1>
-                    <p class="sec-subheading">あなた専用の学習計画と、講師による定期面談</p>
-                </header>
+                <div class="section-header">
+                    <h2 class="section-title">学習ルート・面談</h2>
+                    <p class="section-subtitle">あなた専用の学習計画と、講師による定期面談</p>
+                </div>
 
                 <div class="route-learning-section">
                     <h2 class="route-section-title">あなた専用の学習ルート</h2>
@@ -428,12 +417,28 @@
                     </div>
                 </div>
 
+                <!-- 初回面談ブロック -->
+                <div class="route-initial-meeting-card" id="routeInitialMeetingCard" style="display:none">
+                    <div class="route-initial-meeting-inner">
+                        <span class="route-initial-badge">👑 初回限定</span>
+                        <h3>初回パーソナル面談</h3>
+                        <p>登録から7日間限定で、学習計画を一緒に立てる初回面談が可能です。</p>
+                        <button type="button" class="route-interview-btn route-initial-book-btn"
+                            id="routeBookInitialBtn">
+                            <span>初回面談を予約する</span>
+                            <span class="material-symbols-outlined">calendar_month</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 通常面談ブロック -->
                 <div class="route-interview-card" id="routeInterviewCard">
                     <div class="route-interview-inner">
                         <span class="material-symbols-outlined route-interview-icon">event</span>
                         <div class="route-interview-info">
-                            <h3>次回の面談</h3>
+                            <h3>定期面談</h3>
                             <p class="route-interview-date" id="routeInterviewDate">読み込み中…</p>
+                            <p class="route-meeting-remaining" id="routeMeetingRemaining"></p>
                         </div>
                         <a href="#" class="route-interview-btn" id="routeInterviewBtn" style="display:none">
                             <span>面談ルームに入室する</span>
@@ -469,10 +474,10 @@
 
                 {% elif current_user.is_authenticated and not is_subscribed %}
                 <!-- === Free: Blurred Route + Lock Overlay === -->
-                <header class="sec-route-header">
-                    <h1 class="sec-heading">学習ルート・面談</h1>
-                    <p class="sec-subheading">あなた専用の学習計画と、講師による定期面談</p>
-                </header>
+                <div class="section-header">
+                    <h2 class="section-title">学習ルート・面談</h2>
+                    <p class="section-subtitle">あなた専用の学習計画と、講師による定期面談</p>
+                </div>
 
                 <div class="route-locked-wrap">
                     <!-- Blurred dummy content -->
@@ -526,10 +531,10 @@
         <!-- ====== Section: Notifications ====== -->
         <div id="section-notifications" class="spa-section">
             <div class="sec-notifications">
-                <header class="sec-notifications-header">
-                    <h1 class="sec-heading">通知（お知らせ）</h1>
-                    <p class="sec-subheading">重要なお知らせや面談の通知をお届けします</p>
-                </header>
+                <div class="section-header">
+                    <h2 class="section-title">通知（お知らせ）</h2>
+                    <p class="section-subtitle">重要なお知らせや面談の通知をお届けします</p>
+                </div>
                 {% if current_user.is_authenticated %}
                 <div class="notif-list" id="notifList">
                     <p class="notif-loading">読み込み中…</p>
@@ -549,9 +554,10 @@
         <div id="section-profile" class="spa-section">
             <div class="sec-profile">
                 {% if current_user.is_authenticated %}
-                <header class="sec-profile-header">
-                    <h1 class="sec-heading">プロフィール・設定</h1>
-                </header>
+                <div class="section-header">
+                    <h2 class="section-title">プロフィール・設定</h2>
+                    <p class="section-subtitle">アカウント情報の確認と変更</p>
+                </div>
 
                 <div class="profile-user-area">
                     <div class="profile-avatar">
@@ -634,8 +640,20 @@
                     <h2 class="profile-section-title">その他</h2>
                     <ul class="profile-menu-list">
                         <li>
-                            <a href="#" class="profile-menu-link">
+                            <a href="#" class="profile-menu-link" id="openTerms">
                                 <span>利用規約</span>
+                                <span class="material-symbols-outlined">chevron_right</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="profile-menu-link" id="openPrivacyPolicy">
+                                <span>プライバシーポリシー</span>
+                                <span class="material-symbols-outlined">chevron_right</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="profile-menu-link" id="openDisclaimer">
+                                <span>免責事項</span>
                                 <span class="material-symbols-outlined">chevron_right</span>
                             </a>
                         </li>
@@ -707,7 +725,395 @@
 
     </main>
 
+    <!-- ====== Privacy Policy Modal ====== -->
+    <div class="report-modal-overlay" id="privacyModalOverlay" style="display:none">
+        <div class="report-modal privacy-modal">
+            <div class="report-modal-header">
+                <h2 class="report-modal-title">プライバシーポリシー</h2>
+                <button type="button" class="report-modal-close" id="privacyModalClose">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="report-modal-body privacy-modal-body">
+                <p class="privacy-date">2026年2月9日 制定</p>
+                <p>当社は、「個人情報の保護に関する法律」（以下、「法」といいます）に基づき、個人情報の適切な保護と利用に関する個人情報保護方針を制定し、公表いたします。</p>
+
+                <h3>個人情報保護方針</h3>
+                <ol class="privacy-list">
+                    <li>当社は、個人情報の適切な保護と利用に関し、関連法令等に加えて、本方針に定めた事項を遵守し、お客さまの個人情報の適切な保護と利用に努めるとともに、情報化の進展に適切に対応するため、当社における個人情報保護の管理体制およびその取組みについて、継続的な改善に努めます。
+                    </li>
+                    <li>当社は、お客さまの個人情報について、利用目的を特定するとともに、法で定める場合等を除き、その利用目的の達成に必要な範囲内において利用いたします。</li>
+                    <li>当社では、前記2で特定した利用目的の達成に必要な範囲で、適正かつ適法な手段により、お客さまの個人情報を取得いたします。</li>
+                    <li>当社は、法に定める場合を除き、あらかじめご本人の同意を得ることなく、お客さまの個人情報を第三者に提供することはいたしません。</li>
+                    <li>当社は、お客さまの個人情報に関し、情報の紛失・改ざんおよび漏えい等の防止のため、適切な安全管理措置を実施いたします。また、お客さまの個人情報を取扱う全ての役職員に対し、個人情報保護の重要性についての教育を行うとともに、お客さまの個人情報を委託する場合には、委託先について適切に監督いたします。
+                    </li>
+                    <li>当社は、法に定める場合を除き、あらかじめご本人の同意を得ることなく、お客さまの個人情報を第三者に提供することはいたしません。</li>
+                    <li>当社は、取り扱う個人情報につき、ご本人からの苦情に対し迅速かつ適切に取り組み、そのための社内体制の整備に努めます。</li>
+                    <li>当社は本方針の内容を継続的に見直し、その改善に努めます。</li>
+                </ol>
+
+                <h3>個人情報保護法に基づく公表文</h3>
+                <p>当社は、個人情報の保護に関する法律、個人情報の保護に関する基本方針（閣議決定）、個人情報の保護に関する法律施行令および個人情報の保護に関する法律に基づく主務大臣の定めるガイドライン等に基づき、取得する個人情報および保有個人データの利用目的、第三者提供、開示、訂正等のご請求、および苦情受付に関する事項を公表いたします。なお、従業員などの雇用管理に関する個人情報については、本公表には含みません。
+                </p>
+
+                <h3>公表事項</h3>
+
+                <h4>1. 個人情報の利用目的について</h4>
+                <p>当社は、個人情報の保護に関する法律（平成15年5月30日法律第57号）に基づき、お客さまの個人情報を、下記業務ならびに利用目的の達成に必要な範囲で利用いたします。</p>
+                <h5>＜業務内容＞</h5>
+                <p>オンライン個別指導、受験コンサルティング、インターネットによる教材提供事業、オンライン自習室、その他、上記各項に関連し、または附帯する事業</p>
+                <h5>＜利用目的＞</h5>
+                <ul class="privacy-list">
+                    <li>各種商品の申込受付のため</li>
+                    <li>本人確認法に基づくご本人さまの確認等や、商品やサービスをご利用いただく資格等の確認のため</li>
+                    <li>授業のスケジュール管理等、継続的な役務における管理のため</li>
+                    <li>授業のお申込や継続的なご利用等に際しての判断のため</li>
+                    <li>お客さまとの契約や法律等に基づく権利の行使や義務の履行のため</li>
+                    <li>市場調査、ならびにデータ分析やアンケートの実施等による商品やサービスの研究や開発のため</li>
+                    <li>ダイレクトメールの発送等、商品やサービスに関する各種ご提案のため</li>
+                    <li>提携会社等の商品やサービスの各種ご提案のため</li>
+                    <li>各種ご契約の解約やお取引解約後の事後管理のため</li>
+                </ul>
+
+                <h4>2. 個人データの正確性の確保について</h4>
+                <p>当社は、利用目的の達成に必要な範囲内において、個人データが正確かつ最新の内容に保たれるよう努めます。お届け事項に変更があったときは、書面によりお取引店にお届け下さい。</p>
+
+                <h4>3. 個人情報の共同利用について</h4>
+                <p>Study Grit社では以下の取扱いにより個人情報を相互に提供し共同で利用いたします。</p>
+                <p>共同利用における皆様の個人情報の利用目的は次のとおりです。</p>
+                <ul class="privacy-list">
+                    <li>各種指導契約の締結、継続・維持管理</li>
+                    <li>各種商品・サービスのご案内・提供・ＤＭ発送</li>
+                    <li>当グループの業務に関する情報提供・運営管理</li>
+                    <li>商品・サービスの充実</li>
+                </ul>
+                <p>Study Grit社では、下記の相互提供項目の全部または一部について、皆様の個人情報を相互に提供し、上記利用目的の達成に必要な範囲内で、その情報を取得・利用いたします。</p>
+                <h5>相互提供項目</h5>
+                <p><strong>ご本人に関して：</strong>氏名、生年月日、性別、連絡先（住所・電話番号、メールアドレスなど）、職業、就業先および勤務先、口座振替に使用する口座情報</p>
+                <p><strong>ご契約に関して：</strong>契約種類、契約日、契約期間、契約終了日、授業料の金額および支払い方法、契約時にご提出いただく各種書類の記載事項</p>
+                <p>共同利用における当社が保持する皆様の個人情報に関しては当社が管理責任を負います。皆様の個人情報の共同利用に関するお問い合わせ、お申し出は、Study
+                    Grit社相談窓口またはお電話にて受け付けております。</p>
+
+                <h4>4. 開示請求等手続きについて</h4>
+                <p>当社が保有する個人データについて、ご本人またはその代理人からの開示・訂正・利用停止等のご請求があった場合は、法令に基づき適切に対応いたします。詳細については、お問い合わせ窓口までご連絡ください。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== Terms of Service Modal ====== -->
+    <div class="report-modal-overlay" id="termsModalOverlay" style="display:none">
+        <div class="report-modal privacy-modal">
+            <div class="report-modal-header">
+                <h2 class="report-modal-title">利用規約</h2>
+                <button type="button" class="report-modal-close" id="termsModalClose">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="report-modal-body privacy-modal-body">
+                <p class="privacy-date">2026年2月9日 制定</p>
+                <p>この利用規約（以下「本規約」といいます。）は、Study
+                    Ops（以下「当社」といいます。）が提供するオンライン自習室サービス（以下「本サービス」といいます。）の利用条件を定めるものです。登録ユーザーの皆さま（以下「ユーザー」といいます。）には、本規約に従って本サービスをご利用いただきます。
+                </p>
+
+                <h3>第1条（適用）</h3>
+                <p>本規約は、ユーザーと当社との間の本サービスの利用に関わる一切の関係に適用されるものとします。</p>
+                <p>当社は本サービスに関し、本規約のほか、ご利用にあたってのルール等、各種の定め（以下「個別規定」といいます。）をすることがあります。これら個別規定はその名称にいかかわらず、本規約の一部を構成するものとします。
+                </p>
+
+                <h3>第2条（利用登録）</h3>
+                <p>本サービスにおいては、登録希望者が当社の定める方法によって利用登録を申請し、当社がこれを承認することによって、利用登録が完了するものとします。</p>
+                <p>未成年者が本サービスを利用する場合、親権者等の法定代理人の同意を得るものとします。</p>
+                <p>当社は、利用登録の申請者に以下の事由があると判断した場合、利用登録の申請を承認しないことがあり、その理由については一切の開示義務を負わないものとします。</p>
+                <ol class="privacy-list">
+                    <li>利用登録の申請に際して虚偽の事項を届け出た場合</li>
+                    <li>本規約に違反したことがある者からの申請である場合</li>
+                    <li>その他、当社が利用登録を相当でないと判断した場合</li>
+                </ol>
+
+                <h3>第3条（ユーザーIDおよびパスワードの管理）</h3>
+                <p>ユーザーは、自己の責任において、本サービスのユーザーIDおよびパスワードを適切に管理するものとします。</p>
+                <p>ユーザーは、いかなる場合にも、ユーザーIDおよびパスワードを第三者に譲渡または貸与し、もしくは第三者と共用することはできません。</p>
+
+                <h3>第4条（利用料金および支払方法）</h3>
+                <p>本サービスの有料プラン（以下「有料プラン」といいます。）は、サブスクリプション方式とします。</p>
+                <p>ユーザーは、当社の定める方法（クレジットカード決済等）により利用料金を支払うものとします。</p>
+                <p>本サービスの契約期間は、利用契約の締結日（または利用開始日）から起算して1ヶ月間とし、以降も解約手続きが行われない限り、1ヶ月ごとに自動的に更新されるものとします。</p>
+                <p>契約期間の途中で解約手続きが行われた場合でも、当該契約期間満了日までの利用料金は全額発生し、日割り計算等による返金は行わないものとします。なお、解約手続き完了後も、当該契約期間満了日までは本サービスを利用することができます。
+                </p>
+                <p>前項の規定にかかわらず、当社の責めに帰すべき事由によりサービスが全く利用できなかった期間がある場合など、法令の定める場合はこの限りではありません。</p>
+                <p>ユーザーが利用料金の支払を遅滞した場合には、ユーザーは年14.6％の割合による遅延損害金を支払うものとします。</p>
+
+                <h3>第5条（禁止事項）</h3>
+                <p>ユーザーは、本サービスの利用にあたり、以下の行為をしてはなりません。</p>
+                <h4>1. 映像・配信内容に関する禁止事項</h4>
+                <ol class="privacy-list">
+                    <li>法令または公序良俗に反する映像（わいせつ、暴力的、残虐な映像等）を配信する行為</li>
+                    <li>過度に露出の多い服装（上半身裸を含む）、または下着姿等で配信する行為</li>
+                    <li>自身の個人情報（住所が特定できる窓の外の風景、郵便物、クレジットカード、身分証等）が映り込む状態で配信する行為</li>
+                    <li>勉強や作業の意図が見受けられない、長時間の睡眠や放置行為</li>
+                    <li>飲酒、喫煙を行いながらの配信</li>
+                    <li>政治活動、宗教活動、マルチ商法等の勧誘を目的とした配信や行為</li>
+                    <li>生活音や雑音等により、他のユーザーの集中を著しく妨げる行為（音声機能がある場合）</li>
+                </ol>
+                <h4>2. その他の禁止事項</h4>
+                <ol class="privacy-list">
+                    <li>犯罪行為に関連する行為</li>
+                    <li>当社のサーバーまたはネットワークの機能を破壊したり、妨害したりする行為</li>
+                    <li>他のユーザーへの嫌がらせや誹謗中傷、ストーカー行為</li>
+                    <li>他のユーザーに関する個人情報等を収集または蓄積する行為</li>
+                    <li>不正アクセスをし、またはこれを試みる行為</li>
+                    <li>他のユーザーに成りすます行為</li>
+                    <li>反社会的勢力等に対して直接または間接に利益を供与する行為</li>
+                    <li>その他、当社が不適切と判断する行為</li>
+                </ol>
+
+                <h3>第6条（本サービスの提供の停止等）</h3>
+                <p>当社は、以下のいずれかの事由があると判断した場合、ユーザーに事前に通知することなく本サービスの全部または一部の提供を停止または中断することができるものとします。</p>
+                <ol class="privacy-list">
+                    <li>本サービスにかかるコンピュータシステムの保守点検または更新を行う場合</li>
+                    <li>地震、落雷、火災、停電または天災などの不可抗力により、本サービスの提供が困難となった場合</li>
+                    <li>コンピュータまたは通信回線等が事故により停止した場合</li>
+                    <li>その他、当社が本サービスの提供が困難と判断した場合</li>
+                </ol>
+
+                <h3>第7条（利用制限および登録抹消）</h3>
+                <p>当社は、ユーザーが以下のいずれかに該当する場合には、事前の通知なく、ユーザーに対して本サービスの全部もしくは一部の利用を制限し、またはユーザーとしての登録を抹消することができるものとします。</p>
+                <ol class="privacy-list">
+                    <li>本規約のいずれかの条項に違反した場合</li>
+                    <li>登録事項に虚偽の事実があることが判明した場合</li>
+                    <li>料金等の支払債務の不履行があった場合</li>
+                    <li>その他、当社が本サービスの利用を適当でないと判断した場合</li>
+                </ol>
+
+                <h3>第8条（退会）</h3>
+                <p>ユーザーは、当社の定める退会手続により、本サービスから退会できるものとします。</p>
+
+                <h3>第9条（保証の否認および免責事項）</h3>
+                <p>当社は、本サービスに事実上または法律上の瘵疵（安全性、信頼性、正確性、完全性、有効性、特定の目的への適合性、セキュリティなどに関する欠陥、エラーやバグ、権利侵害などを含みます。）がないことを明示的にも黙示的にも保証しておりません。
+                </p>
+                <p>当社は、本サービスに起因してユーザーに生じたあらゆる損害について、当社の故意または重過失による場合を除き、一切の責任を負いません。</p>
+                <p>ユーザーは、本サービスが映像を共有するサービスであることを理解し、自身の背景、服装、映り込む物品等について自らの責任で管理するものとします。意図せず個人情報やプライバシーに関わる情報が配信された場合であっても、当社は一切の責任を負いません。
+                </p>
+                <p>本サービスはオンライン上の公開された場としての性質を持ちます。ユーザーは、自身の配信する映像が他のユーザーによって閲覧され、スクリーンショット等で保存・共有される可能性があることを予め承諾するものとします。これに起因して生じたトラブルについて、当社は一切関知しません。
+                </p>
+
+                <h3>第10条（サービス内容の変更等）</h3>
+                <p>当社は、ユーザーへの事前の告知をもって、本サービスの内容を変更、追加または廃止することがあり、ユーザーはこれを承諾するものとします。</p>
+
+                <h3>第11条（利用規約の変更）</h3>
+                <p>当社は以下の場合には、ユーザーの個別の同意を要せず、本規約を変更することができるものとします。</p>
+                <ol class="privacy-list">
+                    <li>本規約の変更がユーザーの一般の利益に適合するとき。</li>
+                    <li>本規約の変更が本サービス利用契約の目的に反せず、かつ、変更の必要性、変更後の内容の相当性その他の変更に係る事情に照らして合理的なものであるとき。</li>
+                </ol>
+                <p>当社はユーザーに対し、前項による本規約の変更にあたり、事前に、本規約を変更する旨及び変更後の本規約の内容並びにその効力発生時期を通知します。</p>
+
+                <h3>第12条（個人情報の取扱い）</h3>
+                <p>当社は、本サービスの利用によって取得する個人情報については、当社「プライバシーポリシー」に従い適切に取り扱うものとします。</p>
+
+                <h3>第13条（準拠法・裁判管轄）</h3>
+                <p>本規約の解釈にあたっては、日本法を準拠法とします。</p>
+                <p>本サービスに関して紛争が生じた場合には、当社の本店所在地（個人事業主の場合はその住所地）を管轄する裁判所を専属的合意管轄とします。</p>
+                <p style="text-align:right; margin-top:24px; color:var(--text-tertiary); font-size:12px;">以上</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== Disclaimer Modal ====== -->
+    <div class="report-modal-overlay" id="disclaimerModalOverlay" style="display:none">
+        <div class="report-modal privacy-modal">
+            <div class="report-modal-header">
+                <h2 class="report-modal-title">免責事項</h2>
+                <button type="button" class="report-modal-close" id="disclaimerModalClose">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="report-modal-body privacy-modal-body">
+                <p>Study Grit社（以下「当社」といいます。）が提供するオンライン自習室および学習支援サービス「Study
+                    Ops」（以下「本サービス」といいます。）の利用にあたり、ユーザー（受講者本人）およびその保護者（以下、総称して「ユーザー等」といいます。）は、以下の免責事項に同意するものとします。</p>
+
+                <h3>第1条（成績向上および志望校合格の非保証）</h3>
+                <ol class="privacy-list">
+                    <li>本サービスは、オンライン自習室の提供、メンターによる学習指導、およびアプリケーション等を通じた学習支援により、ユーザーの主体的な学習環境を整えることを目的とするものであり、特定の科目の成績向上や、大学をはじめとする志望校への合格を確実に保証するものではありません。
+                    </li>
+                    <li>ユーザーの学習成果は、ユーザー本人の学習への取り組み、適性、およびその他の外部要因に大きく依存するものであり、当社およびメンターは、本サービスの利用の結果として生じた不利益（不合格、成績の低下等）について、一切の損害賠償責任を負いません。
+                    </li>
+                </ol>
+
+                <h3>第2条（メンターの指導およびシステムによるサポートの性質）</h3>
+                <ol class="privacy-list">
+                    <li>本サービスにおいてメンターが提供する学習指導、進路相談、各種助言、ならびに本サービス内のシステム（AI等を含みます）が提供する解答や解説等の情報は、ユーザーの学習を補助するためのものであり、その内容の完全性、正確性、最新性、およびすべてのユーザーにとっての絶対的な正解であることを当社が保証するものではありません。
+                    </li>
+                    <li>メンターの助言やシステムから得られた情報に基づきユーザーが選択した学習方法や進路等の決定は、ユーザー等の自己責任において行われるものとし、当該決定によって生じた結果について、当社はいかなる責任も負いません。
+                    </li>
+                    <li>当社は、ユーザーが希望する特定の時間帯に、特定のメンターによる指導が受けられることを常に確約するものではありません。メンターのスケジュール等の都合により、指導日時の変更をお願いする場合があります。
+                    </li>
+                </ol>
+
+                <h3>第3条（通信環境、システム障害および不可抗力に関する免責）</h3>
+                <ol class="privacy-list">
+                    <li>本サービスの利用にあたり、ユーザー側のインターネット回線、通信機器、PC、スマートフォン等の不具合やスペック不足により、映像や音声の乱れ、接続の切断、学習の遅れなどの損害が生じた場合、当社はこれらについて責任を負いません。
+                    </li>
+                    <li>当社は、通常講ずるべき対策では防止できないウィルス被害、停電、火災、天災地変等の不可抗力、または当社の責に帰さないサーバーダウンやネットワークの障害等により、本サービスの提供が一時的に中断・停止した場合にユーザー等に生じた不利益や損害について、賠償する責任を負いません。
+                    </li>
+                    <li>当社は、システムの保守・メンテナンス等、運用上あるいは技術上の理由により本サービスの中断が必要であると判断した場合、事前の通知（緊急時は事後通知）をもってサービスを一時停止することがあり、ユーザー等はこれをあらかじめ承諾するものとします。
+                    </li>
+                </ol>
+
+                <h3>第4条（外部サービスの利用に関する免責）</h3>
+                <ol class="privacy-list">
+                    <li>本サービスの提供において、オンライン通話ツール（Zoom等）やその他の第三者が提供する外部のソフトウェア・アプリケーション（以下「外部サービス」といいます。）を利用する場合、ユーザー等は当該外部サービスの利用規約に従うものとします。
+                    </li>
+                    <li>外部サービス自体のシステム障害、仕様変更、またはサービスの終了等に起因して、予定されていたオンライン指導や自習室の利用ができなかった場合、当社はその直接の責任を負わず、損害賠償や利用料金の返還等は原則として行いません。
+                    </li>
+                </ol>
+
+                <h3>第5条（ユーザー間および第三者とのトラブルに関する免責）</h3>
+                <ol class="privacy-list">
+                    <li>オンライン自習室その他の本サービス内において、ユーザー同士、またはユーザーと第三者（他のユーザーの保護者を含みます。）との間で生じたトラブル（チャット等での不適切な発言、嫌がらせ、誹謗中傷、肖像権の侵害等を含みます。）について、当社は原則として介入する義務を負わず、一切の責任を負いません。
+                    </li>
+                    <li>ユーザー間において前項のトラブルが生じた場合、当事者であるユーザー等の責任と費用において解決するものとします。</li>
+                    <li>万一、ユーザー等の故意または過失に基づくトラブルや規約違反により当社が損害を被った場合、当社は該当するユーザー等に対して、当社が負担した弁護士費用を含む一切の費用および損害の賠償を請求できるものとします。
+                    </li>
+                </ol>
+
+                <h3>第6条（データの消失に関する免責）</h3>
+                <p>本サービスに関連して記録された学習時間データ、メッセージやチャットの履歴、指導の記録等のデータが、システムの不具合等により消失した場合であっても、当社はデータの完全な復旧義務、および消失に伴う損害賠償の責任を負いません。ユーザー等は、自らの責任で必要な情報を適宜控え、保管するものとします。
+                </p>
+
+                <h3>第7条（損害賠償責任の制限と消費者契約法等の適用）</h3>
+                <ol class="privacy-list">
+                    <li>本規約における当社の免責に関する各規定は、当社に故意または重過失がある場合には適用されません。</li>
+                    <li>消費者契約法その他の強行法規の適用により、本規約の免責条項の一部が無効とされ、当社がユーザー等に対して損害賠償責任を負うと判断された場合であっても、当社の責任は、ユーザーに直接かつ現実に生じた通常の損害の範囲内に限定されるものとします。特別な事情から生じた損害（予見可能性の有無を問いません。）および逸失利益（将来の期待利益の喪失等）については責任を負わないものとします。
+                    </li>
+                    <li>前項の場合における当社の損害賠償額の上限は、当該損害が発生した事象に関連して、過去1ヶ月間に当該ユーザー等が当社に支払った本サービスの利用料金の金額を上限とします。ただし、当社に故意または重過失がある場合はこの限りではありません。
+                    </li>
+                </ol>
+
+                <h3>第8条（著作権等）</h3>
+                <ol class="privacy-list">
+                    <li>ユーザー等は、Study OpsおよびStudy
+                        Opsに関連して発生する著作物、公式問題集/授業テキストに関連する著作権、システム等についての著作権その他の知的財産権は、当社または当社に使用許諾を行った第三者に帰属するものであることを確認し、いかなる目的であれ転載、複製、送信、翻訳・翻案、改変・追加等の一切の使用行為を行わないものとします。
+                    </li>
+                    <li>本条の規定に違反して紛争が生じた場合、ユーザー等は、自己の費用と責任において、当該紛争を解決するとともに、当社および第三者に一切の損害を与えないものとします。</li>
+                    <li>ユーザー等は、自らが投稿、アップロード又は送信したあらゆる内容や、これに関する著作権、特許権、商標権その他の知的財産権や所有権について、無償で、非独占的で、ロイヤルティの発生しない、永久の、全世界的な、サブライセンス可能で、譲渡可能なライセンスを、当社に付与するものとします。
+                    </li>
+                </ol>
+
+                <h3>第9条（当社の免責）</h3>
+                <ol class="privacy-list">
+                    <li>当社は、以下の事項を保証するものではありません。
+                        <p>（1）Study Opsの提供に不具合やエラーや障害が生じないこと<br>（2）Study Opsから得られる情報等が正確なものであること<br>（3）Study
+                            Opsを通じて入手できる役務、情報等がユーザー等の期待を満たすものであること</p>
+                    </li>
+                    <li>ユーザー等は、当社がStudy Opsにおいて提供される情報について、その最新性、真実性、合法性、安全性、適切性、有用性、Study
+                        Opsによる効果一切について何ら保証しないことを了承のうえ、自己の責任においてStudy Opsを利用するものとします。</li>
+                </ol>
+
+                <h3>第10条（個人情報）</h3>
+                <ol class="privacy-list">
+                    <li>Study Opsの利用によって当社が取得するユーザー等の個人情報の取扱いについては、別途定めるプライバシーポリシーに従うものとします。</li>
+                    <li>ユーザー等は、Study Opsの利用にあたってユーザー等提供した個人情報を当社または提携サービス運営者が利用することに同意するものとします。</li>
+                    <li>ユーザーは、Study Opsの利用にあたって取得されるStudy Opsの利用状況、成績、個人情報などについて、当社が利用保護者に提供できることに同意するものとします。</li>
+                </ol>
+
+                <h3>第11条（統計情報・属性情報・利用記録の閲覧、集計および利用）</h3>
+                <p>当社は、会員登録・抹消の前後を問わず、Study
+                    Opsを利用してユーザー等が登録した個人情報、利用履歴、およびこれらを解析・加工・集計・分析した統計データ、属性情報等を作成し、何らの制限なく利用することができるものとし、ユーザー等はこれをあらかじめ承諾します。
+                </p>
+
+                <h3>第12条（当社の責任）</h3>
+                <ol class="privacy-list">
+                    <li>Study
+                        Opsの各種サービスは、当社が定める水準に基づき提供されるものであり、ユーザー等は、当該サービスの内容・サービス水準がユーザー等の期待を全て満たすものではないことを予め承諾するものとします。
+                    </li>
+                    <li>当社は、ユーザー等によるStudy Opsの利用によりユーザー等に生じる一切の損害につき、当社の責に帰すべき事由がない限り、一切の責任を負わないものとします。</li>
+                    <li>当社が債務不履行、不法行為等当社の責に帰すべき事由によりユーザー等に損害を与えた場合、当社は、ユーザー等について発生した直接かつ通常の損害に限り、賠償します。</li>
+                </ol>
+
+                <h3>第13条（反社会的勢力の排除）</h3>
+                <ol class="privacy-list">
+                    <li>ユーザー等は、現在および将来にわたり、暴力団、暴力団員、暴力団準構成員、暴力団関係企業、総会屋等に該当しないことを表明し、保証するものとします。</li>
+                    <li>ユーザー等は、自らまたは第三者を利用して暴力的または法的な責任を超えた不当な要求行為等を行わないことを確約するものとします。</li>
+                    <li>ユーザー等が前2項に違反したときは、当社はStudy Opsの退会、利用停止、各種契約を解除できるものとします。</li>
+                </ol>
+
+                <h3>第14条（譲渡等禁止）</h3>
+                <p>ユーザー等は、当社の事前の書面による承諾なしに、本契約により生じた権利義務を第三者に譲渡し、承継させ、貸与し、または担保に供することはできないものとします。</p>
+
+                <h3>第15条（利用停止）</h3>
+                <ol class="privacy-list">
+                    <li>ユーザー等は、当社所定の利用停止手続きを行うことで、Study Opsの利用の全部または一部を一時的に停止することができるものとします。</li>
+                    <li>当社は、ユーザー等が前項の停止をした場合、Study Opsにおいて登録または利用した情報の全部または一部を削除する権限を有するものとします。</li>
+                </ol>
+
+                <h3>第16条（退会）</h3>
+                <ol class="privacy-list">
+                    <li>保護者は、当社所定の退会手続きを行うことで、Study Opsの利用の全部または一部を中止し、利用契約の全部または一部を解約することができるものとします。</li>
+                    <li>当社は、保護者が前項の退会をした場合、Study Opsにおいて登録または利用した情報の全部または一部を削除する権限を有するものとします。</li>
+                </ol>
+
+                <h3>第17条（会員登録の抹消等）</h3>
+                <ol class="privacy-list">
+                    <li>当社は、ユーザーまたは保護者のいずれかが本規約に違反したと判断した場合、事前に通知することなく、利用の一時停止、会員登録の抹消等の措置を行うことができるものとします。</li>
+                    <li>当社は、利用契約が終了するなど合理的にみて必要となる場合、前項に定める措置を行うことができるものとします。</li>
+                    <li>当社は、ユーザーが一定期間以上Study Opsを利用しない場合には、事前に通知したうえで、会員登録を抹消することがあります。</li>
+                </ol>
+
+                <h3>第18条（サービスの中断、変更、終了）</h3>
+                <p>当社は、ユーザー等へ事前に通知することなく、Study
+                    Opsが提供するサービス内容の変更、一時的もしくは長期的な中断、またはサービス自体を終了することができ、ユーザー等はこれを予め承諾するものとします。</p>
+
+                <h3>第19条（サービスの一時的な停止）</h3>
+                <p>当社は、以下の各号のいずれかに該当する場合には、ユーザー等への事前の通知をすることなく、Study Opsの一時的な運営の停止を行うことがあります。</p>
+                <ol class="privacy-list">
+                    <li>Study Opsの保守または仕様の変更を行う場合</li>
+                    <li>天変地異その他非常事態が発生し、またはそのおそれがあり、サービスの運営ができなくなった場合</li>
+                    <li>当社がやむを得ない事由により一時的な停止が必要であると判断した場合</li>
+                </ol>
+
+                <h3>第20条（不可抗力）</h3>
+                <ol class="privacy-list">
+                    <li>当社は、通常講ずるべき対策では防止できない不可抗力に基づく事由による被害がユーザー等に生じた場合、一切責任を負わないものとします。</li>
+                    <li>前項は、提携先等に発生する不可抗力においても適用されるものとします。</li>
+                    <li>当社は、不可抗力に起因してStudy Opsにおいて管理または提供されるデータが消去・変更されないことを保証しません。</li>
+                </ol>
+
+                <h3>第21条（規約の変更）</h3>
+                <ol class="privacy-list">
+                    <li>当社は、当社ウェブサイトまたは本アプリに事前掲示することにより、本規約および規程等を変更することができるものとします。</li>
+                    <li>変更された本規約および規程等は、前項の事前掲示の際に定めた効力発生日から効力を生じるものとします。</li>
+                </ol>
+
+                <h3>第22条（分離条項）</h3>
+                <p>本規約および規程等に定めるいずれかの条項が管轄権のある裁判所により無効である旨判断された場合には、かかる条項は、法律が許容する限りで、本来の条項の趣旨を最大限実現するように変更または解釈されるものとし、また、その他の条項の効力には何らの影響を与えないものとします。
+                </p>
+
+                <h3>第23条（準拠法および管轄）</h3>
+                <p>本規約の準拠法は日本法とし、本規約に関する一切の紛争は、東京地方裁判所を第一審の専属的合意管轄裁判所とします。</p>
+
+                <p style="text-align:right; margin-top:24px; color:var(--text-tertiary); font-size:12px;">
+                    （附則）2026年2月19日作成・適用</p>
+            </div>
+        </div>
+    </div>
+
     <script src="{{ url_for('static', filename='js/room.js') }}"></script>
+    <!-- ====== Monthly Report Modal ====== -->
+    <div class="report-modal-overlay" id="reportModalOverlay">
+        <div class="report-modal">
+            <div class="report-modal-header">
+                <h2 class="report-modal-title" id="reportModalTitle">月間学習レポート</h2>
+                <button type="button" class="report-modal-close" id="reportModalClose">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="report-modal-body" id="reportModalBody">
+                <p style="color:var(--text-tertiary)">読み込み中…</p>
+            </div>
+        </div>
+    </div>
+
     <script src="{{ url_for('static', filename='js/spa.js') }}"></script>
     <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
     <script src="{{ url_for('static', filename='js/meeting_calendar.js') }}"></script>

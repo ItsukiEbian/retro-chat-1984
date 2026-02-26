@@ -94,6 +94,7 @@ class User(db.Model):
     stripe_customer_id = db.Column(db.String(255), nullable=True)
     stripe_subscription_id = db.Column(db.String(255), nullable=True)
     is_active_subscription = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=dt_datetime.utcnow)
 
     def get_id(self):
         return str(self.id)
@@ -109,6 +110,13 @@ class User(db.Model):
     @property
     def is_anonymous(self):
         return False
+
+    @property
+    def is_within_7_days(self):
+        if not self.created_at:
+            return False
+        delta = dt_datetime.utcnow() - self.created_at
+        return delta.days < 7
 
 
 class StudyReservation(db.Model):
@@ -131,6 +139,7 @@ class MeetingReservation(db.Model):
     time_slot = db.Column(db.String(5), nullable=False)   # HH:MM
     room_token = db.Column(db.String(64), unique=True, nullable=False)
     status = db.Column(db.String(20), default='scheduled')  # scheduled / completed / no_show / cancelled
+    meeting_type = db.Column(db.String(10), default='regular')  # initial / regular
 
     user = db.relationship('User', backref='meeting_reservations')
 
@@ -344,6 +353,11 @@ def google_authorized():
         db.session.commit()
     session.permanent = True
     login_user(user, remember=True)
+    # --- スーパー管理者の自動昇格 ---
+    SUPER_ADMIN_EMAILS = ['y.studyops@gmail.com']
+    if user.email in SUPER_ADMIN_EMAILS and user.role != 'super_admin':
+        user.role = 'super_admin'
+        db.session.commit()
     # DB role に基づいてセッション設定
     user_role = user.role or 'user'
     if user_role in ('mentor', 'super_admin'):
@@ -671,12 +685,15 @@ def api_delete_reservations():
 def api_next_reservation():
     now = datetime_type.now()
     today_s = now.strftime('%Y-%m-%d')
-    current_time = now.strftime('%H:%M')
+    # 現在時刻の30分前を基準にすると、まだ進行中のスロットも拾える
+    # スロットの終了時刻 = 開始 + 30分 なので、開始時刻 > (現在 - 30分) で判定
+    from datetime import timedelta as td
+    cutoff = (now - td(minutes=30)).strftime('%H:%M')
 
     next_today = StudyReservation.query.filter(
         StudyReservation.user_id == current_user.id,
         StudyReservation.date == today_s,
-        StudyReservation.time_slot >= current_time
+        StudyReservation.time_slot > cutoff
     ).order_by(StudyReservation.time_slot).first()
 
     if next_today:
@@ -715,6 +732,9 @@ def api_create_meeting_reservation():
     data = request.get_json(silent=True) or {}
     d = data.get('date', '')
     ts = data.get('time_slot', '')
+    m_type = data.get('meeting_type', 'regular')
+    if m_type not in ('initial', 'regular'):
+        m_type = 'regular'
     if not d or not ts:
         return jsonify({'ok': False, 'error': '日付・時間は必須です'}), 400
 
@@ -728,6 +748,37 @@ def api_create_meeting_reservation():
                 return jsonify({'ok': False, 'error': '過去の時間は予約できません'}), 400
         except ValueError:
             return jsonify({'ok': False, 'error': '無効な時間形式です'}), 400
+
+    # --- 面談タイプ別バリデーション ---
+    if m_type == 'initial':
+        if not current_user.is_within_7_days:
+            return jsonify({'ok': False, 'error': '初回面談は登録から7日間限定です'}), 400
+        existing_initial = MeetingReservation.query.filter(
+            MeetingReservation.user_id == current_user.id,
+            MeetingReservation.meeting_type == 'initial',
+            MeetingReservation.status.in_(['scheduled', 'completed'])
+        ).first()
+        if existing_initial:
+            return jsonify({'ok': False, 'error': '初回面談は1回限りです'}), 400
+    else:
+        # regular: 今月2回まで
+        now = datetime_type.now()
+        month_start = now.strftime('%Y-%m') + '-01'
+        month_end_d = now.month + 1
+        month_end_y = now.year
+        if month_end_d > 12:
+            month_end_d = 1
+            month_end_y += 1
+        month_end = f'{month_end_y}-{str(month_end_d).zfill(2)}-01'
+        count = MeetingReservation.query.filter(
+            MeetingReservation.user_id == current_user.id,
+            MeetingReservation.meeting_type == 'regular',
+            MeetingReservation.status.in_(['scheduled', 'completed']),
+            MeetingReservation.date >= month_start,
+            MeetingReservation.date < month_end
+        ).count()
+        if count >= 2:
+            return jsonify({'ok': False, 'error': '今月の面談枠（2回）はすべて消化済みです'}), 400
 
     # 既に scheduled がある場合は拒否
     existing = MeetingReservation.query.filter_by(
@@ -749,7 +800,8 @@ def api_create_meeting_reservation():
         date=d,
         time_slot=ts,
         room_token=room_token,
-        status='scheduled'
+        status='scheduled',
+        meeting_type=m_type
     )
     db.session.add(reservation)
     try:
@@ -893,6 +945,49 @@ def api_admin_meeting_reservations():
     return jsonify(result)
 
 
+# ---------- Monthly Report API ----------
+
+@app.route('/api/monthly_report', methods=['GET'])
+@login_required
+def api_monthly_report():
+    """前月の学習レポートを返す。データがなくても 200 で返す。"""
+    import calendar as cal_mod
+    from datetime import date, timedelta
+
+    today = date.today()
+    first_of_month = today.replace(day=1)
+    last_day_prev = first_of_month - timedelta(days=1)
+    first_day_prev = last_day_prev.replace(day=1)
+
+    prev_month_label = f'{first_day_prev.year}年{first_day_prev.month}月'
+    days_in_prev = cal_mod.monthrange(first_day_prev.year, first_day_prev.month)[1]
+
+    # 基本情報は total_study_time (累計分) しかないので、
+    # 「前月の study sessions」として概算を返す
+    user = current_user
+    total_min = user.total_study_time or 0
+
+    if total_min == 0:
+        return jsonify({
+            'has_data': False,
+            'month_label': prev_month_label,
+            'message': '先月の学習データはまだありません。今月から学習を記録して、来月のレポート作成を楽しみにしましょう！',
+        })
+
+    # 簡易レポート: 概算値を返す
+    hours = total_min // 60
+    mins = total_min % 60
+    return jsonify({
+        'has_data': True,
+        'month_label': prev_month_label,
+        'report': {
+            'total_minutes': total_min,
+            'total_display': f'{hours}時間 {mins}分',
+            'days_in_month': days_in_prev,
+        }
+    })
+
+
 # ---------- Notification API ----------
 
 @app.route('/api/notifications', methods=['GET'])
@@ -961,6 +1056,45 @@ def api_admin_create_notification():
         db.session.rollback()
         return jsonify({'ok': False, 'error': 'DB error'}), 500
     return jsonify({'ok': True})
+
+
+# ---------- Meeting Status API ----------
+
+@app.route('/api/meeting_status', methods=['GET'])
+@login_required
+def api_meeting_status():
+    """面談タイプ別のステータスを返す"""
+    user = current_user
+    is_within = user.is_within_7_days
+
+    has_booked_initial = MeetingReservation.query.filter(
+        MeetingReservation.user_id == user.id,
+        MeetingReservation.meeting_type == 'initial',
+        MeetingReservation.status.in_(['scheduled', 'completed'])
+    ).first() is not None
+
+    now = datetime_type.now()
+    month_start = now.strftime('%Y-%m') + '-01'
+    month_end_d = now.month + 1
+    month_end_y = now.year
+    if month_end_d > 12:
+        month_end_d = 1
+        month_end_y += 1
+    month_end = f'{month_end_y}-{str(month_end_d).zfill(2)}-01'
+    regular_count = MeetingReservation.query.filter(
+        MeetingReservation.user_id == user.id,
+        MeetingReservation.meeting_type == 'regular',
+        MeetingReservation.status.in_(['scheduled', 'completed']),
+        MeetingReservation.date >= month_start,
+        MeetingReservation.date < month_end
+    ).count()
+
+    return jsonify({
+        'is_within_7_days': is_within,
+        'has_booked_initial': has_booked_initial,
+        'remaining_regular_meetings': max(0, 2 - regular_count),
+        'is_pro': user.is_active_subscription,
+    })
 
 
 # ---------- Meeting Room ----------
@@ -1559,6 +1693,14 @@ with app.app_context():
             conn.commit()
         if 'role' not in existing:
             conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user'"))
+            conn.commit()
+        if 'created_at' not in existing:
+            conn.execute(sqlalchemy.text("ALTER TABLE users ADD COLUMN created_at TIMESTAMP"))
+            conn.commit()
+        # meeting_reservations table
+        mr_cols = [c['name'] for c in insp.get_columns('meeting_reservations')]
+        if 'meeting_type' not in mr_cols:
+            conn.execute(sqlalchemy.text("ALTER TABLE meeting_reservations ADD COLUMN meeting_type VARCHAR(10) DEFAULT 'regular'"))
             conn.commit()
 
 if __name__ == '__main__':

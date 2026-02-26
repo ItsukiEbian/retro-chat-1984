@@ -92,6 +92,8 @@ h6 {
     align-items: flex-start;
     justify-content: center;
     padding: 0;
+    height: 100%;
+    height: 100dvh;
 }
 
 .overlay-card {
@@ -100,16 +102,19 @@ h6 {
     box-shadow: var(--shadow-lg);
     max-width: 420px;
     width: calc(100% - 48px);
-    padding: 32px;
+    padding: 28px;
     text-align: center;
-    margin: 10vh auto;
+    margin: 24px auto;
     flex-shrink: 0;
     position: relative;
     z-index: 10001;
+    max-height: calc(100% - 48px);
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
 }
 
 .overlay-card-header {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
 }
 
 .overlay-icon {
@@ -219,7 +224,7 @@ h6 {
     color: var(--text-primary);
     background: var(--bg-card);
     resize: vertical;
-    min-height: 80px;
+    min-height: 64px;
     transition: border-color 0.2s;
 }
 
@@ -2197,8 +2202,10 @@ body[data-room-context="private"] #mainRoomContent {
 @media (max-width: 600px) {
     .overlay-card {
         padding: 24px;
-        margin: 5vh auto 5vh;
-        width: calc(100% - 32px);
+        margin: 16px auto;
+        width: calc(100% - 24px);
+        max-height: calc(100% - 32px);
+        max-height: calc(100dvh - 32px);
     }
 
     .goal-card {
@@ -2558,25 +2565,33 @@ body[data-room-context="private"] #mainRoomContent {
     gap: 56px;
 }
 
-.spa-home-greeting {
-    text-align: center;
+.spa-home-greeting,
+.section-header {
+    text-align: left;
+    padding: 24px 20px 16px;
+    margin: 0;
 }
 
-.spa-home-greeting h1 {
-    margin: 0 0 14px;
-    font-size: 30px;
-    font-weight: 500;
+.spa-home-greeting h1,
+.spa-home-greeting h2,
+.section-title {
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: normal;
     color: var(--text-primary);
     font-family: var(--font-heading);
     letter-spacing: 0.04em;
+    line-height: 1.4;
 }
 
-.spa-home-greeting p {
+.spa-home-greeting p,
+.section-subtitle {
     margin: 0;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 300;
-    color: var(--text-secondary);
+    color: #666;
     letter-spacing: 0.02em;
+    line-height: 1.5;
 }
 
 .spa-home-cards {
@@ -3081,9 +3096,6 @@ body[data-room-context="private"] #mainRoomContent {
     }
 
     /* --- Home section mobile --- */
-    .spa-home-greeting h1 {
-        font-size: 22px;
-    }
 
     .spa-home-wrapper {
         padding: 48px 20px 24px;
@@ -3175,23 +3187,25 @@ body[data-room-context="private"] #mainRoomContent {
     }
 }
 
-/* ---------- Section Common ---------- */
+/* ---------- Section Common (unified — aliases) ---------- */
 .sec-heading {
     margin: 0 0 8px;
     font-family: var(--font-heading);
-    font-size: 26px;
-    font-weight: 500;
+    font-size: 22px;
+    font-weight: normal;
     color: var(--text-primary);
     letter-spacing: 0.04em;
+    line-height: 1.4;
 }
 
 .sec-subheading {
     margin: 0;
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 300;
-    color: var(--text-secondary);
+    color: #666;
     letter-spacing: 0.02em;
+    line-height: 1.5;
 }
 
 .sec-login-gate {
@@ -3455,6 +3469,55 @@ body[data-room-context="private"] #mainRoomContent {
     color: var(--text-tertiary);
 }
 
+/* Initial meeting card */
+.route-initial-meeting-card {
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #2a2520, #1a1510);
+    border: 1px solid #c5a880;
+    border-radius: 0;
+}
+
+.route-initial-meeting-inner {
+    padding: 24px 28px;
+    text-align: center;
+}
+
+.route-initial-badge {
+    display: inline-block;
+    font-size: 12px;
+    color: #c5a880;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+}
+
+.route-initial-meeting-inner h3 {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 500;
+    color: #fff;
+    margin: 0 0 8px;
+}
+
+.route-initial-meeting-inner p {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 16px;
+    line-height: 1.5;
+}
+
+.route-initial-book-btn {
+    background: #c5a880 !important;
+    color: #1a1510 !important;
+}
+
+.route-meeting-remaining {
+    font-size: 12px;
+    color: var(--accent);
+    margin: 6px 0 0;
+    opacity: 0.85;
+}
+
+/* Regular meeting card */
 .route-interview-card {
     margin-bottom: 36px;
     background: var(--primary);
@@ -4135,6 +4198,22 @@ body[data-room-context="private"] #mainRoomContent {
     font-size: 20px;
 }
 
+.home-next-res-enter-btn.home-next-res-enter-disabled,
+.home-next-res-enter-btn:disabled {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.45);
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.spa-home-enter-note {
+    margin: 10px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #999;
+    text-align: center;
+}
+
 .home-next-res-cal-btn {
     display: inline-flex;
     align-items: center;
@@ -4184,9 +4263,9 @@ body[data-room-context="private"] #mainRoomContent {
 
 /* ---------- Section: Calendar ---------- */
 .sec-calendar {
-    padding: 56px 48px;
-    max-width: 860px;
-    margin: 0 auto;
+    padding: 24px 16px 56px;
+    max-width: none;
+    margin: 0;
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -4231,12 +4310,13 @@ body[data-room-context="private"] #mainRoomContent {
 
 .cal-date-strip {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     flex: 1;
     padding: 4px 0;
+    justify-content: space-between;
 }
 
 .cal-date-strip::-webkit-scrollbar {
@@ -4559,9 +4639,12 @@ body[data-room-context="private"] #mainRoomContent {
 
     .sec-report,
     .sec-route,
-    .sec-profile,
-    .sec-calendar {
+    .sec-profile {
         padding: 36px 20px;
+    }
+
+    .sec-calendar {
+        padding: 24px 12px 40px;
     }
 
     .home-next-res-inner {
@@ -4582,9 +4665,6 @@ body[data-room-context="private"] #mainRoomContent {
     }
 
     /* === Calendar: Mobile-first App-like UI === */
-    .sec-calendar {
-        padding-bottom: 40px;
-    }
 
     /* 1. Date strip — show arrows, compact fit */
     .cal-date-arrow {
@@ -4796,10 +4876,6 @@ body[data-room-context="private"] #mainRoomContent {
         padding: 14px 24px;
         font-size: 12px;
         border-radius: 8px;
-    }
-
-    .sec-heading {
-        font-size: 22px;
     }
 
     .report-summary-cards {
@@ -5837,4 +5913,196 @@ body[data-room-context="private"] #mainRoomContent {
         padding: 12px 14px;
         gap: 10px;
     }
+}
+
+
+/* ============================================
+   Monthly Report Modal
+   ============================================ */
+.report-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 600;
+}
+
+.report-modal-overlay.visible {
+    display: flex;
+}
+
+.report-modal {
+    background: var(--surface-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    width: calc(100% - 32px);
+    max-width: 440px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.report-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.report-modal-title {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.report-modal-close {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 4px;
+    font-size: 22px;
+    transition: color 0.2s;
+}
+
+.report-modal-close:hover {
+    color: var(--text-primary);
+}
+
+.report-modal-body {
+    padding: 24px;
+}
+
+/* Empty State */
+.report-modal-empty {
+    text-align: center;
+    padding: 12px 0;
+}
+
+.report-modal-empty-icon {
+    font-size: 48px;
+    color: var(--primary);
+    opacity: 0.35;
+    display: block;
+    margin-bottom: 16px;
+}
+
+.report-modal-empty-msg {
+    font-family: var(--font-heading);
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+}
+
+/* Stats Grid */
+.report-modal-stats {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.report-modal-stat {
+    flex: 1;
+    background: var(--bg-secondary, #faf8f0);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 16px 12px;
+    text-align: center;
+}
+
+.report-modal-stat-label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 6px;
+}
+
+.report-modal-stat-value {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* Data State */
+.report-modal-data {
+    padding: 4px 0;
+}
+
+.report-modal-note {
+    margin-top: 20px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* ============================================
+   Privacy Policy Modal
+   ============================================ */
+.privacy-modal {
+    max-width: 560px;
+}
+
+.privacy-modal-body {
+    padding: 20px 24px 32px;
+    max-height: 70vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.privacy-modal-body h3 {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 24px 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.privacy-modal-body h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 20px 0 6px;
+}
+
+.privacy-modal-body h5 {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 12px 0 4px;
+}
+
+.privacy-modal-body p {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    margin: 0 0 10px;
+}
+
+.privacy-date {
+    font-size: 12px !important;
+    color: var(--text-tertiary) !important;
+    text-align: right;
+    margin-bottom: 16px !important;
+}
+
+.privacy-list {
+    padding-left: 20px;
+    margin: 8px 0 16px;
+}
+
+.privacy-list li {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
 }

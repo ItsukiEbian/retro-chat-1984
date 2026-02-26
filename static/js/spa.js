@@ -411,3 +411,132 @@
         });
     }
 })();
+
+/* ===== Monthly Report Modal ===== */
+(function () {
+    'use strict';
+    var btn = document.getElementById('reportMonthlyBtn');
+    var overlay = document.getElementById('reportModalOverlay');
+    var closeBtn = document.getElementById('reportModalClose');
+    var titleEl = document.getElementById('reportModalTitle');
+    var bodyEl = document.getElementById('reportModalBody');
+    if (!btn || !overlay) return;
+
+    function openModal() { overlay.classList.add('visible'); }
+    function closeModal() { overlay.classList.remove('visible'); }
+
+    closeBtn && closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+
+    btn.addEventListener('click', function () {
+        bodyEl.innerHTML = '<p style="color:var(--text-tertiary);text-align:center;padding:24px 0">読み込み中…</p>';
+        openModal();
+
+        fetch('/api/monthly_report', { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                titleEl.textContent = (data.month_label || '先月') + ' 学習レポート';
+
+                if (!data.has_data) {
+                    bodyEl.innerHTML =
+                        '<div class="report-modal-empty">' +
+                        '  <span class="material-symbols-outlined report-modal-empty-icon">auto_stories</span>' +
+                        '  <p class="report-modal-empty-msg">' +
+                        '    先月の学習データはまだありません。<br>' +
+                        '    今月から学習を記録して、<br>来月のレポート作成を楽しみにしましょう！' +
+                        '  </p>' +
+                        '  <div class="report-modal-stats">' +
+                        '    <div class="report-modal-stat"><span class="report-modal-stat-label">累計学習時間</span><span class="report-modal-stat-value">--</span></div>' +
+                        '    <div class="report-modal-stat"><span class="report-modal-stat-label">達成率</span><span class="report-modal-stat-value">--</span></div>' +
+                        '  </div>' +
+                        '</div>';
+                    return;
+                }
+
+                var rpt = data.report;
+                bodyEl.innerHTML =
+                    '<div class="report-modal-data">' +
+                    '  <div class="report-modal-stats">' +
+                    '    <div class="report-modal-stat">' +
+                    '      <span class="report-modal-stat-label">累計学習時間</span>' +
+                    '      <span class="report-modal-stat-value">' + (rpt.total_display || '--') + '</span>' +
+                    '    </div>' +
+                    '    <div class="report-modal-stat">' +
+                    '      <span class="report-modal-stat-label">月間日数</span>' +
+                    '      <span class="report-modal-stat-value">' + (rpt.days_in_month || '--') + '日</span>' +
+                    '    </div>' +
+                    '  </div>' +
+                    '  <p class="report-modal-note">学習記録が蓄積されるにつれ、詳細なレポートが生成されます。引き続き頑張りましょう！</p>' +
+                    '</div>';
+            })
+            .catch(function () {
+                bodyEl.innerHTML = '<p style="color:var(--text-tertiary);text-align:center;padding:24px 0">読み込みに失敗しました</p>';
+            });
+    });
+})();
+
+// ========== Privacy Policy Modal ==========
+(function () {
+    'use strict';
+    var openBtn = document.getElementById('openPrivacyPolicy');
+    var overlay = document.getElementById('privacyModalOverlay');
+    var closeBtn = document.getElementById('privacyModalClose');
+    if (!openBtn || !overlay) return;
+
+    openBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        overlay.style.display = 'flex';
+    });
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function () {
+            overlay.style.display = 'none';
+        });
+    }
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) overlay.style.display = 'none';
+    });
+})();
+
+// ========== Terms of Service Modal ==========
+(function () {
+    'use strict';
+    var openBtn = document.getElementById('openTerms');
+    var overlay = document.getElementById('termsModalOverlay');
+    var closeBtn = document.getElementById('termsModalClose');
+    if (!openBtn || !overlay) return;
+
+    openBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        overlay.style.display = 'flex';
+    });
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function () {
+            overlay.style.display = 'none';
+        });
+    }
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) overlay.style.display = 'none';
+    });
+})();
+
+// ========== Disclaimer Modal ==========
+(function () {
+    'use strict';
+    var openBtn = document.getElementById('openDisclaimer');
+    var overlay = document.getElementById('disclaimerModalOverlay');
+    var closeBtn = document.getElementById('disclaimerModalClose');
+    if (!openBtn || !overlay) return;
+
+    openBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        overlay.style.display = 'flex';
+    });
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function () {
+            overlay.style.display = 'none';
+        });
+    }
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) overlay.style.display = 'none';
+    });
+})();

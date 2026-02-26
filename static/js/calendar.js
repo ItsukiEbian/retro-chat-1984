@@ -426,6 +426,8 @@
         return prefix + ' ' + data.time_slot + ' 〜 ' + endTime;
     }
 
+    var _resCheckTimer = null;
+
     function refreshNextReservation() {
         if (!window.IS_LOGGED_IN) return;
         var card = document.getElementById('homeNextReservation');
@@ -440,7 +442,10 @@
                     if (timeEl) timeEl.textContent = display || '—';
                     card.classList.remove('home-next-res-empty');
                     var enterBtn = card.querySelector('.home-next-res-enter-btn');
-                    if (enterBtn) enterBtn.style.display = '';
+                    if (enterBtn) {
+                        enterBtn.style.display = '';
+                        updateEnterBtnState(enterBtn, data);
+                    }
                     var emptyMsg = card.querySelector('.home-next-res-empty-msg');
                     if (emptyMsg) emptyMsg.remove();
                 } else {
@@ -462,6 +467,37 @@
                 }
             })
             .catch(function () { });
+    }
+
+    function updateEnterBtnState(btn, data) {
+        clearInterval(_resCheckTimer);
+        var spanEl = btn.querySelector('span:last-child') || btn.lastElementChild;
+
+        function check() {
+            var now = new Date();
+            var parts = data.date.split('-');
+            var tsParts = data.time_slot.split(':');
+            var slotStart = new Date(
+                parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]),
+                parseInt(tsParts[0], 10), parseInt(tsParts[1], 10), 0
+            );
+            var diff = slotStart.getTime() - now.getTime();
+            var minsBefore = diff / 60000;
+
+            if (minsBefore <= 10) {
+                btn.disabled = false;
+                btn.classList.remove('home-next-res-enter-disabled');
+                if (spanEl) spanEl.textContent = '自習室に入る';
+                clearInterval(_resCheckTimer);
+            } else {
+                btn.disabled = true;
+                btn.classList.add('home-next-res-enter-disabled');
+                if (spanEl) spanEl.textContent = '開始10分前から入室可能';
+            }
+        }
+
+        check();
+        _resCheckTimer = setInterval(check, 30000);
     }
 
     window.refreshNextReservation = refreshNextReservation;
