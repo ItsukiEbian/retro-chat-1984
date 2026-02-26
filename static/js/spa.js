@@ -633,13 +633,11 @@
     logoutBtn.addEventListener('click', function (e) {
         e.preventDefault();
         if (confirm('ログアウトしますか？')) {
-            fetch('/logout', { method: 'POST', credentials: 'same-origin' })
-                .then(function () {
-                    window.location.href = '/';
-                })
-                .catch(function () {
-                    // Even if fetch fails, force navigate to logout via GET
-                    window.location.href = '/logout';
+            fetch('/api/logout', { method: 'POST', credentials: 'same-origin' })
+                .finally(function () {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.replace('/');
                 });
         }
     });

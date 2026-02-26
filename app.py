@@ -325,7 +325,7 @@ def index():
 @app.route('/login/google')
 def login_google():
     redirect_uri = url_for('google_authorized', _external=True)
-    return oauth.google.authorize_redirect(redirect_uri)
+    return oauth.google.authorize_redirect(redirect_uri, prompt='select_account')
 
 
 @app.route('/login/google/authorized')
@@ -1213,12 +1213,12 @@ def room_by_id(room_id):
     return redirect(url_for('room'))
 
 
-@app.route('/logout', methods=['GET', 'POST'])
-def logout():
+@app.route('/api/logout', methods=['POST'])
+def api_logout():
     record_study_time_if_entered()
     logout_user()
     session.clear()
-    return redirect(url_for('index'))
+    return jsonify({"success": True}), 200
 
 
 # ---------- Stripe 決済 ----------
