@@ -948,36 +948,64 @@ def api_admin_meeting_reservations():
 @app.route('/admin/api/meetings', methods=['GET'])
 @login_required
 def admin_api_meetings_fullcalendar():
-    """管理者向け: FullCalendar形式で全面談予約を返す"""
+    """管理者向け: FullCalendar形式で面談＋自習室の全予約を返す"""
     if session.get('role') != 'admin':
         return jsonify({'ok': False, 'error': 'forbidden'}), 403
-    rows = MeetingReservation.query.order_by(
+    events = []
+
+    # --- 面談予約 ---
+    meetings = MeetingReservation.query.order_by(
         MeetingReservation.date, MeetingReservation.time_slot
     ).all()
-    events = []
-    for r in rows:
+    for r in meetings:
         u = User.query.get(r.user_id)
         user_name = u.name if u else '不明'
-        # Build ISO start/end from date + time_slot (HH:MM, 30min duration)
         start_str = r.date + 'T' + r.time_slot + ':00'
-        # Calculate end: add 30 minutes
         h, m = map(int, r.time_slot.split(':'))
         end_m = m + 30
         end_h = h + end_m // 60
         end_m = end_m % 60
         end_str = r.date + 'T{:02d}:{:02d}:00'.format(end_h, end_m)
         events.append({
-            'id': r.id,
-            'title': user_name,
+            'id': 'meeting_' + str(r.id),
+            'title': '面談: ' + user_name,
             'start': start_str,
             'end': end_str,
+            'color': '#c5a880',
             'extendedProps': {
+                'type': 'meeting',
                 'room_token': r.room_token,
                 'status': r.status,
                 'meeting_type': r.meeting_type,
                 'user_name': user_name
             }
         })
+
+    # --- 自習室予約 ---
+    studies = StudyReservation.query.order_by(
+        StudyReservation.date, StudyReservation.time_slot
+    ).all()
+    for r in studies:
+        u = User.query.get(r.user_id)
+        user_name = u.name if u else '不明'
+        start_str = r.date + 'T' + r.time_slot + ':00'
+        h, m = map(int, r.time_slot.split(':'))
+        end_m = m + 30
+        end_h = h + end_m // 60
+        end_m = end_m % 60
+        end_str = r.date + 'T{:02d}:{:02d}:00'.format(end_h, end_m)
+        events.append({
+            'id': 'study_' + str(r.id),
+            'title': '自習: ' + user_name,
+            'start': start_str,
+            'end': end_str,
+            'color': '#42a5f5',
+            'extendedProps': {
+                'type': 'study',
+                'user_name': user_name
+            }
+        })
+
     return jsonify(events)
 
 

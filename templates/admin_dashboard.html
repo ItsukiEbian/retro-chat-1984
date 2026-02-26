@@ -521,76 +521,141 @@
             white-space: nowrap;
         }
 
-        /* ===== FullCalendar dark theme overrides ===== */
+        /* ===== FullCalendar White Theme ===== */
         #adminCalendar {
-            background: var(--admin-card);
-            border: 1px solid var(--admin-border);
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
             border-radius: 12px;
             padding: 16px;
         }
 
         #adminCalendar .fc {
-            color: var(--admin-text);
+            color: #333;
+            --fc-page-bg-color: #ffffff;
+            --fc-neutral-bg-color: #f5f5f5;
+            --fc-border-color: #ddd;
+            --fc-neutral-text-color: #555;
+            --fc-today-bg-color: #fffde7;
         }
 
         #adminCalendar .fc-toolbar-title {
             font-family: 'Noto Serif JP', serif;
             font-size: 18px !important;
-            color: var(--admin-accent);
+            color: #1a2b4c;
         }
 
         #adminCalendar .fc-button {
-            background: rgba(255, 255, 255, 0.06) !important;
-            border: 1px solid var(--admin-border) !important;
-            color: var(--admin-text) !important;
+            background: #f5f5f5 !important;
+            border: 1px solid #ccc !important;
+            color: #333 !important;
             font-size: 13px !important;
             text-transform: none !important;
+            box-shadow: none !important;
         }
 
         #adminCalendar .fc-button:hover {
-            background: rgba(255, 255, 255, 0.12) !important;
+            background: #e8e8e8 !important;
         }
 
         #adminCalendar .fc-button-active {
-            background: var(--admin-accent) !important;
-            color: #0f1117 !important;
-        }
-
-        #adminCalendar .fc-daygrid-day,
-        #adminCalendar .fc-timegrid-slot {
-            border-color: var(--admin-border) !important;
-        }
-
-        #adminCalendar .fc-day-today {
-            background: rgba(197, 168, 128, 0.08) !important;
+            background: #c5a880 !important;
+            border-color: #c5a880 !important;
+            color: #fff !important;
         }
 
         #adminCalendar .fc-col-header-cell {
-            background: rgba(255, 255, 255, 0.03);
-            border-color: var(--admin-border) !important;
-            color: var(--admin-text-secondary);
+            background: #fafafa;
+            color: #555;
             font-size: 13px;
+            font-weight: 500;
             padding: 8px 0;
         }
 
         #adminCalendar .fc-event {
-            background: var(--admin-accent) !important;
             border: none !important;
-            color: #0f1117 !important;
             font-weight: 500;
             font-size: 12px;
             border-radius: 4px;
-            padding: 2px 4px;
+            padding: 2px 6px;
             cursor: pointer;
         }
 
-        #adminCalendar .fc-scrollgrid {
-            border-color: var(--admin-border) !important;
+        #adminCalendar .fc-daygrid-day-number {
+            color: #333;
         }
 
-        #adminCalendar .fc-theme-standard td,
-        #adminCalendar .fc-theme-standard th {
-            border-color: var(--admin-border) !important;
+        #adminCalendar .fc-timegrid-slot-label {
+            color: #777;
+        }
+
+        /* Calendar filter toggles */
+        .cal-filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .cal-filter-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 2px solid transparent;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .cal-filter-btn .cal-filter-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .cal-filter-btn--meeting {
+            background: rgba(197, 168, 128, 0.15);
+            color: #a08050;
+            border-color: #c5a880;
+        }
+
+        .cal-filter-btn--meeting .cal-filter-dot {
+            background: #c5a880;
+        }
+
+        .cal-filter-btn--meeting.off {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--admin-text-tertiary);
+            border-color: var(--admin-border);
+            opacity: 0.5;
+        }
+
+        .cal-filter-btn--meeting.off .cal-filter-dot {
+            background: var(--admin-text-tertiary);
+        }
+
+        .cal-filter-btn--study {
+            background: rgba(66, 165, 245, 0.15);
+            color: #2979c4;
+            border-color: #42a5f5;
+        }
+
+        .cal-filter-btn--study .cal-filter-dot {
+            background: #42a5f5;
+        }
+
+        .cal-filter-btn--study.off {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--admin-text-tertiary);
+            border-color: var(--admin-border);
+            opacity: 0.5;
+        }
+
+        .cal-filter-btn--study.off .cal-filter-dot {
+            background: var(--admin-text-tertiary);
         }
 
         /* Meeting Detail Modal */
@@ -656,8 +721,8 @@
                 <span>生徒・学習ルート管理</span>
             </button>
             <button class="admin-nav-item" data-panel="meetings" type="button">
-                <span class="material-symbols-outlined">event</span>
-                <span>面談スケジュール管理</span>
+                <span class="material-symbols-outlined">calendar_month</span>
+                <span>カレンダー</span>
             </button>
             <button class="admin-nav-item" data-panel="notifications" type="button">
                 <span class="material-symbols-outlined">notifications</span>
@@ -697,11 +762,19 @@
             </div>
         </div>
 
-        <!-- ===== Panel: Meetings ===== -->
+        <!-- ===== Panel: Calendar ===== -->
         <div class="admin-panel" id="panel-meetings">
             <div class="admin-main-header">
-                <h2>面談スケジュール管理</h2>
-                <p>カレンダーで全生徒の面談予約を確認</p>
+                <h2>予約カレンダー</h2>
+                <p>面談・自習室の予約を確認</p>
+            </div>
+            <div class="cal-filter-bar">
+                <button type="button" class="cal-filter-btn cal-filter-btn--meeting" id="calFilterMeeting">
+                    <span class="cal-filter-dot"></span> 面談
+                </button>
+                <button type="button" class="cal-filter-btn cal-filter-btn--study" id="calFilterStudy">
+                    <span class="cal-filter-dot"></span> 自習室
+                </button>
             </div>
             <div id="adminCalendar"></div>
         </div>
@@ -943,8 +1016,12 @@
             }).catch(function () { btn.disabled = false; btn.querySelector('span:last-child').textContent = '保存する'; alert('通信エラー'); });
         });
 
-        // ===== Meetings (FullCalendar) =====
+        // ===== Calendar (FullCalendar) =====
         var adminCalendar = null;
+        var calAllEvents = [];
+        var showMeeting = true;
+        var showStudy = true;
+
         function loadMeetings() {
             if (adminCalendar) { adminCalendar.refetchEvents(); return; }
             var calEl = document.getElementById('adminCalendar');
@@ -965,7 +1042,15 @@
                 events: function (info, success, failure) {
                     fetch('/admin/api/meetings')
                         .then(function (r) { return r.json(); })
-                        .then(success)
+                        .then(function (data) {
+                            calAllEvents = data;
+                            success(data.filter(function (ev) {
+                                var t = ev.extendedProps && ev.extendedProps.type;
+                                if (t === 'meeting' && !showMeeting) return false;
+                                if (t === 'study' && !showStudy) return false;
+                                return true;
+                            }));
+                        })
                         .catch(failure);
                 },
                 eventClick: function (info) {
@@ -979,14 +1064,34 @@
                     timeStr += ('0' + start.getHours()).slice(-2) + ':' + ('0' + start.getMinutes()).slice(-2);
                     if (end) timeStr += ' 〜 ' + ('0' + end.getHours()).slice(-2) + ':' + ('0' + end.getMinutes()).slice(-2);
                     document.getElementById('meetingModalTime').textContent = timeStr;
-                    document.getElementById('meetingModalStatus').textContent = props.status || '--';
-                    document.getElementById('meetingModalType').textContent = props.meeting_type === 'initial' ? '初回面談' : '通常面談';
-                    document.getElementById('meetingModalEnterBtn').href = '/meeting/' + props.room_token;
+
+                    if (props.type === 'meeting') {
+                        document.getElementById('meetingModalStatus').textContent = props.status || '--';
+                        document.getElementById('meetingModalType').textContent = props.meeting_type === 'initial' ? '初回面談' : '通常面談';
+                        document.getElementById('meetingModalEnterBtn').href = '/meeting/' + props.room_token;
+                        document.getElementById('meetingModalEnterBtn').style.display = '';
+                    } else {
+                        document.getElementById('meetingModalStatus').textContent = '--';
+                        document.getElementById('meetingModalType').textContent = '自習室予約';
+                        document.getElementById('meetingModalEnterBtn').style.display = 'none';
+                    }
                     document.getElementById('meetingModalOverlay').classList.add('visible');
                 }
             });
             adminCalendar.render();
         }
+
+        // Toggle filter buttons
+        document.getElementById('calFilterMeeting').addEventListener('click', function () {
+            showMeeting = !showMeeting;
+            this.classList.toggle('off', !showMeeting);
+            if (adminCalendar) adminCalendar.refetchEvents();
+        });
+        document.getElementById('calFilterStudy').addEventListener('click', function () {
+            showStudy = !showStudy;
+            this.classList.toggle('off', !showStudy);
+            if (adminCalendar) adminCalendar.refetchEvents();
+        });
 
         // Meeting modal close
         document.getElementById('meetingModalClose').addEventListener('click', function () {
