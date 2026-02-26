@@ -28,8 +28,7 @@ load_dotenv()
 # ---------- Stripe 初期設定 ----------
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
 STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', '')
-STRIPE_PRICE_ID = os.environ.get('STRIPE_PRICE_ID', '')
-STRIPE_PRICE_ID_STANDARD = os.environ.get('STRIPE_PRICE_ID_STANDARD', '') or STRIPE_PRICE_ID or 'price_1T4w1yPGu6k4Ef94QUpP17yA'
+STRIPE_PRICE_ID_STANDARD = os.environ.get('STRIPE_PRICE_ID_STANDARD', '') or 'price_1T4w1yPGu6k4Ef94QUpP17yA'
 STRIPE_PRICE_ID_PRO = os.environ.get('STRIPE_PRICE_ID_PRO', '') or 'price_1T4w2aPGu6k4Ef94A9Tn9jaV'
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 
@@ -1239,7 +1238,7 @@ def create_checkout_session():
             client_reference_id=str(current_user.id),
             customer_email=current_user.email,
             success_url=url_for('dashboard', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
-            cancel_url=url_for('subscription_page', _external=True) + '?canceled=true',
+            cancel_url=url_for('dashboard', _external=True) + '?canceled=true',
         )
         return redirect(checkout_session.url, code=303)
     except Exception as e:
@@ -1264,7 +1263,7 @@ def api_create_checkout_session():
             client_reference_id=str(current_user.id),
             customer_email=current_user.email,
             success_url=url_for('dashboard', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
-            cancel_url=url_for('subscription_page', _external=True) + '?canceled=true',
+            cancel_url=url_for('dashboard', _external=True) + '?canceled=true',
         )
         return jsonify({'ok': True, 'url': checkout_session.url})
     except Exception as e:
