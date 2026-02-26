@@ -6170,21 +6170,38 @@ body[data-room-context="private"] #mainRoomContent {
    Entry Without Reservation Card
    ============================================ */
 .entry-no-reservation-card {
-    background: var(--surface-primary);
+    background: #ffffff;
     border: 1px solid var(--border-subtle);
     border-radius: 14px;
-    padding: 20px;
+    padding: 24px 20px;
     margin-top: 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.entry-no-reservation-card .spa-home-enter-btn {
+    background: var(--accent);
+    color: var(--primary);
+    border: none;
+    border-radius: 10px;
+}
+
+.entry-no-reservation-card .spa-home-enter-btn:hover {
+    background: #b89970;
+}
+
+.entry-no-reservation-card .spa-home-enter-icon,
+.entry-no-reservation-card .spa-home-enter-icon .material-symbols-outlined {
+    color: var(--primary);
 }
 
 .spa-home-enter-note {
     font-size: 12px;
-    line-height: 1.6;
-    color: var(--text-tertiary);
+    line-height: 1.7;
+    color: #666;
     text-align: center;
     margin: 0;
 }
