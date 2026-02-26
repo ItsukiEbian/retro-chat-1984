@@ -625,6 +625,10 @@ def api_get_reservations():
 @app.route('/api/reservations', methods=['POST'])
 @login_required
 def api_create_reservations():
+    # Block free-plan users from creating reservations
+    if not current_user.is_active_subscription:
+        return jsonify({'ok': False, 'error': 'Premium plan required'}), 403
+
     data = request.get_json(silent=True) or {}
     slots = data.get('slots', [])
     if not slots:
@@ -704,15 +708,12 @@ def api_delete_reservations():
 def api_next_reservation():
     now = datetime_type.now()
     today_s = now.strftime('%Y-%m-%d')
-    # 現在時刻の30分前を基準にすると、まだ進行中のスロットも拾える
-    # スロットの終了時刻 = 開始 + 30分 なので、開始時刻 > (現在 - 30分) で判定
-    from datetime import timedelta as td
-    cutoff = (now - td(minutes=30)).strftime('%H:%M')
+    current_time = now.strftime('%H:%M')
 
     next_today = StudyReservation.query.filter(
         StudyReservation.user_id == current_user.id,
         StudyReservation.date == today_s,
-        StudyReservation.time_slot > cutoff
+        StudyReservation.time_slot >= current_time
     ).order_by(StudyReservation.time_slot).first()
 
     if next_today:

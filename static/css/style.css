@@ -6317,3 +6317,70 @@ body[data-room-context="private"] #mainRoomContent {
     background: var(--primary-hover);
     transform: translateY(-1px);
 }
+
+/* ===== Profile Plan Section ===== */
+.profile-plan-area {
+    margin-bottom: 24px;
+}
+
+.profile-plan-card {
+    background: var(--card-bg, #fff);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--border-light, #eee);
+}
+
+.profile-plan-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.profile-plan-name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--primary, #1a1a2e);
+    white-space: nowrap;
+    word-break: keep-all;
+    line-height: 1.4;
+}
+
+.profile-plan-status {
+    font-size: 0.85rem;
+    color: #666;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+    line-height: 1.5;
+}
+
+.profile-plan-action {
+    margin-top: 16px;
+    width: 100%;
+}
+
+.profile-plan-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--primary, #1a1a2e);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.profile-plan-btn:hover {
+    background: var(--primary-hover, #16213e);
+    transform: translateY(-1px);
+}
+
+.profile-plan-btn .material-symbols-outlined {
+    font-size: 18px;
+}

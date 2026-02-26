@@ -170,6 +170,19 @@
                 return;
             }
 
+            // Block non-Pro users from route/compass tab
+            if (section === 'route' && window.PLAN_TYPE !== 'pro') {
+                var lockedOvl = document.getElementById('studyLockedOverlay');
+                if (lockedOvl) {
+                    var descEl = lockedOvl.querySelector('.locked-overlay-desc');
+                    if (descEl) descEl.textContent = 'あなた専用の学習ルート作成や、メンターとの定期面談を利用するには、Proプランへのアップグレードが必要です。';
+                    var titleEl = lockedOvl.querySelector('.overlay-card-header h1');
+                    if (titleEl) titleEl.textContent = 'この機能はProプラン限定です';
+                    lockedOvl.style.display = 'flex';
+                }
+                return;
+            }
+
             switchToSection(section);
         });
     });
@@ -470,6 +483,13 @@
     overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
 
     btn.addEventListener('click', function () {
+        // Block free-plan users
+        var isFree = !window.IS_SUBSCRIBED || !window.PLAN_TYPE || window.PLAN_TYPE === 'free' || window.SUBSCRIPTION_STATUS === 'none';
+        if (isFree) {
+            var lockedOverlay = document.getElementById('studyLockedOverlay');
+            if (lockedOverlay) lockedOverlay.style.display = 'flex';
+            return;
+        }
         bodyEl.innerHTML = '<p style="color:var(--text-tertiary);text-align:center;padding:24px 0">読み込み中…</p>';
         openModal();
 
@@ -589,16 +609,21 @@
     function checkPaywalls() {
         if (!window.IS_LOGGED_IN) return;
 
-        // Ensure accurate check for free users
-        var isFreeUser = !window.PLAN_TYPE || window.PLAN_TYPE === 'free' || window.SUBSCRIPTION_STATUS === 'canceled' || window.SUBSCRIPTION_STATUS === 'none';
+        // Route section requires Pro plan (not just any paid plan)
+        var isNotPro = window.PLAN_TYPE !== 'pro';
 
         var sectionRoute = document.getElementById('section-route');
         var routeOverlay = document.getElementById('routeLockedOverlay');
 
         if (sectionRoute && routeOverlay) {
-            if (isFreeUser) {
+            if (isNotPro) {
                 sectionRoute.classList.add('is-locked');
                 routeOverlay.style.display = 'flex';
+                // Update overlay text to Pro-specific message
+                var overlayTitle = routeOverlay.querySelector('.locked-overlay-title');
+                var overlayDesc = routeOverlay.querySelector('.locked-overlay-desc');
+                if (overlayTitle) overlayTitle.textContent = 'この機能はProプラン限定です';
+                if (overlayDesc) overlayDesc.textContent = 'あなた専用の学習ルート作成や、メンターとの定期面談を利用するには、Proプランへのアップグレードが必要です。';
             } else {
                 sectionRoute.classList.remove('is-locked');
                 routeOverlay.style.display = 'none';
@@ -633,3 +658,29 @@
         }
     });
 })();
+
+// ========== Checkout Button BFCache Reset ==========
+window.addEventListener('pageshow', function (event) {
+    if (!event.persisted) return; // Only act on BFCache restore
+    var checkoutBtns = document.querySelectorAll('.js-checkout-btn');
+    checkoutBtns.forEach(function (btn) {
+        btn.disabled = false;
+        btn.style.opacity = '';
+        var plan = btn.getAttribute('data-plan');
+        if (plan === 'standard') {
+            btn.innerHTML =
+                '<span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">' +
+                '<span style="font-size:14px;font-weight:600">Standardプランを7日間無料で試す</span>' +
+                '<span style="font-size:11px;opacity:0.8">月額 24,800円（税込）</span>' +
+                '</span>' +
+                '<span class="material-symbols-outlined">arrow_forward</span>';
+        } else if (plan === 'pro') {
+            btn.innerHTML =
+                '<span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">' +
+                '<span style="font-size:14px;font-weight:600">Proプランを7日間無料で試す</span>' +
+                '<span style="font-size:11px;opacity:0.7">月額 49,800円（税込）</span>' +
+                '</span>' +
+                '<span class="material-symbols-outlined">arrow_forward</span>';
+        }
+    });
+});

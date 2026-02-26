@@ -247,6 +247,13 @@
 
             (function (idx, locked, isToday_, isFuture_, reserved, key, pastTime) {
                 slot.addEventListener('click', function () {
+                    // Block free-plan users from reserving
+                    var isFree = !window.IS_SUBSCRIBED || !window.PLAN_TYPE || window.PLAN_TYPE === 'free' || window.SUBSCRIPTION_STATUS === 'none';
+                    if (isFree) {
+                        var lockedOverlay = document.getElementById('studyLockedOverlay');
+                        if (lockedOverlay) lockedOverlay.style.display = 'flex';
+                        return;
+                    }
                     if (locked || pastTime) {
                         showToast('過去の時間は予約できません。');
                         return;
