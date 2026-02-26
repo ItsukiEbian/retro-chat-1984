@@ -235,12 +235,8 @@
     }
 
     // ---- Study Room Locked Modal ----
-    var studyLockedCloseBtn = document.getElementById('studyLockedCloseBtn');
-    var studyLockedPlanBtn = document.getElementById('studyLockedPlanBtn');
 
-    if (studyLockedCloseBtn) {
-        studyLockedCloseBtn.addEventListener('click', closeStudyLockedModal);
-    }
+
 
     if (studyLockedOverlay) {
         studyLockedOverlay.addEventListener('click', function (e) {
@@ -248,6 +244,7 @@
         });
     }
 
+    var studyLockedPlanBtn = document.getElementById('studyLockedPlanBtn');
     if (studyLockedPlanBtn) {
         studyLockedPlanBtn.addEventListener('click', function () {
             closeStudyLockedModal();
