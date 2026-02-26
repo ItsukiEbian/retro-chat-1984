@@ -581,6 +581,7 @@
                 <div class="profile-plan-area">
                     <h2 class="profile-section-title">ご契約プラン</h2>
                     <div class="profile-plan-card">
+                        {% if subscription_status in ['active', 'trialing', 'canceled', 'past_due'] %}
                         <div class="profile-plan-info">
                             <span class="profile-plan-name">
                                 {% if plan_type == 'pro' %}Proプラン
@@ -601,11 +602,10 @@
                                 {% elif subscription_status == 'past_due' %}
                                 <span class="material-symbols-outlined"
                                     style="font-size:14px;color:#ff9800">warning</span> 支払い遅延
-                                {% else %}
-                                未加入
                                 {% endif %}
                             </span>
                         </div>
+                        {% endif %}
 
                         {% if subscription_status in ['active', 'trialing'] %}
                         {# ── 有料プラン: カスタマーポータルへ ── #}
@@ -622,7 +622,7 @@
                                 style="background:var(--accent);color:var(--primary);border-radius:10px;padding:14px 18px;font-size:14px;font-weight:500;border:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;width:100%">
                                 <span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
                                     <span style="font-size:14px;font-weight:600">Standardプランを7日間無料で試す</span>
-                                    <span style="font-size:11px;opacity:0.8">月額 980円（税込）</span>
+                                    <span style="font-size:11px;opacity:0.8">月額 24,800円（税込）</span>
                                 </span>
                                 <span class="material-symbols-outlined">arrow_forward</span>
                             </button>
@@ -630,7 +630,7 @@
                                 style="background:var(--primary);color:#fff;border-radius:10px;padding:14px 18px;font-size:14px;font-weight:500;border:2px solid var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:space-between;width:100%">
                                 <span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
                                     <span style="font-size:14px;font-weight:600">Proプランを7日間無料で試す</span>
-                                    <span style="font-size:11px;opacity:0.7">月額 1,980円（税込）</span>
+                                    <span style="font-size:11px;opacity:0.7">月額 49,800円（税込）</span>
                                 </span>
                                 <span class="material-symbols-outlined">arrow_forward</span>
                             </button>
