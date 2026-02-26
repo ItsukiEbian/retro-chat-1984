@@ -606,37 +606,14 @@
 (function () {
     'use strict';
 
-    function checkPaywalls() {
-        if (!window.IS_LOGGED_IN) return;
-
-        // Route section requires Pro plan (not just any paid plan)
-        var isNotPro = window.PLAN_TYPE !== 'pro';
-
-        var sectionRoute = document.getElementById('section-route');
-        var routeOverlay = document.getElementById('routeLockedOverlay');
-
-        if (sectionRoute && routeOverlay) {
-            if (isNotPro) {
-                sectionRoute.classList.add('is-locked');
-                routeOverlay.style.display = 'flex';
-            } else {
-                sectionRoute.classList.remove('is-locked');
-                routeOverlay.style.display = 'none';
-            }
-        }
-    }
-
-    // Run on init
-    checkPaywalls();
-
-    // Handle overlay button click to jump to profile settings
-    var lockedOverlayBtn = document.getElementById('lockedOverlayBtn');
-    if (lockedOverlayBtn) {
-        lockedOverlayBtn.addEventListener('click', function () {
+    // Handle "Plan Confirmation" button on studyLockedOverlay
+    var studyLockedPlanBtn = document.getElementById('studyLockedPlanBtn');
+    if (studyLockedPlanBtn) {
+        studyLockedPlanBtn.addEventListener('click', function () {
+            var overlay = document.getElementById('studyLockedOverlay');
+            if (overlay) overlay.style.display = 'none';
             var profileNavBtn = document.querySelector('.spa-nav-item[data-section="profile"]');
-            if (profileNavBtn) {
-                profileNavBtn.click();
-            }
+            if (profileNavBtn) profileNavBtn.click();
         });
     }
 })();

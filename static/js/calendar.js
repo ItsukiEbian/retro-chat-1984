@@ -127,7 +127,7 @@
             cell.appendChild(day);
             cell.appendChild(month);
 
-            cell.addEventListener('click', function () { selectDate(d); });
+            cell.addEventListener('click', function (e) { e.stopPropagation(); selectDate(d); });
             dateStrip.appendChild(cell);
         });
 
@@ -523,19 +523,24 @@
     (function () {
         var wrap = document.querySelector('.cal-date-strip-wrap');
         if (!wrap) return;
-        var startX = 0, startY = 0, endX = 0, endY = 0;
+        var startX = 0, startY = 0, endX = 0, endY = 0, moved = false;
         wrap.addEventListener('touchstart', function (e) {
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
+            endX = startX;
+            endY = startY;
+            moved = false;
         }, { passive: true });
         wrap.addEventListener('touchmove', function (e) {
             endX = e.touches[0].clientX;
             endY = e.touches[0].clientY;
+            moved = true;
         }, { passive: true });
         wrap.addEventListener('touchend', function () {
+            if (!moved) { startX = startY = endX = endY = 0; return; }
             var dx = endX - startX;
             var dy = endY - startY;
-            if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+            if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2) {
                 if (dx < 0 && nextBtn) nextBtn.click();
                 else if (dx > 0 && prevBtn) prevBtn.click();
             }
