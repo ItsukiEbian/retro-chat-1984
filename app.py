@@ -1232,7 +1232,7 @@ def create_checkout_session():
             payment_method_types=['card'],
             mode='subscription',
             line_items=[{
-                'price': STRIPE_PRICE_ID,
+                'price': STRIPE_PRICE_ID_STANDARD,
                 'quantity': 1,
             }],
             subscription_data={'trial_period_days': 7},
