@@ -635,7 +635,7 @@
         if (confirm('ログアウトしますか？')) {
             localStorage.clear();
             sessionStorage.clear();
-            window.location.href = '/logout';
+            window.location.href = '/logout?t=' + new Date().getTime();
         }
     });
 })();

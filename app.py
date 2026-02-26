@@ -1220,6 +1220,7 @@ def logout():
     session.clear()
 
     response = make_response(redirect(url_for('index')))
+    response.set_cookie('session', '', expires=0)
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
