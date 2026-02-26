@@ -4282,6 +4282,7 @@ body[data-room-context="private"] #mainRoomContent {
     gap: 8px;
     margin-bottom: 24px;
     flex-shrink: 0;
+    touch-action: pan-y;
 }
 
 .cal-date-arrow {
@@ -5922,11 +5923,11 @@ body[data-room-context="private"] #mainRoomContent {
 .report-modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.6);
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 600;
+    z-index: 2000;
 }
 
 .report-modal-overlay.visible {
@@ -5934,35 +5935,36 @@ body[data-room-context="private"] #mainRoomContent {
 }
 
 .report-modal {
-    background: var(--surface-primary);
-    border: 1px solid var(--border-subtle);
-    border-radius: 14px;
+    background-color: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 16px;
     width: calc(100% - 32px);
     max-width: 440px;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    z-index: 2001;
 }
 
 .report-modal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 24px 12px;
-    border-bottom: 1px solid var(--border-subtle);
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #eee;
 }
 
 .report-modal-title {
     font-family: var(--font-heading);
     font-size: 18px;
-    font-weight: 500;
-    color: var(--text-primary);
+    font-weight: 600;
+    color: #1a2b4c;
 }
 
 .report-modal-close {
     background: none;
     border: none;
-    color: var(--text-tertiary);
+    color: #999;
     cursor: pointer;
     padding: 4px;
     font-size: 22px;
@@ -5970,22 +5972,23 @@ body[data-room-context="private"] #mainRoomContent {
 }
 
 .report-modal-close:hover {
-    color: var(--text-primary);
+    color: #333;
 }
 
 .report-modal-body {
     padding: 24px;
+    background-color: #ffffff;
 }
 
 /* Empty State */
 .report-modal-empty {
     text-align: center;
-    padding: 12px 0;
+    padding: 32px 0;
 }
 
 .report-modal-empty-icon {
     font-size: 48px;
-    color: var(--primary);
+    color: var(--primary, #4f6dca);
     opacity: 0.35;
     display: block;
     margin-bottom: 16px;
@@ -5995,22 +5998,21 @@ body[data-room-context="private"] #mainRoomContent {
     font-family: var(--font-heading);
     font-size: 14px;
     line-height: 1.8;
-    color: var(--text-secondary);
+    color: #555;
     margin-bottom: 24px;
 }
 
 /* Stats Grid */
 .report-modal-stats {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
-    justify-content: center;
 }
 
 .report-modal-stat {
-    flex: 1;
-    background: var(--bg-secondary, #faf8f0);
-    border: 1px solid var(--border-subtle);
-    border-radius: 10px;
+    background: #f8f8f5;
+    border: 1px solid #e8e8e3;
+    border-radius: 12px;
     padding: 16px 12px;
     text-align: center;
 }
@@ -6018,7 +6020,7 @@ body[data-room-context="private"] #mainRoomContent {
 .report-modal-stat-label {
     display: block;
     font-size: 12px;
-    color: var(--text-tertiary);
+    color: #888;
     margin-bottom: 6px;
 }
 
@@ -6026,8 +6028,8 @@ body[data-room-context="private"] #mainRoomContent {
     display: block;
     font-family: var(--font-heading);
     font-size: 20px;
-    font-weight: 500;
-    color: var(--text-primary);
+    font-weight: 600;
+    color: #1a2b4c;
 }
 
 /* Data State */
@@ -6039,7 +6041,7 @@ body[data-room-context="private"] #mainRoomContent {
     margin-top: 20px;
     font-size: 13px;
     line-height: 1.6;
-    color: var(--text-secondary);
+    color: #777;
     text-align: center;
 }
 
@@ -6103,6 +6105,86 @@ body[data-room-context="private"] #mainRoomContent {
 .privacy-list li {
     font-size: 13px;
     line-height: 1.7;
-    color: var(--text-secondary);
+    color: #333;
     margin-bottom: 6px;
+}
+
+/* ============================================
+   Legal Modals (.privacy-modal)
+   ============================================ */
+.report-modal.privacy-modal {
+    background-color: #ffffff;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    z-index: 2001;
+}
+
+.privacy-modal .report-modal-header {
+    flex-shrink: 0;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #eee;
+    background-color: #ffffff;
+}
+
+.privacy-modal-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 20px 24px 28px;
+    background-color: #ffffff;
+}
+
+.privacy-modal-body p {
+    font-size: 13px;
+    color: #333;
+    line-height: 1.8;
+    margin-bottom: 12px;
+}
+
+.privacy-modal-body h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a2b4c;
+    margin-top: 24px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.privacy-modal-body .privacy-list {
+    padding-left: 20px;
+    margin: 8px 0 16px;
+}
+
+.privacy-modal-body .privacy-list li {
+    font-size: 13px;
+    line-height: 1.8;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+/* ============================================
+   Entry Without Reservation Card
+   ============================================ */
+.entry-no-reservation-card {
+    background: var(--surface-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 20px;
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.spa-home-enter-note {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-tertiary);
+    text-align: center;
+    margin: 0;
 }

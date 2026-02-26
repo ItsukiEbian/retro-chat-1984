@@ -510,5 +510,29 @@
         refreshNextReservation();
     }
 
+    // ===== Swipe gesture for week navigation =====
+    (function () {
+        var wrap = document.querySelector('.cal-date-strip-wrap');
+        if (!wrap) return;
+        var startX = 0, startY = 0, endX = 0, endY = 0;
+        wrap.addEventListener('touchstart', function (e) {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        }, { passive: true });
+        wrap.addEventListener('touchmove', function (e) {
+            endX = e.touches[0].clientX;
+            endY = e.touches[0].clientY;
+        }, { passive: true });
+        wrap.addEventListener('touchend', function () {
+            var dx = endX - startX;
+            var dy = endY - startY;
+            if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+                if (dx < 0 && nextBtn) nextBtn.click();
+                else if (dx > 0 && prevBtn) prevBtn.click();
+            }
+            startX = startY = endX = endY = 0;
+        }, { passive: true });
+    })();
+
     init();
 })();

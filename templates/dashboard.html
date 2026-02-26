@@ -181,14 +181,14 @@
                         <span class="spa-home-stat-label">累計学習時間</span>
                         <span class="spa-home-stat-value">{{ total_study_time_display }}</span>
                     </div>
-                    <div class="spa-home-card spa-home-card-action">
-                        <button id="homeEnterStudyBtn" class="spa-home-enter-btn js-enter-study" type="button">
-                            <span class="spa-home-enter-icon"><span
-                                    class="material-symbols-outlined">meeting_room</span></span>
-                            <span>予約なしで入室する</span>
-                        </button>
-                        <p class="spa-home-enter-note">※医大生メンターは予約者を優先して対応するため、質問などに対応できない場合があります。</p>
-                    </div>
+                </div>
+                <div class="entry-no-reservation-card">
+                    <button id="homeEnterStudyBtn" class="spa-home-enter-btn js-enter-study" type="button">
+                        <span class="spa-home-enter-icon"><span
+                                class="material-symbols-outlined">meeting_room</span></span>
+                        <span>予約なしで入室する</span>
+                    </button>
+                    <p class="spa-home-enter-note">※医大生メンターは予約者を優先して対応するため、質問などに対応できない場合があります。</p>
                 </div>
                 <div class="spa-home-links">
                     {% if not current_user.is_authenticated %}

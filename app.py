@@ -945,6 +945,42 @@ def api_admin_meeting_reservations():
     return jsonify(result)
 
 
+@app.route('/admin/api/meetings', methods=['GET'])
+@login_required
+def admin_api_meetings_fullcalendar():
+    """管理者向け: FullCalendar形式で全面談予約を返す"""
+    if session.get('role') != 'admin':
+        return jsonify({'ok': False, 'error': 'forbidden'}), 403
+    rows = MeetingReservation.query.order_by(
+        MeetingReservation.date, MeetingReservation.time_slot
+    ).all()
+    events = []
+    for r in rows:
+        u = User.query.get(r.user_id)
+        user_name = u.name if u else '不明'
+        # Build ISO start/end from date + time_slot (HH:MM, 30min duration)
+        start_str = r.date + 'T' + r.time_slot + ':00'
+        # Calculate end: add 30 minutes
+        h, m = map(int, r.time_slot.split(':'))
+        end_m = m + 30
+        end_h = h + end_m // 60
+        end_m = end_m % 60
+        end_str = r.date + 'T{:02d}:{:02d}:00'.format(end_h, end_m)
+        events.append({
+            'id': r.id,
+            'title': user_name,
+            'start': start_str,
+            'end': end_str,
+            'extendedProps': {
+                'room_token': r.room_token,
+                'status': r.status,
+                'meeting_type': r.meeting_type,
+                'user_name': user_name
+            }
+        })
+    return jsonify(events)
+
+
 # ---------- Monthly Report API ----------
 
 @app.route('/api/monthly_report', methods=['GET'])
