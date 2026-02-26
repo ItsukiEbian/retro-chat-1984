@@ -496,16 +496,21 @@
                 {% endif %}
 
                 <!-- Paywall Overlay -->
-                <div class="locked-overlay" id="routeLockedOverlay" style="display:none">
-                    <div class="locked-overlay-content">
-                        <span class="material-symbols-outlined locked-overlay-icon">lock</span>
-                        <h2 class="locked-overlay-title">この機能は有料プラン限定です</h2>
-                        <p class="locked-overlay-desc">あなた専用の学習ルート作成や、メンターとの定期面談を利用するには、StandardまたはProプランへのアップグレードが必要です。
-                        </p>
-                        <button type="button" class="locked-overlay-btn" id="lockedOverlayBtn">
-                            <span>プランを確認する</span>
-                            <span class="material-symbols-outlined">arrow_forward</span>
-                        </button>
+                <div class="overlay" id="routeLockedOverlay" style="display:none">
+                    <div class="overlay-card study-locked-card">
+                        <div class="overlay-card-header">
+                            <span class="overlay-icon"><span class="material-symbols-outlined">lock</span></span>
+                            <h1 class="route-locked-title">この機能はProプラン限定です</h1>
+                        </div>
+                        <p class="locked-overlay-desc route-locked-desc"
+                            style="margin:0 0 20px;font-size:14px;color:var(--text-secondary);line-height:1.7;">
+                            あなた専用の学習ルート作成や、メンターとの定期面談を利用するには、Proプランへのアップグレードが必要です。</p>
+                        <div class="overlay-card-actions">
+                            <button type="button" class="locked-overlay-btn" id="lockedOverlayBtn">
+                                <span>プランを確認する</span>
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -634,6 +639,23 @@
                                 <span class="material-symbols-outlined">arrow_forward</span>
                             </button>
                         </form>
+
+                        {% if plan_type == 'standard' %}
+                        <div class="profile-upsell-banner">
+                            <div class="profile-upsell-header">
+                                <span class="profile-upsell-crown">👑</span>
+                                <span class="profile-upsell-title">さらに学習を加速させませんか？</span>
+                            </div>
+                            <p class="profile-upsell-desc">Proプランなら、あなた専用の学習ルート作成とメンターとの定期面談が利用可能です。</p>
+                            <form action="{{ url_for('create_portal_session') }}" method="POST"
+                                class="profile-upsell-action">
+                                <button type="submit" class="profile-upsell-btn">
+                                    <span>Proプランにアップグレードする</span>
+                                    <span class="material-symbols-outlined">arrow_forward</span>
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
                         {% else %}
                         {# ── 無料プラン: アップグレードボタン ── #}
                         <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;width:100%">

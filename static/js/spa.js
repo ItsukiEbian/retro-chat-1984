@@ -619,11 +619,6 @@
             if (isNotPro) {
                 sectionRoute.classList.add('is-locked');
                 routeOverlay.style.display = 'flex';
-                // Update overlay text to Pro-specific message
-                var overlayTitle = routeOverlay.querySelector('.locked-overlay-title');
-                var overlayDesc = routeOverlay.querySelector('.locked-overlay-desc');
-                if (overlayTitle) overlayTitle.textContent = 'この機能はProプラン限定です';
-                if (overlayDesc) overlayDesc.textContent = 'あなた専用の学習ルート作成や、メンターとの定期面談を利用するには、Proプランへのアップグレードが必要です。';
             } else {
                 sectionRoute.classList.remove('is-locked');
                 routeOverlay.style.display = 'none';

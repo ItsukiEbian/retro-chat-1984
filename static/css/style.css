@@ -4302,10 +4302,11 @@ body[data-room-context="private"] #mainRoomContent {
 .cal-date-strip-wrap {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     margin-bottom: 24px;
     flex-shrink: 0;
     touch-action: pan-y;
+    position: relative;
 }
 
 .cal-date-arrow {
@@ -4313,14 +4314,20 @@ body[data-room-context="private"] #mainRoomContent {
     align-items: center;
     justify-content: center;
     width: 36px;
+    min-width: 36px;
+    max-width: 36px;
     height: 36px;
     background: transparent;
     border: 1px solid var(--border-subtle);
     border-radius: 0;
     cursor: pointer;
     color: var(--text-secondary);
-    flex-shrink: 0;
+    flex: 0 0 36px;
+    position: relative;
+    z-index: 1;
     transition: border-color 0.2s, color 0.2s;
+    padding: 0;
+    overflow: hidden;
 }
 
 .cal-date-arrow:hover {
@@ -4334,13 +4341,16 @@ body[data-room-context="private"] #mainRoomContent {
 
 .cal-date-strip {
     display: flex;
-    gap: 6px;
+    gap: 4px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     flex: 1;
+    min-width: 0;
     padding: 4px 0;
     justify-content: space-between;
+    position: relative;
+    z-index: 2;
 }
 
 .cal-date-strip::-webkit-scrollbar {
@@ -4352,8 +4362,9 @@ body[data-room-context="private"] #mainRoomContent {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-width: 64px;
-    padding: 12px 8px;
+    min-width: 0;
+    flex: 1 1 0;
+    padding: 10px 4px;
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
     border-radius: 0;
@@ -4362,6 +4373,8 @@ body[data-room-context="private"] #mainRoomContent {
     flex-shrink: 0;
     user-select: none;
     -webkit-user-select: none;
+    position: relative;
+    z-index: 2;
 }
 
 .cal-date-cell:hover {
@@ -6382,5 +6395,69 @@ body[data-room-context="private"] #mainRoomContent {
 }
 
 .profile-plan-btn .material-symbols-outlined {
+    font-size: 18px;
+}
+
+/* ===== Profile Upsell Banner ===== */
+.profile-upsell-banner {
+    margin-top: 16px;
+    padding: 18px;
+    border-radius: 12px;
+    border: 1.5px solid var(--accent, #c9a84c);
+    background: linear-gradient(135deg, rgba(201, 168, 76, 0.06) 0%, rgba(201, 168, 76, 0.02) 100%);
+}
+
+.profile-upsell-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.profile-upsell-crown {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.profile-upsell-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary, #1a1a2e);
+}
+
+.profile-upsell-desc {
+    font-size: 0.82rem;
+    color: var(--text-secondary, #666);
+    line-height: 1.6;
+    margin: 0 0 14px;
+}
+
+.profile-upsell-action {
+    width: 100%;
+}
+
+.profile-upsell-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, var(--accent, #c9a84c), #b8963f);
+    color: var(--primary, #1a1a2e);
+    border: none;
+    border-radius: 10px;
+    padding: 13px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(201, 168, 76, 0.3);
+}
+
+.profile-upsell-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(201, 168, 76, 0.4);
+}
+
+.profile-upsell-btn .material-symbols-outlined {
     font-size: 18px;
 }

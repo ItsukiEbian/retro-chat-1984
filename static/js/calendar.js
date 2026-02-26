@@ -389,14 +389,16 @@
     }
 
     if (prevBtn) {
-        prevBtn.addEventListener('click', function () {
+        prevBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
             weekOffset--;
             renderDateStrip();
         });
     }
 
     if (nextBtn) {
-        nextBtn.addEventListener('click', function () {
+        nextBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
             weekOffset++;
             renderDateStrip();
         });
