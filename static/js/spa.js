@@ -70,7 +70,16 @@
     // ========== Study Room Activation ==========
 
     function isFreeUser() {
-        return !window.IS_SUBSCRIBED || !window.PLAN_TYPE || window.PLAN_TYPE === 'free' || window.SUBSCRIPTION_STATUS === 'none';
+        // Check both JS variable and body data attribute for reliability
+        var planType = window.PLAN_TYPE || document.body.getAttribute('data-plan-type') || 'free';
+        var subStatus = window.SUBSCRIPTION_STATUS || document.body.getAttribute('data-subscription-status') || 'none';
+        // User is NOT free if they have a paid plan with active/trialing status
+        if ((planType === 'standard' || planType === 'pro') && (subStatus === 'active' || subStatus === 'trialing')) {
+            return false;
+        }
+        // Also trust IS_SUBSCRIBED flag
+        if (window.IS_SUBSCRIBED) return false;
+        return true;
     }
 
     function showStudyLockedModal() {
@@ -170,8 +179,16 @@
 
             // ---- Plan-based blocks: MUST be checked BEFORE any section switching ----
 
+            // Notifications, profile, home, calendar are NEVER plan-blocked
+            var freeSections = ['notifications', 'profile', 'home', 'calendar'];
+            if (freeSections.indexOf(section) !== -1) {
+                switchToSection(section);
+                return;
+            }
+
             // Block non-Pro users from route/compass tab
-            if (section === 'route' && window.PLAN_TYPE !== 'pro') {
+            var planType = window.PLAN_TYPE || document.body.getAttribute('data-plan-type') || 'free';
+            if (section === 'route' && planType !== 'pro') {
                 var lockedOvl = document.getElementById('studyLockedOverlay');
                 if (lockedOvl) {
                     var titleEl = lockedOvl.querySelector('.overlay-card-header h1');

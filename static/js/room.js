@@ -27,14 +27,50 @@ const USER_ID = getOrCreateUserId();
 let amHost = false;           // 自分がホストか
 let orderedSlots = [];        // 最大4。各要素は null | { sid, user_name, role, connected, is_host }
 
-const FILTER_FPS = 30;
+const FILTER_FPS = 12;  // Low-load: 12fps canvas capture (was 30)
 
-const rtcConfig = {
+// ICE servers: STUN for discovery + TURN for relay (NAT traversal)
+// TURN is critical when STUN fails (symmetric NAT, mobile networks, etc.)
+var rtcConfig = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-    ]
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        // Free TURN servers (Open Relay Project) as fallback
+        {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        },
+        {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        },
+        {
+            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        }
+    ],
+    iceTransportPolicy: 'all'  // Try direct (srflx) first, then relay (relay)
 };
+
+// Dynamic ICE config: override with server-provided TURN credentials if available
+(function loadIceConfig() {
+    fetch('/api/ice-config').then(function (r) {
+        if (!r.ok) return;
+        return r.json();
+    }).then(function (data) {
+        if (data && data.iceServers && data.iceServers.length > 0) {
+            rtcConfig.iceServers = data.iceServers;
+            console.log('[ICE] Loaded server-provided ICE config:', data.iceServers.length, 'servers');
+        }
+    }).catch(function () {
+        // Use default config if endpoint unavailable
+    });
+})();
 
 let localStream;
 let rawStream;
@@ -213,7 +249,11 @@ async function startSystem() {
         if (statusDiv) statusDiv.innerText = "カメラを起動しています...";
 
         rawStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
+            video: {
+                width: { ideal: 320, max: 480 },
+                height: { ideal: 240, max: 360 },
+                frameRate: { ideal: 10, max: 15 }
+            },
             audio: false
         });
 
@@ -893,12 +933,24 @@ if (handRaiseBtn) {
     handRaiseBtn.addEventListener('click', function () {
         myHandRaised = !myHandRaised;
         handRaiseBtn.setAttribute('aria-pressed', myHandRaised ? 'true' : 'false');
-        handRaiseBtn.classList.toggle('is-active', myHandRaised);
 
-        // Update button text and visual indicator
+        // Explicit class add/remove for reliable toggle
+        if (myHandRaised) {
+            handRaiseBtn.classList.add('is-active');
+        } else {
+            handRaiseBtn.classList.remove('is-active');
+        }
+
+        // Update button text
         var labelEl = handRaiseBtn.querySelector('.control-btn-label');
         if (labelEl) {
-            labelEl.textContent = myHandRaised ? '👑 挙手を下ろす' : '挙手する';
+            labelEl.textContent = myHandRaised ? '挙手を下ろす (Lower Hand)' : '挙手する (Raise Hand)';
+        }
+
+        // Update icon
+        var iconEl = handRaiseBtn.querySelector('.control-btn-icon');
+        if (iconEl) {
+            iconEl.textContent = myHandRaised ? '✊' : '✋';
         }
 
         socket.emit('hand_raise', { raised: myHandRaised });
@@ -1521,4 +1573,61 @@ window.studyRoomIsActive = function () {
         if (studentMosaicOff) applyStudentMosaic();
     });
     observer.observe(videosContainer, { childList: true, subtree: true });
+})();
+
+// ===== Leave Room — full cleanup + redirect =====
+(function () {
+    var leaveBtn = document.getElementById('leaveRoomBtn');
+    if (!leaveBtn) return;
+
+    leaveBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        var exitUrl = leaveBtn.getAttribute('href') || '/room/exit';
+
+        // 1. Stop all media tracks (camera/mic)
+        try {
+            if (typeof rawStream !== 'undefined' && rawStream) {
+                rawStream.getTracks().forEach(function (t) { t.stop(); });
+            }
+            if (typeof localStream !== 'undefined' && localStream) {
+                localStream.getTracks().forEach(function (t) { t.stop(); });
+            }
+            if (typeof privateLocalStream !== 'undefined' && privateLocalStream) {
+                privateLocalStream.getTracks().forEach(function (t) { t.stop(); });
+            }
+        } catch (err) { console.warn('[Leave] media stop error:', err); }
+
+        // 2. Close all RTCPeerConnections
+        try {
+            if (typeof peers !== 'undefined') {
+                Object.keys(peers).forEach(function (sid) {
+                    if (peers[sid] && peers[sid].connection) {
+                        peers[sid].connection.close();
+                    }
+                });
+            }
+            if (typeof privatePeers !== 'undefined') {
+                Object.keys(privatePeers).forEach(function (sid) {
+                    if (privatePeers[sid] && privatePeers[sid].connection) {
+                        privatePeers[sid].connection.close();
+                    }
+                });
+            }
+        } catch (err) { console.warn('[Leave] PC close error:', err); }
+
+        // 3. Notify server
+        try {
+            if (typeof socket !== 'undefined' && socket.connected) {
+                socket.emit('leave_room', {});
+                socket.disconnect();
+            }
+        } catch (err) { console.warn('[Leave] socket error:', err); }
+
+        // 4. Redirect — admin goes to /admin, students to /room/exit (dashboard)
+        var redirectUrl = (typeof ROLE !== 'undefined' && ROLE === 'admin') ? '/admin' : exitUrl;
+        // Small delay to let server process leave event
+        setTimeout(function () {
+            window.location.href = redirectUrl;
+        }, 300);
+    });
 })();

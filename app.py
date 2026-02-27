@@ -510,6 +510,39 @@ def settings():
     )
 
 
+# ---------- ICE Config (STUN/TURN for WebRTC) ----------
+@app.route('/api/ice-config')
+def ice_config():
+    """Return ICE server configuration for WebRTC.
+    If TURN env vars are set, include them. Otherwise return
+    free public TURN so the client can traverse NATs."""
+    servers = [
+        {'urls': 'stun:stun.l.google.com:19302'},
+        {'urls': 'stun:stun1.l.google.com:19302'},
+        {'urls': 'stun:stun2.l.google.com:19302'},
+        {'urls': 'stun:stun3.l.google.com:19302'},
+    ]
+    turn_url = os.environ.get('TURN_URL')
+    turn_user = os.environ.get('TURN_USERNAME')
+    turn_cred = os.environ.get('TURN_CREDENTIAL')
+    if turn_url and turn_user and turn_cred:
+        servers.append({
+            'urls': turn_url,
+            'username': turn_user,
+            'credential': turn_cred
+        })
+    else:
+        servers.extend([
+            {'urls': 'turn:openrelay.metered.ca:80',
+             'username': 'openrelayproject', 'credential': 'openrelayproject'},
+            {'urls': 'turn:openrelay.metered.ca:443',
+             'username': 'openrelayproject', 'credential': 'openrelayproject'},
+            {'urls': 'turn:openrelay.metered.ca:443?transport=tcp',
+             'username': 'openrelayproject', 'credential': 'openrelayproject'},
+        ])
+    return jsonify({'iceServers': servers})
+
+
 @app.route('/room')
 @subscription_required
 def room():
