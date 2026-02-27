@@ -1593,10 +1593,100 @@ h6 {
     border-color: var(--text-tertiary);
 }
 
+/* ---------- Hand Raise Button: Premium Bronze-Gold ---------- */
+.control-btn-hand {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    padding: 10px 22px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    background: var(--bg-card);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(.4, 0, .2, 1);
+}
+
+.control-btn-hand:hover {
+    background: rgba(197, 168, 128, 0.08);
+    border-color: var(--accent-hover);
+    color: var(--accent-hover);
+    box-shadow: 0 2px 8px rgba(197, 168, 128, 0.15);
+}
+
+.control-btn-hand .control-btn-icon {
+    color: var(--accent);
+    transition: color 0.3s, transform 0.3s;
+}
+
+.control-btn-hand:hover .control-btn-icon {
+    color: var(--accent-hover);
+}
+
+/* Active state: raised hand — metallic bronze gradient with hairline finish */
 .control-btn-hand.is-active {
-    background: var(--primary-light);
-    border-color: var(--primary);
-    color: var(--primary);
+    background: linear-gradient(135deg,
+            #b8956a 0%,
+            #c5a880 30%,
+            #d4bc98 50%,
+            #c5a880 70%,
+            #b8956a 100%);
+    background-size: 200% 200%;
+    border-color: #a07840;
+    color: #fff;
+    box-shadow:
+        0 2px 12px rgba(197, 168, 128, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    animation: hand-raise-shimmer 3s ease infinite;
+}
+
+/* Metallic hairline texture overlay */
+.control-btn-hand.is-active::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg,
+            transparent,
+            transparent 2px,
+            rgba(255, 255, 255, 0.04) 2px,
+            rgba(255, 255, 255, 0.04) 4px);
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+.control-btn-hand.is-active .control-btn-icon {
+    color: #fff;
+    transform: scale(1.1);
+}
+
+.control-btn-hand.is-active:hover {
+    background: linear-gradient(135deg,
+            #a07840 0%,
+            #b8956a 30%,
+            #c5a880 50%,
+            #b8956a 70%,
+            #a07840 100%);
+    background-size: 200% 200%;
+    border-color: #8c6a35;
+    box-shadow:
+        0 4px 16px rgba(197, 168, 128, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+@keyframes hand-raise-shimmer {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 .control-btn-icon {
@@ -6527,4 +6617,304 @@ body[data-room-context="private"] #mainRoomContent {
 .profile-upsell-btn .material-symbols-outlined {
     font-size: 18px;
     opacity: 0.85;
+}
+
+/* ---------- FAQ Overlay ---------- */
+.faq-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+    background: var(--bg-page);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    animation: faq-slide-in 0.3s ease;
+}
+
+.faq-overlay.visible {
+    display: flex;
+}
+
+@keyframes faq-slide-in {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.faq-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-sm);
+}
+
+.faq-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.faq-back-btn:hover {
+    color: var(--accent);
+}
+
+.faq-back-btn .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.faq-header-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+}
+
+.faq-body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 24px 20px 80px;
+    max-width: 720px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.faq-category {
+    margin-bottom: 32px;
+}
+
+.faq-category-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 16px;
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--primary);
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--accent);
+}
+
+.faq-cat-icon {
+    font-size: 20px;
+    color: var(--accent);
+}
+
+.faq-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.faq-item {
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.faq-item:last-child {
+    border-bottom: none;
+}
+
+.faq-question {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 16px 4px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--primary);
+    line-height: 1.6;
+    cursor: pointer;
+    list-style: none;
+    transition: color 0.2s;
+}
+
+.faq-question::-webkit-details-marker {
+    display: none;
+}
+
+.faq-question::after {
+    content: '';
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-left: auto;
+    margin-top: 2px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a95a0'%3E%3Cpath d='M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z'/%3E%3C/svg%3E") center / contain no-repeat;
+    transition: transform 0.3s ease;
+}
+
+.faq-item[open]>.faq-question::after {
+    transform: rotate(180deg);
+}
+
+.faq-item[open]>.faq-question {
+    color: var(--accent-hover);
+}
+
+.faq-q-badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    font-family: var(--font-heading);
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--primary);
+    border-radius: 4px;
+    margin-top: 1px;
+}
+
+.faq-answer {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 0 4px 16px 4px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 300;
+    color: #555;
+    line-height: 1.8;
+    animation: faq-answer-in 0.3s ease;
+}
+
+@keyframes faq-answer-in {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.faq-a-badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    font-family: var(--font-heading);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    background: var(--primary-light);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    margin-top: 1px;
+}
+
+/* ---------- Contact Form ---------- */
+.contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.contact-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.contact-label {
+    font-family: var(--font-heading);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+}
+
+.contact-input,
+.contact-textarea {
+    padding: 12px 14px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.contact-input:focus,
+.contact-textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(197, 168, 128, 0.15);
+}
+
+.contact-textarea {
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.7;
+}
+
+.contact-submit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 24px;
+    font-family: var(--font-heading);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--primary);
+    background: linear-gradient(135deg, var(--accent) 0%, #d4b98a 100%);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.contact-submit-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(150, 122, 62, 0.3);
+}
+
+.contact-submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.contact-submit-btn .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.contact-note {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-align: center;
+    margin: 4px 0 0;
+    line-height: 1.5;
 }

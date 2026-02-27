@@ -52,7 +52,7 @@ var original_room_id = null;
 var DEBUG_LOG_ENDPOINT = 'http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60';
 function debugLog(location, message, data, hypothesisId) {
     var payload = { location: location, message: message, data: data || {}, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: hypothesisId || null };
-    fetch(DEBUG_LOG_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(function () {});
+    fetch(DEBUG_LOG_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(function () { });
 }
 // #endregion
 
@@ -93,11 +93,11 @@ if (goalSubmitBtn) {
                 body: JSON.stringify({ goal: text }),
             });
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ccf34'},body:JSON.stringify({sessionId:'0ccf34',location:'room.js:fetch_response',message:'API response status',data:{status:res.status,ok:res.ok},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+            fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '0ccf34' }, body: JSON.stringify({ sessionId: '0ccf34', location: 'room.js:fetch_response', message: 'API response status', data: { status: res.status, ok: res.ok }, timestamp: Date.now(), hypothesisId: 'H4' }) }).catch(() => { });
             // #endregion
             var data = await res.json();
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ccf34'},body:JSON.stringify({sessionId:'0ccf34',location:'room.js:parsed_data',message:'Parsed API data',data:{is_valid:data.is_valid,comment:data.comment,typeof_is_valid:typeof data.is_valid},timestamp:Date.now(),hypothesisId:'H4,H5'})}).catch(()=>{});
+            fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '0ccf34' }, body: JSON.stringify({ sessionId: '0ccf34', location: 'room.js:parsed_data', message: 'Parsed API data', data: { is_valid: data.is_valid, comment: data.comment, typeof_is_valid: typeof data.is_valid }, timestamp: Date.now(), hypothesisId: 'H4,H5' }) }).catch(() => { });
             // #endregion
 
             if (data.is_valid) {
@@ -112,7 +112,7 @@ if (goalSubmitBtn) {
             }
         } catch (err) {
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0ccf34'},body:JSON.stringify({sessionId:'0ccf34',location:'room.js:catch_block',message:'Catch block fired',data:{error:String(err)},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+            fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '0ccf34' }, body: JSON.stringify({ sessionId: '0ccf34', location: 'room.js:catch_block', message: 'Catch block fired', data: { error: String(err) }, timestamp: Date.now(), hypothesisId: 'H4' }) }).catch(() => { });
             // #endregion
             goalFeedback.className = 'goal-feedback goal-feedback-success';
             goalFeedback.textContent = 'エラーが発生しましたが、自習室へご案内します！';
@@ -317,7 +317,7 @@ function createLocalWrapper(stream, labelText) {
     video.playsInline = true;
     video.muted = true;
     video.srcObject = stream;
-    video.play().catch(function () {});
+    video.play().catch(function () { });
     wrapper.appendChild(label);
     wrapper.appendChild(studyTimeEl);
     wrapper.appendChild(video);
@@ -329,7 +329,7 @@ function setVideoStreamAndHideSpinner(video, stream, wrapper) {
     if (!video || !stream) return;
     video.srcObject = stream;
     video.muted = (video.getAttribute('data-local') === 'true');
-    video.play().catch(function () {});
+    video.play().catch(function () { });
     function onReady() {
         video.removeEventListener('loadeddata', onReady);
         video.removeEventListener('playing', onReady);
@@ -365,9 +365,9 @@ function addVideoElement(peerId, stream, labelText) {
     video.muted = true;
     video.srcObject = stream;
     video.setAttribute('data-local', peerId === 'local' ? 'true' : 'false');
-    video.play().then(function () {}).catch(function (err) {
+    video.play().then(function () { }).catch(function (err) {
         video.muted = true;
-        video.play().catch(function () {});
+        video.play().catch(function () { });
         showToast('画面をクリックすると映像が表示されます');
     });
 
@@ -667,7 +667,7 @@ socket.on('offer', async (data) => {
     // #endregion
     if (currentPrivateSessionId) {
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'room.js:offer_private',message:'handling_offer_in_private',data:{sender:targetId},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(function(){});
+        fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'room.js:offer_private', message: 'handling_offer_in_private', data: { sender: targetId }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H4' }) }).catch(function () { });
         // #endregion
         var pc = privateCreatePeerConnection(targetId, '', false);
         await pc.setRemoteDescription(new RTCSessionDescription(data.description));
@@ -808,7 +808,7 @@ function createPeerConnection(targetId, isInitiator) {
                 }).catch(function (err) {
                     console.warn('[WebRTC] video.play() blocked', err);
                     video.muted = true;
-                    video.play().catch(function () {});
+                    video.play().catch(function () { });
                     showToast('画面をクリックすると映像が表示されます');
                 });
                 var s = wrap.querySelector('.video-loading-spinner');
@@ -876,6 +876,13 @@ if (handRaiseBtn) {
         myHandRaised = !myHandRaised;
         handRaiseBtn.setAttribute('aria-pressed', myHandRaised ? 'true' : 'false');
         handRaiseBtn.classList.toggle('is-active', myHandRaised);
+
+        // Update button text and visual indicator
+        var labelEl = handRaiseBtn.querySelector('.control-btn-label');
+        if (labelEl) {
+            labelEl.textContent = myHandRaised ? '👑 挙手を下ろす' : '挙手する';
+        }
+
         socket.emit('hand_raise', { raised: myHandRaised });
         handRaiseState[socket.id] = handRaiseState[socket.id] || { user_name: USER_NAME, raised: false };
         handRaiseState[socket.id].raised = myHandRaised;
@@ -933,12 +940,12 @@ function closePrivateRoom() {
 
 socket.on('private_participants', function (data) {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'room.js:private_participants',message:'private_participants',data:{mySid:socket.id,participantsCount:data.participants?data.participants.length:0,hasContainer:!!privateVideosContainer,hasPrivateSession:!!currentPrivateSessionId},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(function(){});
+    fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'room.js:private_participants', message: 'private_participants', data: { mySid: socket.id, participantsCount: data.participants ? data.participants.length : 0, hasContainer: !!privateVideosContainer, hasPrivateSession: !!currentPrivateSessionId }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H3' }) }).catch(function () { });
     // #endregion
     if (!currentPrivateSessionId || !data.participants || !privateVideosContainer) return;
     var others = data.participants.filter(function (p) { return p.sid !== socket.id; });
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'room.js:private_participants',message:'others_and_local',data:{othersCount:others.length,otherSids:others.map(function(p){return p.sid;}),hasPrivateLocalStream:!!privateLocalStream},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3,H5'})}).catch(function(){});
+    fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'room.js:private_participants', message: 'others_and_local', data: { othersCount: others.length, otherSids: others.map(function (p) { return p.sid; }), hasPrivateLocalStream: !!privateLocalStream }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H3,H5' }) }).catch(function () { });
     // #endregion
     if (!privateLocalStream) {
         privatePendingOthers = others.slice();
@@ -952,7 +959,7 @@ socket.on('private_participants', function (data) {
 
 function addPrivateVideoElement(peerId, stream, labelText) {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'room.js:addPrivateVideoElement',message:'add_called',data:{peerId:peerId,hasContainer:!!privateVideosContainer,alreadyExists:!!document.getElementById('private-video-'+peerId)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1,H2'})}).catch(function(){});
+    fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'room.js:addPrivateVideoElement', message: 'add_called', data: { peerId: peerId, hasContainer: !!privateVideosContainer, alreadyExists: !!document.getElementById('private-video-' + peerId) }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H1,H2' }) }).catch(function () { });
     // #endregion
     if (!privateVideosContainer || document.getElementById('private-video-' + peerId)) return;
     var placeholder = document.getElementById('private-video-remote-placeholder');
@@ -982,7 +989,7 @@ function addPrivateVideoElement(peerId, stream, labelText) {
         video.volume = typeof privateRemoteVolume === 'number' ? privateRemoteVolume : 1;
     }
     video.srcObject = stream;
-    video.play().catch(function () {});
+    video.play().catch(function () { });
     wrap.appendChild(label);
     wrap.appendChild(video);
     if (peerId !== 'local') {
@@ -1045,14 +1052,14 @@ function startPrivateVoiceMeter(stream, canvasEl) {
         requestAnimationFrame(draw);
     }
     draw();
-    return function stop() { stopped = true; if (ctx) try { ctx.close(); } catch (e) {} };
+    return function stop() { stopped = true; if (ctx) try { ctx.close(); } catch (e) { } };
 }
 
 function privateCreatePeerConnection(targetId, userName, isInitiator) {
     // #region agent log
     var hadExisting = !!privatePeers[targetId];
     var trackCount = privateLocalStream ? privateLocalStream.getTracks().length : 0;
-    fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'room.js:privateCreatePeerConnection',message:'create_or_reuse',data:{targetId:targetId,isInitiator:isInitiator,hadExisting:hadExisting,hasPrivateLocalStream:!!privateLocalStream,trackCount:trackCount},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H5,H3'})}).catch(function(){});
+    fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'room.js:privateCreatePeerConnection', message: 'create_or_reuse', data: { targetId: targetId, isInitiator: isInitiator, hadExisting: hadExisting, hasPrivateLocalStream: !!privateLocalStream, trackCount: trackCount }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H5,H3' }) }).catch(function () { });
     // #endregion
     if (privatePeers[targetId]) return privatePeers[targetId].connection;
     var pc = new RTCPeerConnection(rtcConfig);
@@ -1060,10 +1067,10 @@ function privateCreatePeerConnection(targetId, userName, isInitiator) {
     pc.ontrack = function (event) {
         var remoteStream = event.streams[0];
         // #region agent log
-        (function(){
+        (function () {
             var vt = remoteStream && remoteStream.getVideoTracks ? remoteStream.getVideoTracks().length : 0;
             var at = remoteStream && remoteStream.getAudioTracks ? remoteStream.getAudioTracks().length : 0;
-            fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'room.js:private_ontrack',message:'ontrack',data:{targetId:targetId,hasStream:!!remoteStream,videoTracks:vt,audioTracks:at},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1,H5'})}).catch(function(){});
+            fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'room.js:private_ontrack', message: 'ontrack', data: { targetId: targetId, hasStream: !!remoteStream, videoTracks: vt, audioTracks: at }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H1,H5' }) }).catch(function () { });
         })();
         // #endregion
         if (!remoteStream) return;
@@ -1093,7 +1100,7 @@ function privateCreatePeerConnection(targetId, userName, isInitiator) {
                         overlay.addEventListener('click', function () {
                             v.muted = false;
                             v.volume = typeof privateRemoteVolume === 'number' ? privateRemoteVolume : 1;
-                            v.play().catch(function () {});
+                            v.play().catch(function () { });
                             overlay.remove();
                             privateUnmuteAllRemoteVideos();
                         });
@@ -1129,7 +1136,7 @@ function privateCreatePeerConnection(targetId, userName, isInitiator) {
 
 function privateMakeOffer(pc, targetId) {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'room.js:privateMakeOffer',message:'sending_offer',data:{targetId:targetId},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(function(){});
+    fetch('http://127.0.0.1:7242/ingest/57d916de-fd2e-49ae-86c2-8155e201bf60', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'room.js:privateMakeOffer', message: 'sending_offer', data: { targetId: targetId }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H4' }) }).catch(function () { });
     // #endregion
     pc.createOffer().then(function (offer) {
         return pc.setLocalDescription(offer);
@@ -1144,6 +1151,8 @@ socket.on('redirect_to_main_room', function (data) {
     if (handRaiseBtn) {
         handRaiseBtn.setAttribute('aria-pressed', 'false');
         handRaiseBtn.classList.remove('is-active');
+        var lbl = handRaiseBtn.querySelector('.control-btn-label');
+        if (lbl) lbl.textContent = '挙手する';
     }
     handRaiseState[socket.id] = handRaiseState[socket.id] || { user_name: USER_NAME, raised: false };
     handRaiseState[socket.id].raised = false;
@@ -1152,7 +1161,7 @@ socket.on('redirect_to_main_room', function (data) {
     var roomToJoin = (data && data.main_room) || original_room_id || (function () { try { return sessionStorage.getItem('videodesk_original_room'); } catch (e) { return null; } })();
     original_room_id = null;
     mainRoomIdForReturn = null;
-    try { sessionStorage.removeItem('videodesk_original_room'); } catch (e) {}
+    try { sessionStorage.removeItem('videodesk_original_room'); } catch (e) { }
     if (roomToJoin) {
         myRoomId = roomToJoin;
         socket.emit('join_room', { room: roomToJoin, user_name: USER_NAME, role: ROLE, user_id: USER_ID || undefined });
@@ -1171,7 +1180,7 @@ socket.on('redirect_to_private', function (data) {
     var sessionId = data.session_id;
     mainRoomIdForReturn = data.main_room;
     original_room_id = myRoomId || mainRoomIdForReturn;
-    try { sessionStorage.setItem('videodesk_original_room', original_room_id); } catch (e) {}
+    try { sessionStorage.setItem('videodesk_original_room', original_room_id); } catch (e) { }
     if (!sessionId || !mainRoomIdForReturn) return;
     currentPrivateSessionId = sessionId;
     setRoomContext('private');
@@ -1266,7 +1275,7 @@ function privateUnmuteAllRemoteVideos() {
             if (v.srcObject && v.srcObject.getAudioTracks) {
                 v.srcObject.getAudioTracks().forEach(function (t) { t.enabled = true; });
             }
-            v.play().then(function () {}).catch(function (err) {
+            v.play().then(function () { }).catch(function (err) {
                 if (WEBRTC_DEBUG) console.warn('[WebRTC] private unmute play failed', err);
             });
         }
@@ -1412,6 +1421,8 @@ window.teardownStudyRoom = function () {
     if (handRaiseBtn) {
         handRaiseBtn.setAttribute('aria-pressed', 'false');
         handRaiseBtn.classList.remove('is-active');
+        var lbl = handRaiseBtn.querySelector('.control-btn-label');
+        if (lbl) lbl.textContent = '挙手する';
     }
     closePrivateRoom();
     if (socket.connected) socket.disconnect();

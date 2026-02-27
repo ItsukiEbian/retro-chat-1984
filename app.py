@@ -376,6 +376,11 @@ def google_authorized():
 @app.route('/dashboard')
 def dashboard():
     if current_user.is_authenticated:
+        # 管理者ユーザーは管理者画面へ自動リダイレクト
+        user_role = getattr(current_user, 'role', 'user') or 'user'
+        if user_role in ('mentor', 'super_admin') or session.get('role') == 'admin':
+            session['role'] = 'admin'
+            return redirect(url_for('admin_dashboard_page'))
         user = current_user
         total_min = user.total_study_time or 0
         hours, mins = divmod(total_min, 60)
@@ -436,7 +441,7 @@ def admin_login_redirect():
 def admin_login_secret():
     """管理者用裏口ログイン（URLを知っている者のみパスワードで管理者に昇格）"""
     if session.get('role') == 'admin':
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('admin_dashboard_page'))
     if request.method == 'GET':
         return render_template('admin_login.html', error=None)
     password = request.form.get('password', '')
@@ -1211,6 +1216,31 @@ def meeting_room(room_token):
 def room_by_id(room_id):
     session['room'] = room_id
     return redirect(url_for('room'))
+
+
+# ---------- Contact API ----------
+
+@app.route('/api/contact', methods=['POST'])
+@login_required
+def api_contact():
+    """お問い合わせフォームからのメッセージを受け取り、ログに記録する。"""
+    data = request.get_json(silent=True) or {}
+    subject = (data.get('subject') or '').strip()
+    message = (data.get('message') or '').strip()
+    if not subject or not message:
+        return jsonify({'success': False, 'message': '件名とメッセージを入力してください。'}), 400
+
+    user_email = current_user.email or '不明'
+    user_name = current_user.name or '不明'
+    app.logger.info(
+        '\n========== お問い合わせ ==========\n'
+        'ユーザー: %s (%s)\n'
+        '件名: %s\n'
+        '本文:\n%s\n'
+        '================================\n',
+        user_name, user_email, subject, message,
+    )
+    return jsonify({'success': True, 'message': 'お問い合わせを受け付けました'}), 200
 
 
 @app.route('/logout', methods=['GET', 'POST'])

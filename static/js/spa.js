@@ -246,7 +246,10 @@
 
     // ---- Study Room Locked Modal ----
 
-
+    var studyLockedCloseBtn = document.getElementById('studyLockedCloseBtn');
+    if (studyLockedCloseBtn) {
+        studyLockedCloseBtn.addEventListener('click', closeStudyLockedModal);
+    }
 
     if (studyLockedOverlay) {
         studyLockedOverlay.addEventListener('click', function (e) {
@@ -671,3 +674,75 @@ window.addEventListener('pageshow', function (event) {
         }
     });
 });
+
+/* ===== FAQ Overlay ===== */
+(function () {
+    'use strict';
+    var openBtn = document.getElementById('openFaq');
+    var overlay = document.getElementById('faqOverlay');
+    var backBtn = document.getElementById('faqBackBtn');
+    if (!openBtn || !overlay) return;
+
+    openBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        overlay.classList.add('visible');
+        var body = overlay.querySelector('.faq-body');
+        if (body) body.scrollTop = 0;
+    });
+
+    function closeFaq() { overlay.classList.remove('visible'); }
+    if (backBtn) backBtn.addEventListener('click', closeFaq);
+})();
+
+/* ===== Contact Overlay ===== */
+(function () {
+    'use strict';
+    var openBtn = document.getElementById('openContact');
+    var overlay = document.getElementById('contactOverlay');
+    var backBtn = document.getElementById('contactBackBtn');
+    var form = document.getElementById('contactForm');
+    var submitBtn = document.getElementById('contactSubmitBtn');
+    if (!openBtn || !overlay) return;
+
+    openBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        overlay.classList.add('visible');
+    });
+
+    function closeContact() { overlay.classList.remove('visible'); }
+    if (backBtn) backBtn.addEventListener('click', closeContact);
+
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var subject = (document.getElementById('contactSubject').value || '').trim();
+            var message = (document.getElementById('contactMessage').value || '').trim();
+            if (!subject || !message) return;
+
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.querySelector('span').textContent = '送信中…'; }
+
+            fetch('/api/contact', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subject: subject, message: message })
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.success) {
+                        alert('お問い合わせを送信しました。担当者より返信いたします。');
+                        form.reset();
+                        closeContact();
+                    } else {
+                        alert(data.message || '送信に失敗しました。');
+                    }
+                })
+                .catch(function () {
+                    alert('通信エラーが発生しました。もう一度お試しください。');
+                })
+                .finally(function () {
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.querySelector('span').textContent = '送信する'; }
+                });
+        });
+    }
+})();

@@ -58,7 +58,9 @@
     <!-- Study Room Locked Modal (for free-plan users) -->
     <div id="studyLockedOverlay" class="overlay" style="display:none">
         <div class="overlay-card study-locked-card">
-
+            <button id="studyLockedCloseBtn" class="goal-close-btn" type="button" aria-label="閉じる">
+                <span class="material-symbols-outlined">close</span>
+            </button>
             <div class="overlay-card-header">
                 <span class="overlay-icon"><span class="material-symbols-outlined">lock</span></span>
                 <h1>この機能は有料プラン限定です</h1>
@@ -117,10 +119,7 @@
                 <span class="spa-nav-icon"><span class="material-symbols-outlined">calendar_month</span></span>
                 <span class="spa-nav-label">予約・カレンダー</span>
             </button>
-            <button class="spa-nav-item" data-section="report" type="button">
-                <span class="spa-nav-icon"><span class="material-symbols-outlined">insights</span></span>
-                <span class="spa-nav-label">学習記録・レポート</span>
-            </button>
+
             <button class="spa-nav-item" data-section="route" type="button">
                 <span class="spa-nav-icon"><span class="material-symbols-outlined">explore</span></span>
                 <span class="spa-nav-label">学習ルート・面談</span>
@@ -213,6 +212,23 @@
                     <p class="spa-home-enter-note">※医大生メンターは予約者を優先して対応するため、質問などに対応できない場合があります。</p>
                 </div>
                 {% endif %}
+
+                {% if current_user.is_authenticated %}
+                <div class="report-monthly-cta">
+                    <div class="report-monthly-inner">
+                        <span class="material-symbols-outlined report-monthly-icon">summarize</span>
+                        <div class="report-monthly-text">
+                            <h3>月間学習レポート</h3>
+                            <p>先月の学習状況を振り返り、次の目標設定にお役立てください。保護者の方もご確認いただけます。</p>
+                        </div>
+                        <button type="button" class="report-monthly-btn" id="reportMonthlyBtn">
+                            <span>先月のレポートを見る</span>
+                            <span class="material-symbols-outlined">arrow_forward</span>
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+
                 <div class="spa-home-links">
                     {% if not current_user.is_authenticated %}
                     <a href="{{ url_for('login_google') }}" class="btn-primary spa-home-login-btn">Googleでログイン</a>
@@ -331,51 +347,7 @@
             </div>
         </div>
 
-        <!-- ====== Section: Report ====== -->
-        <div id="section-report" class="spa-section">
-            <div class="sec-report">
-                <div class="section-header">
-                    <h2 class="section-title">学習記録・レポート</h2>
-                    <p class="section-subtitle">日々の積み重ねが、確かな実力になります</p>
-                </div>
 
-                {% if current_user.is_authenticated %}
-                <div class="report-summary-cards">
-                    <div class="report-card">
-                        <span class="report-card-icon"><span class="material-symbols-outlined">wb_sunny</span></span>
-                        <span class="report-card-label">今日の学習時間</span>
-                        <span class="report-card-value">{{ today_study_display | default('0時間 0分') }}</span>
-                    </div>
-                    <div class="report-card">
-                        <span class="report-card-icon"><span class="material-symbols-outlined">date_range</span></span>
-                        <span class="report-card-label">今週の合計</span>
-                        <span class="report-card-value">{{ weekly_study_display | default('0時間 0分') }}</span>
-                    </div>
-                </div>
-
-                <div class="report-monthly-cta">
-                    <div class="report-monthly-inner">
-                        <span class="material-symbols-outlined report-monthly-icon">summarize</span>
-                        <div class="report-monthly-text">
-                            <h3>月間学習レポート</h3>
-                            <p>先月の学習状況を振り返り、次の目標設定にお役立てください。保護者の方もご確認いただけます。</p>
-                        </div>
-                        <button type="button" class="report-monthly-btn" id="reportMonthlyBtn">
-                            <span>先月のレポートを見る</span>
-                            <span class="material-symbols-outlined">arrow_forward</span>
-                        </button>
-                    </div>
-                </div>
-                {% else %}
-                <div class="sec-login-gate">
-                    <span class="material-symbols-outlined sec-login-gate-icon">lock</span>
-                    <p>学習記録を確認するにはログインが必要です。</p>
-                    <a href="{{ url_for('login_google') }}"
-                        class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
-                </div>
-                {% endif %}
-            </div>
-        </div>
 
         <!-- ====== Section: Calendar ====== -->
         <div id="section-calendar" class="spa-section">
@@ -690,13 +662,13 @@
                             </a>
                         </li>
                         <li>
-                            <a href="#" class="profile-menu-link">
+                            <a href="#" class="profile-menu-link" id="openFaq">
                                 <span>よくある質問</span>
                                 <span class="material-symbols-outlined">chevron_right</span>
                             </a>
                         </li>
                         <li>
-                            <a href="#" class="profile-menu-link">
+                            <a href="#" class="profile-menu-link" id="openContact">
                                 <span>お問い合わせ</span>
                                 <span class="material-symbols-outlined">chevron_right</span>
                             </a>
@@ -718,6 +690,228 @@
                         class="btn-primary spa-placeholder-login-btn">Googleでログイン</a>
                 </div>
                 {% endif %}
+            </div>
+        </div>
+
+
+        <!-- ===== FAQ Overlay ===== -->
+        <div id="faqOverlay" class="faq-overlay">
+            <div class="faq-header">
+                <button type="button" class="faq-back-btn" id="faqBackBtn">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                    <span>戻る</span>
+                </button>
+                <h2 class="faq-header-title">よくある質問</h2>
+            </div>
+            <div class="faq-body">
+                <div class="faq-category">
+                    <h3 class="faq-category-title">
+                        <span class="material-symbols-outlined faq-cat-icon">school</span>
+                        対象・入会条件について
+                    </h3>
+                    <div class="faq-list">
+                        <details class="faq-item">
+                            <summary class="faq-question"><span
+                                    class="faq-q-badge">Q</span>偏差値60以上の中高に通う生徒限定とはどういうことですか？</summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>生徒様ご本人の偏差値ではなく、在籍校の基準です。それ以外の学校の方も入会可能ですが、当塾の提供レベルの観点から推奨はしておりません。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span
+                                    class="faq-q-badge">Q</span>医学部ではなく難関国公立の理系志望なのですが大丈夫ですか？</summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>強く推奨します。理系最高峰の医学部生の知見を使い倒してください。難関国公立の理系学部に向けた専用の学習ルートも完備しております。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span class="faq-q-badge">Q</span>文系志望でも入会できますか？</summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>現時点では推奨しておりません。理系に特化した指導環境となっております。今後、文系向けのサービスも速やかに展開していく予定です。
+                            </div>
+                        </details>
+                    </div>
+                </div>
+                <div class="faq-category">
+                    <h3 class="faq-category-title">
+                        <span class="material-symbols-outlined faq-cat-icon">devices</span>
+                        システム・環境について
+                    </h3>
+                    <div class="faq-list">
+                        <details class="faq-item">
+                            <summary class="faq-question"><span
+                                    class="faq-q-badge">Q</span>家だとついダラダラしてしまう子でも、本当に集中できるのでしょうか？</summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>スマホを固定し物理的に隔離。さらに医学部生が常時監視するため、意志に頼らず自宅が「絶対にサボれない自習室」へ強制的に変わります。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span class="faq-q-badge">Q</span>自習室の営業時間や、質問の対応時間を教えてください。
+                            </summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>自習室は平日朝5〜9時、15〜翌深夜2時。質問は15〜24時までリアルタイム回答。それ以外の時間も原則24時間以内に必ず回答します。休日・祝日は朝5時-翌2時まで。質問対応は9-24時までとなっております。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span class="faq-q-badge">Q</span>どこで使うサービスですか？図書館などでも利用できますか？
+                            </summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>どこでも利用可能ですが、学習習慣の確立という観点から「自宅」でのご利用を強く推奨しています。自宅が最高の自習室に変わります。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span
+                                    class="faq-q-badge">Q</span>用意する機材や必要なものはありますか？三脚などは必要ですか？</summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>お客様のスマートフォンのみで完結します。三脚等も不要で、当塾のシステムをご利用いただくだけで、今日からすぐに始められます。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span class="faq-q-badge">Q</span>自分の顔や部屋全体がカメラに映るのが恥ずかしいのですが。
+                            </summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>映すのは「手元のノートと手」だけで構いません。またぼかし機能もあり、顔や部屋の背景を映す必要はないため、プライバシーを守りつつ学習にのみ没頭できます。
+                            </div>
+                        </details>
+                    </div>
+                </div>
+                <div class="faq-category">
+                    <h3 class="faq-category-title">
+                        <span class="material-symbols-outlined faq-cat-icon">support_agent</span>
+                        サポート・ルールについて
+                    </h3>
+                    <div class="faq-list">
+                        <details class="faq-item">
+                            <summary class="faq-question"><span
+                                    class="faq-q-badge">Q</span>普通のオンライン家庭教師や個別指導塾との決定的な違いは何ですか？</summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>家庭教師はその「授業の瞬間」だけですが、当塾は常に医学部生に質問し放題な上、監視自習室で日々の演習を「完遂」させる点が異なります。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span class="faq-q-badge">Q</span>質問回数や、自習室の使用時間に上限はありますか？
+                            </summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>一切ありません。無限に使い放題です。あなたの限界まで自習室を活用し、医学部生の頭脳を何度でも引き出してください。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span
+                                    class="faq-q-badge">Q</span>勉強中に、英単語や分からないことを調べたい時はどうすればいいですか？</summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>学校配布の学習用タブレット等の使用を推奨します。個人のスマホはSNS等へ逃げる原因になるため、監視用として完全に無力化していただきます。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span
+                                    class="faq-q-badge">Q</span>ずっと監視されていると、疲れたり息苦しくなったりしませんか？</summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>「監視というよりライブルと空間を共有する感覚」と好評です。休憩時間もシステムで管理するため、息苦しさよりも高い集中力が持続します。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span class="faq-q-badge">Q</span>学校の宿題や、定期テストの勉強をやってもいいですか？
+                            </summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>もちろんです。Proプランなら目標点から逆算し、学校の膨大な課題も最適な優先順位で確実に完遂させます。推薦枠狙いの方にも最適です。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span
+                                    class="faq-q-badge">Q</span>小論文や総合型選抜（AO入試）の対策についても相談できますか？</summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>対応可能です。現在、当塾のメンバーがAO対策に特化したAIアプリを独自開発しており、最新のテクノロジーを用いたサポートも提供予定です。
+                            </div>
+                        </details>
+                    </div>
+                </div>
+                <div class="faq-category">
+                    <h3 class="faq-category-title">
+                        <span class="material-symbols-outlined faq-cat-icon">payments</span>
+                        プラン・料金・手続きについて
+                    </h3>
+                    <div class="faq-list">
+                        <details class="faq-item">
+                            <summary class="faq-question"><span
+                                    class="faq-q-badge">Q</span>無料相談や体験はありますか？オンライン塾が初めてで不安なのですが。</summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>随時受け付けております。まずは1週間の無料体験をご利用ください。オンライン特有の不安を解消するため、まずは一度ご相談をおすすめします。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span
+                                    class="faq-q-badge">Q</span>StandardプランとProプラン、どちらを選べばいいか迷っています。</summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>強制環境のみ必要ならStandardを、ルート設計から面談まで求めるならProを。お悩みの方は、ぜひ無料相談で現状をお聞かせください。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span class="faq-q-badge">Q</span>現在、大手の予備校に通っていますが、併用は可能ですか？
+                            </summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>併用を強く推奨します。成績不振の最大の原因である「予備校の復習不足」を当サービスの強制環境で完遂させ、教育投資の費用対効果を最大化させます。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span class="faq-q-badge">Q</span>メンターは本当に「現役医学部生」だけなのでしょうか？
+                            </summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>はい、東海や南女などの難関校を突破した現役医学部生のみを採用しています。厳しい選考を通過した勝者の思考プロセスを直接ご提供します。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span class="faq-q-badge">Q</span>支払い方法について教えてください。</summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>クレジットカード決済のみとなります。毎月自動更新となりますので、お支払いの手間なく、学習環境の維持に集中していただけます。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span class="faq-q-badge">Q</span>兄弟で入会する場合の割引はありますか？
+                            </summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>兄弟割引をご用意しております。ご兄弟でご入会いただいた場合、お一人様分の入会金（通常料金）を無料とさせていただきます。
+                            </div>
+                        </details>
+                        <details class="faq-item">
+                            <summary class="faq-question"><span class="faq-q-badge">Q</span>月の途中からの入会や、退塾・休会は可能ですか？
+                            </summary>
+                            <div class="faq-answer"><span
+                                    class="faq-a-badge">A</span>月途中の入会は日割り計算となります。退塾は前月20日までにお知らせください。病気やご都合による休会（最大半年・再入会金免除）も可能です。
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ===== Contact Overlay ===== -->
+        <div id="contactOverlay" class="faq-overlay">
+            <div class="faq-header">
+                <button type="button" class="faq-back-btn" id="contactBackBtn">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                    <span>戻る</span>
+                </button>
+                <h2 class="faq-header-title">お問い合わせ</h2>
+            </div>
+            <div class="faq-body">
+                <form id="contactForm" class="contact-form" autocomplete="off">
+                    <div class="contact-field">
+                        <label class="contact-label" for="contactSubject">件名</label>
+                        <input type="text" id="contactSubject" name="subject" class="contact-input"
+                            placeholder="例：プランについての質問" required>
+                    </div>
+                    <div class="contact-field">
+                        <label class="contact-label" for="contactMessage">メッセージ</label>
+                        <textarea id="contactMessage" name="message" class="contact-textarea" rows="8"
+                            placeholder="お問い合わせ内容をご記入ください" required></textarea>
+                    </div>
+                    <button type="submit" class="contact-submit-btn" id="contactSubmitBtn">
+                        <span>送信する</span>
+                        <span class="material-symbols-outlined">send</span>
+                    </button>
+                    <p class="contact-note">※ 送信後、担当者より返信いたします。</p>
+                </form>
             </div>
         </div>
 
