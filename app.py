@@ -307,6 +307,10 @@ def subscription_required(f):
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
+        # 管理者は課金チェックをバイパス
+        user_role = getattr(current_user, 'role', 'user') or 'user'
+        if user_role in ('mentor', 'super_admin') or session.get('role') == 'admin':
+            return f(*args, **kwargs)
         if not current_user.is_active_subscription:
             return redirect(url_for('subscription_page'))
         return f(*args, **kwargs)

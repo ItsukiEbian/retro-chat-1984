@@ -1433,3 +1433,74 @@ window.teardownStudyRoom = function () {
 window.studyRoomIsActive = function () {
     return socket && socket.connected;
 };
+
+/* ===== Admin Mosaic Toggle Controls ===== */
+(function () {
+    if (ROLE !== 'admin') return;
+
+    var selfMosaicOff = false;
+    var studentMosaicOff = false;
+
+    var controlBar = document.getElementById('mainRoomControlBar');
+    if (!controlBar) return;
+
+    // Create container
+    var container = document.createElement('div');
+    container.className = 'admin-mosaic-controls';
+
+    // Self mosaic toggle
+    var selfBtn = document.createElement('button');
+    selfBtn.type = 'button';
+    selfBtn.className = 'admin-mosaic-btn';
+    selfBtn.innerHTML = '<span class="mosaic-btn-icon">🌫️</span><span>自分のモザイク ON</span>';
+    selfBtn.title = '自分のカメラのモザイクを切り替え';
+
+    // Student mosaic toggle
+    var studentBtn = document.createElement('button');
+    studentBtn.type = 'button';
+    studentBtn.className = 'admin-mosaic-btn';
+    studentBtn.innerHTML = '<span class="mosaic-btn-icon">🌫️</span><span>生徒のモザイク ON</span>';
+    studentBtn.title = '生徒のカメラのモザイクを切り替え';
+
+    container.appendChild(selfBtn);
+    container.appendChild(studentBtn);
+    controlBar.insertBefore(container, controlBar.firstChild);
+
+    // Toggle self mosaic
+    selfBtn.addEventListener('click', function () {
+        selfMosaicOff = !selfMosaicOff;
+        var localWrapper = document.getElementById('video-wrapper-local');
+        if (localWrapper) {
+            var vid = localWrapper.querySelector('video');
+            if (vid) vid.classList.toggle('video-mosaic-off', selfMosaicOff);
+        }
+        selfBtn.classList.toggle('mosaic-active', selfMosaicOff);
+        selfBtn.innerHTML = selfMosaicOff
+            ? '<span class="mosaic-btn-icon">🔍</span><span>自分のモザイク OFF</span>'
+            : '<span class="mosaic-btn-icon">🌫️</span><span>自分のモザイク ON</span>';
+    });
+
+    // Toggle student mosaic
+    function applyStudentMosaic() {
+        var wrappers = videosContainer.querySelectorAll('.video-wrapper:not(#video-wrapper-local)');
+        wrappers.forEach(function (w) {
+            var vid = w.querySelector('video');
+            if (vid) vid.classList.toggle('video-mosaic-off', studentMosaicOff);
+        });
+    }
+
+    studentBtn.addEventListener('click', function () {
+        studentMosaicOff = !studentMosaicOff;
+        applyStudentMosaic();
+        studentBtn.classList.toggle('mosaic-active', studentMosaicOff);
+        studentBtn.innerHTML = studentMosaicOff
+            ? '<span class="mosaic-btn-icon">🔍</span><span>生徒のモザイク OFF</span>'
+            : '<span class="mosaic-btn-icon">🌫️</span><span>生徒のモザイク ON</span>';
+    });
+
+    // Observe for dynamically added remote videos
+    var observer = new MutationObserver(function () {
+        if (studentMosaicOff) applyStudentMosaic();
+    });
+    observer.observe(videosContainer, { childList: true, subtree: true });
+})();

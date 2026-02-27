@@ -779,6 +779,54 @@ h6 {
     -webkit-filter: blur(14px) brightness(1.03);
 }
 
+/* Admin mosaic-off override — removes blur when admin toggles it */
+.video-wrapper.video-has-mosaic video.video-mosaic-off,
+.video-mosaic.video-mosaic-off {
+    filter: none !important;
+    -webkit-filter: none !important;
+    transition: filter 0.3s ease;
+}
+
+/* Admin mosaic toggle buttons */
+.admin-mosaic-controls {
+    display: flex;
+    gap: 8px;
+    margin-right: auto;
+}
+
+.admin-mosaic-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary, #b0aead);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(197, 168, 128, 0.3);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.admin-mosaic-btn:hover {
+    background: rgba(197, 168, 128, 0.15);
+    color: #c5a880;
+}
+
+.admin-mosaic-btn.mosaic-active {
+    background: rgba(197, 168, 128, 0.2);
+    color: #c5a880;
+    border-color: #c5a880;
+}
+
+.admin-mosaic-btn .mosaic-btn-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
 .video-connecting-label {
     position: absolute;
     top: 50%;
