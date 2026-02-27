@@ -4060,12 +4060,12 @@ body[data-room-context="private"] #mainRoomContent {
 
 .profile-plan-card {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 16px;
     padding: 28px 32px;
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    border-radius: 0;
+    border-radius: 12px;
 }
 
 .profile-plan-info {
@@ -4095,6 +4095,8 @@ body[data-room-context="private"] #mainRoomContent {
 
 .profile-plan-action {
     margin: 0;
+    position: relative;
+    z-index: 2;
 }
 
 .profile-plan-btn {
@@ -4109,9 +4111,12 @@ body[data-room-context="private"] #mainRoomContent {
     color: var(--accent);
     background: var(--primary);
     border: 1px solid var(--accent);
-    border-radius: 0;
+    border-radius: 10px;
     text-decoration: none;
     cursor: pointer;
+    pointer-events: auto;
+    position: relative;
+    z-index: 2;
     transition: background 0.3s ease;
 }
 
@@ -6478,11 +6483,15 @@ body[data-room-context="private"] #mainRoomContent {
     margin-bottom: 24px;
 }
 
+/* Mobile: vertical stack (overrides from earlier block) */
 .profile-plan-card {
-    background: var(--card-bg, #fff);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: var(--card-bg, var(--bg-card));
     border-radius: 12px;
     padding: 20px;
-    border: 1px solid var(--border-light, #eee);
+    border: 1px solid var(--border-light, var(--border-subtle));
 }
 
 .profile-plan-info {
@@ -6511,8 +6520,10 @@ body[data-room-context="private"] #mainRoomContent {
 }
 
 .profile-plan-action {
-    margin-top: 16px;
+    margin-top: 0;
     width: 100%;
+    position: relative;
+    z-index: 2;
 }
 
 .profile-plan-btn {
@@ -6528,6 +6539,9 @@ body[data-room-context="private"] #mainRoomContent {
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
+    pointer-events: auto;
+    position: relative;
+    z-index: 2;
     transition: background 0.2s, transform 0.1s;
 }
 
@@ -6538,6 +6552,37 @@ body[data-room-context="private"] #mainRoomContent {
 
 .profile-plan-btn .material-symbols-outlined {
     font-size: 18px;
+}
+
+/* PC: 2-column layout for plan card */
+@media (min-width: 768px) {
+    .profile-plan-card {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 28px 32px;
+    }
+
+    .profile-plan-info {
+        flex: 1;
+        min-width: 180px;
+    }
+
+    .profile-plan-action {
+        flex-shrink: 0;
+        width: auto;
+        margin-top: 0;
+    }
+
+    .profile-plan-btn {
+        width: auto;
+    }
+
+    .profile-upsell-banner {
+        flex-basis: 100%;
+    }
 }
 
 /* ===== Profile Upsell Banner ===== */
@@ -6638,6 +6683,7 @@ body[data-room-context="private"] #mainRoomContent {
         inset 0 1px 0 rgba(255, 255, 255, 0.12);
     position: relative;
     overflow: hidden;
+    z-index: 1;
 }
 
 .profile-upsell-btn::after {

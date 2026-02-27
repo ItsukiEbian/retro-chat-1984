@@ -313,9 +313,12 @@ function createLocalWrapper(stream, labelText) {
     studyTimeEl.textContent = '総勉強時間: ' + formatStudyTime(TOTAL_STUDY_TIME_MINUTES);
     var video = document.createElement('video');
     video.className = 'video-mosaic';
+    video.setAttribute('autoplay', '');
+    video.setAttribute('playsinline', '');
     video.autoplay = true;
     video.playsInline = true;
     video.muted = true;
+    video.setAttribute('data-local', 'true');
     video.srcObject = stream;
     video.play().catch(function () { });
     wrapper.appendChild(label);
@@ -362,10 +365,18 @@ function addVideoElement(peerId, stream, labelText) {
     video.className = 'video-mosaic';
     video.setAttribute('autoplay', '');
     video.setAttribute('playsinline', '');
-    video.muted = true;
-    video.srcObject = stream;
+    video.autoplay = true;
+    video.playsInline = true;
     video.setAttribute('data-local', peerId === 'local' ? 'true' : 'false');
+    // Local video must be muted to allow autoplay; remote videos try unmuted first
+    if (peerId === 'local') {
+        video.muted = true;
+    } else {
+        video.muted = false;
+    }
+    video.srcObject = stream;
     video.play().then(function () { }).catch(function (err) {
+        // Autoplay blocked — retry muted
         video.muted = true;
         video.play().catch(function () { });
         showToast('画面をクリックすると映像が表示されます');
@@ -488,6 +499,13 @@ function renderVideoGrid() {
     }
     applyHandStates();
     updateLayout();
+    // Re-trigger play on all video elements after DOM re-attachment
+    // (iOS/Safari stop playback when video elements are detached and re-appended)
+    videosContainer.querySelectorAll('video').forEach(function (v) {
+        if (v.srcObject && v.paused) {
+            v.play().catch(function () { });
+        }
+    });
 }
 
 function renderStudentList() {
