@@ -196,6 +196,7 @@
                 </div>
                 {% endif %}
 
+                {% if current_user.is_authenticated %}
                 <div class="spa-home-cards">
                     <div class="spa-home-card spa-home-card-stat">
                         <span class="spa-home-stat-icon"><span class="material-symbols-outlined">schedule</span></span>
@@ -211,6 +212,7 @@
                     </button>
                     <p class="spa-home-enter-note">※医大生メンターは予約者を優先して対応するため、質問などに対応できない場合があります。</p>
                 </div>
+                {% endif %}
                 <div class="spa-home-links">
                     {% if not current_user.is_authenticated %}
                     <a href="{{ url_for('login_google') }}" class="btn-primary spa-home-login-btn">Googleでログイン</a>

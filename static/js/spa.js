@@ -625,7 +625,7 @@
     }
 })();
 
-// ========== Logout Button ==========
+// ========== Logout Button (Nuclear) ==========
 (function () {
     'use strict';
     var logoutBtn = document.getElementById('btnLogout');
@@ -633,9 +633,15 @@
     logoutBtn.addEventListener('click', function (e) {
         e.preventDefault();
         if (confirm('ログアウトしますか？')) {
+            // 1. ストレージ全消去
             localStorage.clear();
             sessionStorage.clear();
-            window.location.href = '/logout?t=' + new Date().getTime();
+            // 2. 全Cookieの強制削除（JS側からアクセス可能な全て）
+            document.cookie.split(';').forEach(function (c) {
+                document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date(0).toUTCString() + ';path=/');
+            });
+            // 3. サーバーへの強制ログアウト要求（履歴に残さないハードリダイレクト）
+            window.location.replace('/logout?bypass=' + new Date().getTime());
         }
     });
 })();

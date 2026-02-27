@@ -1220,7 +1220,10 @@ def logout():
     session.clear()
 
     response = make_response(redirect(url_for('index')))
-    response.set_cookie('session', '', expires=0)
+    # ブラウザのCookieを「ルートパス指定」で物理的に破壊
+    response.set_cookie('session', '', expires=0, path='/')
+    response.set_cookie('remember_token', '', expires=0, path='/')
+    # キャッシュ無効化キラー
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
