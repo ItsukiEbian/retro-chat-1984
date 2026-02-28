@@ -156,8 +156,24 @@
         var target = dateStrip.querySelector('[data-date="' + dateKey(d) + '"]');
         if (target) target.classList.add('cal-date-active');
 
-        loadAndRenderTimeline();
+        fadeTimeline(function () {
+            loadAndRenderTimeline();
+        });
         updateFab();
+    }
+
+    // ===== Timeline Fade Helper =====
+    var timelineWrap = document.getElementById('calTimelineWrap');
+    function fadeTimeline(callback) {
+        if (!timelineWrap) { callback(); return; }
+        timelineWrap.classList.add('cal-timeline-fading');
+        setTimeout(function () {
+            callback();
+            // Allow a frame for DOM update, then fade in
+            requestAnimationFrame(function () {
+                timelineWrap.classList.remove('cal-timeline-fading');
+            });
+        }, 130);
     }
 
     function loadAndRenderTimeline() {
@@ -248,7 +264,8 @@
             (function (idx, locked, isToday_, isFuture_, reserved, key, pastTime) {
                 slot.addEventListener('click', function () {
                     // Block free-plan users from reserving
-                    var isFree = !window.IS_SUBSCRIBED || !window.PLAN_TYPE || window.PLAN_TYPE === 'free' || window.SUBSCRIPTION_STATUS === 'none';
+                    var tier = window.USER_TIER || document.body.getAttribute('data-user-tier') || 'guest';
+                    var isFree = (tier === 'free' || tier === 'guest');
                     if (isFree) {
                         var lockedOverlay = document.getElementById('studyLockedOverlay');
                         if (lockedOverlay) lockedOverlay.style.display = 'flex';
@@ -388,19 +405,44 @@
         });
     }
 
+    // ===== Slide animation helper for arrow buttons =====
+    function slideWeek(direction) {
+        // direction: -1 = next week (slide left), 1 = prev week (slide right)
+        var stripWidth = dateStrip.offsetWidth;
+        var slideOut = direction * stripWidth;
+
+        // Slide current strip out
+        dateStrip.style.transform = 'translateX(' + slideOut + 'px)';
+
+        fadeTimeline(function () {
+            // After slide-out transition, update week and render
+            setTimeout(function () {
+                weekOffset += (direction === -1 ? 1 : -1);
+                // Disable transition, position new strip on opposite side
+                dateStrip.classList.add('cal-strip-dragging');
+                dateStrip.style.transform = 'translateX(' + (-slideOut) + 'px)';
+                renderDateStrip();
+
+                // Next frame: re-enable transition and slide in
+                requestAnimationFrame(function () {
+                    dateStrip.classList.remove('cal-strip-dragging');
+                    dateStrip.style.transform = 'translateX(0)';
+                });
+            }, 200);
+        });
+    }
+
     if (prevBtn) {
         prevBtn.addEventListener('click', function (e) {
             e.stopPropagation();
-            weekOffset--;
-            renderDateStrip();
+            slideWeek(1);
         });
     }
 
     if (nextBtn) {
         nextBtn.addEventListener('click', function (e) {
             e.stopPropagation();
-            weekOffset++;
-            renderDateStrip();
+            slideWeek(-1);
         });
     }
 
@@ -519,32 +561,113 @@
         refreshNextReservation();
     }
 
-    // ===== Swipe gesture for week navigation =====
+    // ===== Native-like swipe gesture for week navigation =====
     (function () {
         var wrap = document.querySelector('.cal-date-strip-wrap');
-        if (!wrap) return;
-        var startX = 0, startY = 0, endX = 0, endY = 0, moved = false;
+        if (!wrap || !dateStrip) return;
+
+        var startX = 0;
+        var startY = 0;
+        var currentX = 0;
+        var isDragging = false;
+        var isHorizontal = null; // null = undecided, true = horizontal, false = vertical
+        var DIRECTION_LOCK_THRESHOLD = 8; // px to decide direction
+        var SNAP_THRESHOLD = 0.25; // 25% of strip width to trigger week change
+
         wrap.addEventListener('touchstart', function (e) {
+            if (e.touches.length !== 1) return;
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
-            endX = startX;
-            endY = startY;
-            moved = false;
+            currentX = startX;
+            isDragging = true;
+            isHorizontal = null;
+            dateStrip.classList.add('cal-strip-dragging');
         }, { passive: true });
+
         wrap.addEventListener('touchmove', function (e) {
-            endX = e.touches[0].clientX;
-            endY = e.touches[0].clientY;
-            moved = true;
-        }, { passive: true });
-        wrap.addEventListener('touchend', function () {
-            if (!moved) { startX = startY = endX = endY = 0; return; }
-            var dx = endX - startX;
-            var dy = endY - startY;
-            if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2) {
-                if (dx < 0 && nextBtn) nextBtn.click();
-                else if (dx > 0 && prevBtn) prevBtn.click();
+            if (!isDragging || e.touches.length !== 1) return;
+            var touchX = e.touches[0].clientX;
+            var touchY = e.touches[0].clientY;
+            var dx = touchX - startX;
+            var dy = touchY - startY;
+
+            // Decide direction lock on first significant move
+            if (isHorizontal === null) {
+                if (Math.abs(dx) > DIRECTION_LOCK_THRESHOLD || Math.abs(dy) > DIRECTION_LOCK_THRESHOLD) {
+                    isHorizontal = Math.abs(dx) > Math.abs(dy);
+                }
+                if (!isHorizontal) return; // Not yet decided or vertical
             }
-            startX = startY = endX = endY = 0;
+
+            if (!isHorizontal) return; // Vertical scroll, don't interfere
+
+            // Prevent vertical scrolling while swiping horizontally
+            e.preventDefault();
+            currentX = touchX;
+            var deltaX = currentX - startX;
+
+            // Apply rubber-band resistance at edges
+            var resistance = 0.4;
+            var stripWidth = dateStrip.offsetWidth;
+            if (Math.abs(deltaX) > stripWidth * 0.5) {
+                var excess = Math.abs(deltaX) - stripWidth * 0.5;
+                deltaX = (deltaX > 0 ? 1 : -1) * (stripWidth * 0.5 + excess * resistance);
+            }
+
+            dateStrip.style.transform = 'translateX(' + deltaX + 'px)';
+        }, { passive: false });
+
+        wrap.addEventListener('touchend', function () {
+            if (!isDragging) return;
+            isDragging = false;
+            dateStrip.classList.remove('cal-strip-dragging');
+
+            if (!isHorizontal) {
+                dateStrip.style.transform = 'translateX(0)';
+                return;
+            }
+
+            var deltaX = currentX - startX;
+            var stripWidth = dateStrip.offsetWidth;
+            var threshold = stripWidth * SNAP_THRESHOLD;
+
+            if (Math.abs(deltaX) > threshold) {
+                // Swipe far enough — navigate to next/prev week
+                var direction = deltaX > 0 ? 1 : -1; // 1 = prev, -1 = next
+                var slideOut = direction * stripWidth;
+
+                // Slide out to the direction of the swipe
+                dateStrip.style.transform = 'translateX(' + slideOut + 'px)';
+
+                fadeTimeline(function () {
+                    setTimeout(function () {
+                        weekOffset += (direction === 1 ? -1 : 1);
+                        // Position new content on opposite side (no transition)
+                        dateStrip.classList.add('cal-strip-dragging');
+                        dateStrip.style.transform = 'translateX(' + (-slideOut) + 'px)';
+                        renderDateStrip();
+
+                        // Slide in to center
+                        requestAnimationFrame(function () {
+                            dateStrip.classList.remove('cal-strip-dragging');
+                            dateStrip.style.transform = 'translateX(0)';
+                        });
+                    }, 200);
+                });
+            } else {
+                // Not far enough — snap back
+                dateStrip.style.transform = 'translateX(0)';
+            }
+
+            startX = startY = currentX = 0;
+        }, { passive: true });
+
+        // Cancel on touch cancel
+        wrap.addEventListener('touchcancel', function () {
+            isDragging = false;
+            isHorizontal = null;
+            dateStrip.classList.remove('cal-strip-dragging');
+            dateStrip.style.transform = 'translateX(0)';
         }, { passive: true });
     })();
 

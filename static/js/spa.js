@@ -69,17 +69,13 @@
 
     // ========== Study Room Activation ==========
 
+    function getUserTier() {
+        return window.USER_TIER || document.body.getAttribute('data-user-tier') || 'guest';
+    }
+
     function isFreeUser() {
-        // Check both JS variable and body data attribute for reliability
-        var planType = window.PLAN_TYPE || document.body.getAttribute('data-plan-type') || 'free';
-        var subStatus = window.SUBSCRIPTION_STATUS || document.body.getAttribute('data-subscription-status') || 'none';
-        // User is NOT free if they have a paid plan with active/trialing status
-        if ((planType === 'standard' || planType === 'pro') && (subStatus === 'active' || subStatus === 'trialing')) {
-            return false;
-        }
-        // Also trust IS_SUBSCRIBED flag
-        if (window.IS_SUBSCRIBED) return false;
-        return true;
+        var tier = getUserTier();
+        return tier === 'free' || tier === 'guest';
     }
 
     function showStudyLockedModal() {
@@ -172,10 +168,23 @@
 
     // ========== Event Bindings ==========
 
+    // Close all open modal overlays (e.g., Pro restriction modal)
+    function closeAllModals() {
+        var overlays = document.querySelectorAll('.overlay');
+        overlays.forEach(function (ovl) {
+            if (ovl.style.display !== 'none') {
+                ovl.style.display = 'none';
+            }
+        });
+    }
+
     navItems.forEach(function (item) {
         item.addEventListener('click', function () {
             var section = item.getAttribute('data-section');
             if (!section) return;
+
+            // Close any open modals when switching tabs
+            closeAllModals();
 
             // ---- Plan-based blocks: MUST be checked BEFORE any section switching ----
 
@@ -187,8 +196,7 @@
             }
 
             // Block non-Pro users from route/compass tab
-            var planType = window.PLAN_TYPE || document.body.getAttribute('data-plan-type') || 'free';
-            if (section === 'route' && planType !== 'pro') {
+            if (section === 'route' && getUserTier() !== 'pro') {
                 var lockedOvl = document.getElementById('studyLockedOverlay');
                 if (lockedOvl) {
                     var titleEl = lockedOvl.querySelector('.overlay-card-header h1');
@@ -511,7 +519,8 @@
 
     btn.addEventListener('click', function () {
         // Block free-plan users
-        var isFree = !window.IS_SUBSCRIBED || !window.PLAN_TYPE || window.PLAN_TYPE === 'free' || window.SUBSCRIPTION_STATUS === 'none';
+        var tier = getUserTier();
+        var isFree = (tier === 'free' || tier === 'guest');
         if (isFree) {
             var lockedOverlay = document.getElementById('studyLockedOverlay');
             if (lockedOverlay) lockedOverlay.style.display = 'flex';

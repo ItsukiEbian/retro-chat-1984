@@ -122,6 +122,16 @@ class User(db.Model):
         delta = dt_datetime.utcnow() - self.created_at
         return delta.days < 7
 
+    @property
+    def user_tier(self):
+        """ユーザーの契約状態を単一の文字列で返す: free / standard / pro
+        ゲスト(guest)はテンプレート側で is_authenticated を見て判定する。"""
+        if self.is_active_subscription and self.subscription_status in ('active', 'trialing'):
+            if self.plan_type == 'pro':
+                return 'pro'
+            return 'standard'
+        return 'free'
+
 
 class StudyReservation(db.Model):
     __tablename__ = 'study_reservations'
@@ -412,6 +422,7 @@ def dashboard():
             trial_end_display=trial_end_display,
             stripe_price_standard=STRIPE_PRICE_ID_STANDARD,
             stripe_price_pro=STRIPE_PRICE_ID_PRO,
+            user_tier=user.user_tier,
         )
     # Guest (not logged in)
     return render_template(
@@ -429,6 +440,7 @@ def dashboard():
         trial_end_display='',
         stripe_price_standard=STRIPE_PRICE_ID_STANDARD,
         stripe_price_pro=STRIPE_PRICE_ID_PRO,
+        user_tier='guest',
     )
 
 

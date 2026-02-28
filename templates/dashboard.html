@@ -26,13 +26,14 @@
         window.IS_SUBSCRIBED = {{ is_subscribed | tojson }};
         window.PLAN_TYPE = {{ plan_type | tojson }};
         window.SUBSCRIPTION_STATUS = {{ subscription_status | tojson }};
+        window.USER_TIER = {{ user_tier | tojson }};
         window.STRIPE_PRICE_STANDARD = {{ stripe_price_standard | tojson }};
         window.STRIPE_PRICE_PRO = {{ stripe_price_pro | tojson }};
     </script>
 </head>
 
 <body class="page-spa" data-room-context="main" data-plan-type="{{ plan_type }}"
-    data-subscription-status="{{ subscription_status }}">
+    data-subscription-status="{{ subscription_status }}" data-user-tier="{{ user_tier }}">
     <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
     <!-- Goal Setting Modal -->
@@ -153,19 +154,19 @@
                     <h2 class="section-title">おかえりなさい、{{ user.name or 'ユーザー' }} さん</h2>
                     <p class="section-subtitle">今日も一緒に頑張りましょう</p>
                     {% else %}
-                    <h2 class="section-title">Video Desk へようこそ</h2>
+                    <h2 class="section-title">Study Opsへようこそ</h2>
                     <p class="section-subtitle">みんなで集中できるオンライン自習室</p>
                     {% endif %}
                 </div>
 
-                {% if not current_user.is_authenticated or not is_subscribed %}
+                {% if user_tier in ['guest', 'free'] %}
                 <div class="trial-invitation">
                     <div class="trial-invitation-ornament"></div>
                     <span class="trial-invitation-icon">
                         <span class="material-symbols-outlined">workspace_premium</span>
                     </span>
                     <h2 class="trial-invitation-title">特別な学習空間を、7日間無料で体験</h2>
-                    <p class="trial-invitation-desc">集中力を最大限に引き出すオンライン自習室を、まずは無料でお試しください。</p>
+                    <p class="trial-invitation-desc">集中力を最大限に引き出すオンライン自習室を、<br>まずは無料でお試しください。</p>
                     {% if current_user.is_authenticated %}
                     <a href="{{ url_for('subscription_page') }}" class="trial-invitation-btn">
                         <span>7日間無料体験をはじめる</span>
@@ -270,15 +271,18 @@
                             {% if role == 'student' %}
                             <button type="button" id="handRaiseBtn" class="control-btn control-btn-hand"
                                 aria-pressed="false" title="挙手する">
-                                <span class="control-btn-icon"><span
-                                        class="material-symbols-outlined">pan_tool</span></span>
+                                <span class="control-btn-filigree-icon">
+                                    <span class="material-symbols-outlined">pan_tool</span>
+                                    <span class="control-btn-gem"></span>
+                                </span>
                                 <span class="control-btn-label">挙手する</span>
                             </button>
                             {% endif %}
                             <button type="button" id="exitStudyRoomBtn" class="control-btn control-btn-exit"
                                 title="退室してホームへ">
-                                <span class="control-btn-icon"><span
-                                        class="material-symbols-outlined">logout</span></span>
+                                <span class="control-btn-filigree-icon">
+                                    <span class="material-symbols-outlined">logout</span>
+                                </span>
                                 <span class="control-btn-label">退室</span>
                             </button>
                         </footer>
@@ -286,9 +290,6 @@
 
                     <!-- Private room content -->
                     <div id="privateRoomContent" class="private-room-content" hidden>
-                        <div class="private-room-header">
-                            <button type="button" class="btn-primary" id="endPrivateSessionBtn">指導を終了して戻る</button>
-                        </div>
                         <div class="private-room-body">
                             <div class="private-media-start-banner" id="privateMediaStartBanner">
                                 <p class="private-media-start-desc">通話を開始するには、下のボタンをクリックしてカメラ・マイクへのアクセスを許可してください。</p>
@@ -296,50 +297,50 @@
                             </div>
                             <div class="private-video-section" id="privateVideoSection">
                                 <div class="private-videos" id="privateVideosContainer"></div>
-                                <div class="private-video-controls">
-                                    <button type="button" class="control-btn control-btn-icon-only" id="privateMicBtn"
-                                        title="マイク" aria-label="マイク">
-                                        <span class="control-btn-icon control-btn-icon-svg">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                                                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                                                <line x1="12" y1="19" x2="12" y2="23" />
-                                                <line x1="8" y1="23" x2="16" y2="23" />
-                                            </svg>
-                                        </span>
-                                    </button>
-                                    <button type="button" class="control-btn control-btn-icon-only"
-                                        id="privateCameraBtn" title="カメラ" aria-label="カメラ">
-                                        <span class="control-btn-icon control-btn-icon-svg">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                                <path
-                                                    d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                                                <circle cx="12" cy="13" r="4" />
-                                            </svg>
-                                        </span>
-                                    </button>
-                                    <label class="private-volume-control">
-                                        <span class="private-volume-label">相手の音量</span>
-                                        <input type="range" id="privateRemoteVolumeSlider" min="0" max="100" value="100"
-                                            title="相手の音量">
-                                    </label>
-                                </div>
                             </div>
-                            <div class="private-chat-section">
-                                <div class="private-chat-messages" id="privateChatMessages"></div>
-                                <div class="private-chat-input-area">
-                                    <label class="btn-primary private-photo-btn private-photo-btn-first">
-                                        <span><span class="material-symbols-outlined"
-                                                style="font-size:16px;vertical-align:middle">photo_camera</span>
-                                            写真を送る</span>
+                            <!-- Integrated luxury control bar -->
+                            <div class="prv-control-bar">
+                                <button type="button" class="prv-ctrl-btn prv-ctrl-round" id="privateMicBtn" title="マイク"
+                                    aria-label="マイク">
+                                    <span class="material-symbols-outlined">mic</span>
+                                </button>
+                                <button type="button" class="prv-ctrl-btn prv-ctrl-round" id="privateCameraBtn"
+                                    title="カメラ" aria-label="カメラ">
+                                    <span class="material-symbols-outlined">videocam</span>
+                                </button>
+                                <button type="button" class="prv-ctrl-btn prv-ctrl-round" id="privateChatToggleBtn"
+                                    title="チャット" aria-label="チャット">
+                                    <span class="material-symbols-outlined">chat</span>
+                                </button>
+                                <div class="prv-volume-wrap">
+                                    <span class="material-symbols-outlined prv-volume-icon">volume_up</span>
+                                    <input type="range" id="privateRemoteVolumeSlider" class="prv-volume-slider" min="0"
+                                        max="100" value="100" title="相手の音量">
+                                </div>
+                                <button type="button" class="prv-ctrl-btn prv-ctrl-end" id="endPrivateSessionBtn">
+                                    <span class="material-symbols-outlined">call_end</span>
+                                    <span class="prv-ctrl-end-label">指導を終了して戻る</span>
+                                </button>
+                            </div>
+                            <!-- Chat drawer -->
+                            <div class="prv-chat-drawer" id="privateChatDrawer">
+                                <div class="prv-chat-drawer-header">
+                                    <span class="prv-chat-drawer-title">チャット</span>
+                                    <button type="button" class="prv-chat-drawer-close" id="privateChatCloseBtn"
+                                        aria-label="チャットを閉じる">
+                                        <span class="material-symbols-outlined">close</span>
+                                    </button>
+                                </div>
+                                <div class="prv-chat-messages" id="privateChatMessages"></div>
+                                <div class="prv-chat-input-area">
+                                    <label class="prv-chat-photo-btn">
+                                        <span class="material-symbols-outlined">photo_camera</span>
                                         <input type="file" id="privatePhotoInput" accept="image/*" capture="environment"
                                             hidden>
                                     </label>
-                                    <input type="text" id="privateChatInput" class="auth-input" placeholder="メッセージを入力"
-                                        maxlength="500">
-                                    <button type="button" class="btn-secondary" id="privateChatSendBtn">送信</button>
+                                    <input type="text" id="privateChatInput" class="prv-chat-input"
+                                        placeholder="メッセージを入力" maxlength="500">
+                                    <button type="button" class="prv-chat-send-btn" id="privateChatSendBtn">送信</button>
                                 </div>
                             </div>
                         </div>
@@ -391,13 +392,12 @@
         <!-- ====== Section: Route ====== -->
         <div id="section-route" class="spa-section">
             <div class="sec-route" style="position:relative">
-                {% if current_user.is_authenticated %}
-                <!-- === Learning Route & Interview === -->
                 <div class="section-header">
                     <h2 class="section-title">学習ルート・面談</h2>
-                    <p class="section-subtitle">あなた専用の学習計画と、講師による定期面談</p>
+                    <p class="section-subtitle">あなた専用の学習プランとメンター面談</p>
                 </div>
-
+                {% if current_user.is_authenticated %}
+                <!-- === Learning Route & Interview === -->
                 <div class="route-learning-section">
                     <h2 class="route-section-title">あなた専用の学習ルート</h2>
                     <div class="route-learning-content">
@@ -507,11 +507,11 @@
         <!-- ====== Section: Profile ====== -->
         <div id="section-profile" class="spa-section">
             <div class="sec-profile">
-                {% if current_user.is_authenticated %}
                 <div class="section-header">
                     <h2 class="section-title">プロフィール・設定</h2>
                     <p class="section-subtitle">アカウント情報の確認と変更</p>
                 </div>
+                {% if current_user.is_authenticated %}
 
                 <div class="profile-user-area">
                     <div class="profile-avatar">
@@ -561,13 +561,10 @@
                 <div class="profile-plan-area">
                     <h2 class="profile-section-title">ご契約プラン</h2>
                     <div class="profile-plan-card">
-                        {% if subscription_status in ['active', 'trialing', 'canceled', 'past_due'] %}
+                        {% if user_tier == 'pro' %}
+                        {# ── Proプラン契約中 ── #}
                         <div class="profile-plan-info">
-                            <span class="profile-plan-name">
-                                {% if plan_type == 'pro' %}Proプラン
-                                {% elif plan_type == 'standard' %}Standardプラン
-                                {% else %}無料プラン{% endif %}
-                            </span>
+                            <span class="profile-plan-name">Proプラン</span>
                             <span class="profile-plan-status">
                                 {% if subscription_status == 'trialing' %}
                                 <span class="material-symbols-outlined"
@@ -576,19 +573,9 @@
                                 {% elif subscription_status == 'active' %}
                                 <span class="material-symbols-outlined"
                                     style="font-size:14px;color:var(--accent)">verified</span> 有効
-                                {% elif subscription_status == 'canceled' %}
-                                <span class="material-symbols-outlined"
-                                    style="font-size:14px;color:#e57373">cancel</span> 解約済み
-                                {% elif subscription_status == 'past_due' %}
-                                <span class="material-symbols-outlined"
-                                    style="font-size:14px;color:#ff9800">warning</span> 支払い遅延
                                 {% endif %}
                             </span>
                         </div>
-                        {% endif %}
-
-                        {% if subscription_status in ['active', 'trialing'] %}
-                        {# ── 有料プラン: カスタマーポータルへ ── #}
                         <form action="{{ url_for('create_portal_session') }}" method="POST" class="profile-plan-action">
                             <button type="submit" class="profile-plan-btn">
                                 <span>ご契約内容の確認・変更</span>
@@ -596,7 +583,27 @@
                             </button>
                         </form>
 
-                        {% if plan_type == 'standard' %}
+                        {% elif user_tier == 'standard' %}
+                        {# ── Standardプラン（体験中/契約中） ── #}
+                        <div class="profile-plan-info">
+                            <span class="profile-plan-name">Standardプラン</span>
+                            <span class="profile-plan-status">
+                                {% if subscription_status == 'trialing' %}
+                                <span class="material-symbols-outlined"
+                                    style="font-size:14px;color:#42a5f5">hourglass_top</span>
+                                無料体験中{% if trial_end_display %}：{{ trial_end_display }}まで{% endif %}
+                                {% elif subscription_status == 'active' %}
+                                <span class="material-symbols-outlined"
+                                    style="font-size:14px;color:var(--accent)">verified</span> 有効
+                                {% endif %}
+                            </span>
+                        </div>
+                        <form action="{{ url_for('create_portal_session') }}" method="POST" class="profile-plan-action">
+                            <button type="submit" class="profile-plan-btn">
+                                <span>ご契約内容の確認・変更</span>
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </button>
+                        </form>
                         <div class="profile-upsell-banner">
                             <div class="profile-upsell-badge">PRO</div>
                             <div class="profile-upsell-header">
@@ -613,9 +620,16 @@
                                 </button>
                             </form>
                         </div>
-                        {% endif %}
+
                         {% else %}
-                        {# ── 無料プラン: アップグレードボタン ── #}
+                        {# ── 未契約 (free) ── #}
+                        <div class="profile-plan-info">
+                            <span class="profile-plan-name">未契約</span>
+                            <span class="profile-plan-status">
+                                <span class="material-symbols-outlined" style="font-size:14px;color:#999">info</span>
+                                プランを選択して学習を始めましょう
+                            </span>
+                        </div>
                         <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;width:100%">
                             <button type="button" class="js-checkout-btn btn-upgrade-standard" data-plan="standard"
                                 style="background:var(--accent);color:var(--primary);border-radius:10px;padding:14px 18px;font-size:14px;font-weight:500;border:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;width:100%">

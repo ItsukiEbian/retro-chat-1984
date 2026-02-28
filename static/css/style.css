@@ -1641,24 +1641,55 @@ h6 {
     border-color: var(--text-tertiary);
 }
 
-/* ---------- Hand Raise Button: Premium Bronze-Gold ---------- */
+/* ============================================================
+   LUXURY CONTROL BUTTONS — Sapphire & Cream Stone with Filigree
+   ============================================================ */
+
+/* --- Shared filigree icon wrapper --- */
+.control-btn-filigree-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+}
+
+.control-btn-filigree-icon .material-symbols-outlined {
+    font-size: 18px;
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    transition: color 0.3s, transform 0.3s;
+}
+
+/* Small sapphire gem dot beside the hand icon */
+.control-btn-gem {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #7db8e8, #2a5fa0 60%, #1a3a5c);
+    box-shadow: 0 0 3px rgba(42, 95, 160, 0.5);
+    transition: box-shadow 0.3s, background 0.3s;
+    flex-shrink: 0;
+}
+
+/* ---------- Hand Raise Button: Polished Sapphire Blue Stone ---------- */
 .control-btn-hand {
-    font-family: var(--font-body, 'Noto Sans JP', sans-serif);
+    font-family: var(--font-heading, 'Noto Serif JP', serif);
     font-weight: 500;
     font-size: 13px;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     padding: 10px 24px;
     border-radius: 6px;
-    border: 1px solid rgba(197, 168, 128, 0.5);
-    color: var(--accent, #c5a880);
-    background: transparent;
+    border: 1px solid #a07840;
+    color: #d4bc98;
+    background: linear-gradient(145deg, #1a3a5c, #2c5a8a 40%, #1e4a72 70%, #162e4a);
     position: relative;
     overflow: hidden;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(.4, 0, .2, 1);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
-/* Hairline metallic texture (always visible, subtle) */
+/* Metallic hairline texture overlay */
 .control-btn-hand::before {
     content: '';
     position: absolute;
@@ -1666,72 +1697,90 @@ h6 {
     background: repeating-linear-gradient(90deg,
             transparent,
             transparent 2px,
-            rgba(197, 168, 128, 0.04) 2px,
-            rgba(197, 168, 128, 0.04) 4px);
+            rgba(212, 188, 152, 0.04) 2px,
+            rgba(212, 188, 152, 0.04) 4px);
     pointer-events: none;
     border-radius: inherit;
 }
 
+/* Gold filigree accent line at top */
+.control-btn-hand::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #c5a880 30%, #d4bc98 50%, #c5a880 70%, transparent);
+    pointer-events: none;
+}
+
+.control-btn-hand .control-btn-label {
+    font-family: var(--font-heading, 'Noto Serif JP', serif);
+    letter-spacing: 0.08em;
+    color: #d4bc98;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.control-btn-hand .control-btn-filigree-icon .material-symbols-outlined {
+    color: #d4bc98;
+}
+
 .control-btn-hand:hover {
-    background: rgba(197, 168, 128, 0.08);
-    border-color: var(--accent-hover, #d4bc98);
-    color: var(--accent-hover, #d4bc98);
-    box-shadow: 0 2px 8px rgba(197, 168, 128, 0.15);
+    background: linear-gradient(145deg, #1e4a72, #3468a0 40%, #2a5890 70%, #1a3a5c);
+    border-color: #c5a880;
+    box-shadow: 0 2px 12px rgba(42, 95, 160, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-.control-btn-hand .control-btn-icon {
-    font-size: 16px;
-    color: var(--accent, #c5a880);
-    transition: color 0.3s, transform 0.3s;
+.control-btn-hand:hover .control-btn-gem {
+    box-shadow: 0 0 6px rgba(42, 95, 160, 0.7);
 }
 
-.control-btn-hand:hover .control-btn-icon {
-    color: var(--accent-hover, #d4bc98);
-}
-
-/* Active state: raised hand — metallic bronze gradient with shimmer */
+/* Active state: raised hand — sapphire stone lit up */
 .control-btn-hand.is-active {
-    background: linear-gradient(135deg,
-            #b8956a 0%,
-            #c5a880 30%,
-            #d4bc98 50%,
-            #c5a880 70%,
-            #b8956a 100%);
+    background: linear-gradient(145deg, #2a5fa0, #3a7ac0 30%, #4a8ad0 50%, #3a7ac0 70%, #2a5fa0);
     background-size: 200% 200%;
-    border-color: #a07840;
+    border-color: #c5a880;
     color: #fff;
     box-shadow:
-        0 2px 12px rgba(197, 168, 128, 0.35),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        0 2px 16px rgba(42, 95, 160, 0.45),
+        0 0 20px rgba(58, 122, 192, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
     animation: hand-raise-shimmer 3s ease infinite;
 }
 
-/* Active overlay: stronger texture */
+.control-btn-hand.is-active .control-btn-label {
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.control-btn-hand.is-active .control-btn-filigree-icon .material-symbols-outlined {
+    color: #fff;
+    transform: scale(1.08);
+}
+
+.control-btn-hand.is-active .control-btn-gem {
+    background: radial-gradient(circle at 35% 35%, #b0d8ff, #4a9ae8 50%, #2a6fc0);
+    box-shadow: 0 0 8px rgba(74, 154, 232, 0.8), 0 0 16px rgba(74, 154, 232, 0.4);
+    animation: gem-pulse 2s ease-in-out infinite;
+}
+
 .control-btn-hand.is-active::before {
     background: repeating-linear-gradient(90deg,
             transparent,
             transparent 2px,
-            rgba(255, 255, 255, 0.06) 2px,
-            rgba(255, 255, 255, 0.06) 4px);
-}
-
-.control-btn-hand.is-active .control-btn-icon {
-    color: #fff;
-    transform: scale(1.1);
+            rgba(255, 255, 255, 0.05) 2px,
+            rgba(255, 255, 255, 0.05) 4px);
 }
 
 .control-btn-hand.is-active:hover {
-    background: linear-gradient(135deg,
-            #a07840 0%,
-            #b8956a 30%,
-            #c5a880 50%,
-            #b8956a 70%,
-            #a07840 100%);
+    background: linear-gradient(145deg, #2050a0, #3068b0 30%, #4080c8 50%, #3068b0 70%, #2050a0);
     background-size: 200% 200%;
-    border-color: #8c6a35;
+    border-color: #d4bc98;
     box-shadow:
-        0 4px 16px rgba(197, 168, 128, 0.45),
-        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        0 4px 20px rgba(42, 95, 160, 0.55),
+        0 0 28px rgba(58, 122, 192, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 @keyframes hand-raise-shimmer {
@@ -1748,32 +1797,193 @@ h6 {
     }
 }
 
+@keyframes gem-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 6px rgba(74, 154, 232, 0.6), 0 0 12px rgba(74, 154, 232, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 10px rgba(74, 154, 232, 0.9), 0 0 20px rgba(74, 154, 232, 0.5);
+    }
+}
+
+/* ---------- Exit Button: Polished Cream Stone ---------- */
+.control-btn-exit {
+    font-family: var(--font-heading, 'Noto Serif JP', serif);
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    padding: 10px 24px;
+    border-radius: 6px;
+    border: 1px solid #a07840;
+    color: #7a6840;
+    background: linear-gradient(145deg, #f5f0e6, #ede5d5 40%, #f0eae0 70%, #e8e0d0);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(.4, 0, .2, 1);
+    text-decoration: none;
+}
+
+/* Metallic hairline texture overlay for exit */
+.control-btn-exit::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg,
+            transparent,
+            transparent 2px,
+            rgba(160, 120, 64, 0.03) 2px,
+            rgba(160, 120, 64, 0.03) 4px);
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+/* Gold filigree accent line at top */
+.control-btn-exit::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #c5a880 30%, #d4bc98 50%, #c5a880 70%, transparent);
+    pointer-events: none;
+}
+
+.control-btn-exit .control-btn-label {
+    font-family: var(--font-heading, 'Noto Serif JP', serif);
+    letter-spacing: 0.08em;
+    color: #7a6840;
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+
+.control-btn-exit .control-btn-filigree-icon .material-symbols-outlined {
+    color: #8a7850;
+    transition: color 0.3s;
+}
+
+.control-btn-exit:hover {
+    background: linear-gradient(145deg, #ede5d5, #e5dcc8 40%, #ebe3d5 70%, #ddd5c5);
+    border-color: #c5a880;
+    color: #6a5830;
+    box-shadow: 0 2px 10px rgba(160, 120, 64, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.control-btn-exit:hover .control-btn-filigree-icon .material-symbols-outlined {
+    color: #6a5830;
+}
+
 .control-btn-icon {
     font-size: 18px;
 }
 
-/* ---------- Hand raise badge on video tile ---------- */
-.hand-badge {
+/* ============================================================
+   FILIGREE STATUS BAR — on video tiles (replaces hand-badge)
+   ============================================================ */
+.hand-status-bar {
     position: absolute;
-    bottom: 12px;
-    right: 12px;
-    width: 40px;
-    height: 40px;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 50%;
-    z-index: 3;
+    gap: 6px;
+    z-index: 4;
     opacity: 0;
-    transform: scale(0.8);
-    transition: opacity 0.2s, transform 0.2s;
+    transform: translateY(-100%);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    background: linear-gradient(90deg,
+            rgba(160, 120, 64, 0.0),
+            rgba(160, 120, 64, 0.7) 15%,
+            rgba(197, 168, 128, 0.85) 50%,
+            rgba(160, 120, 64, 0.7) 85%,
+            rgba(160, 120, 64, 0.0));
+    pointer-events: none;
 }
 
-.hand-badge.is-raised {
+/* Filigree texture on the bar */
+.hand-status-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg,
+            transparent, transparent 3px,
+            rgba(255, 255, 255, 0.08) 3px, rgba(255, 255, 255, 0.08) 4px);
+    pointer-events: none;
+}
+
+/* Gold filigree lines flanking the gem */
+.hand-status-line {
+    display: block;
+    width: 28px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6) 30%, rgba(255, 255, 255, 0.8) 50%, rgba(255, 255, 255, 0.6) 70%, transparent);
+    flex-shrink: 0;
+}
+
+/* Sapphire gem in center of bar */
+.hand-status-gem {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #607080, #3a4a5a 60%, #2a3440);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+    transition: background 0.5s ease, box-shadow 0.5s ease, border-color 0.5s ease;
+    flex-shrink: 0;
+}
+
+/* Raised state: bar slides in and gem lights up */
+.hand-status-bar.is-raised {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0);
+}
+
+.hand-status-bar.is-raised .hand-status-gem {
+    background: radial-gradient(circle at 35% 35%, #a0d0ff, #4a9ae8 50%, #2a6fc0);
+    border-color: rgba(130, 200, 255, 0.5);
+    box-shadow:
+        0 0 6px rgba(74, 154, 232, 0.7),
+        0 0 14px rgba(74, 154, 232, 0.35);
+    animation: status-gem-glow 2.5s ease-in-out infinite;
+}
+
+@keyframes status-gem-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 5px rgba(74, 154, 232, 0.6), 0 0 10px rgba(74, 154, 232, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 8px rgba(74, 154, 232, 0.9), 0 0 18px rgba(74, 154, 232, 0.5);
+    }
+}
+
+/* ============================================================
+   STUDENT LIST — Sapphire gem dot replaces ✋ emoji
+   ============================================================ */
+.student-raised {
+    margin-left: 6px;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
+.student-raised-gem {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #a0d0ff, #4a9ae8 50%, #2a6fc0);
+    box-shadow: 0 0 4px rgba(74, 154, 232, 0.6), 0 0 8px rgba(74, 154, 232, 0.3);
+    animation: status-gem-glow 2.5s ease-in-out infinite;
 }
 
 /* ---------- Toast notifications ---------- */
@@ -1924,7 +2134,9 @@ body[data-room-context="private"] #mainRoomContent {
     padding: 6px 12px;
 }
 
-/* ---------- Private room ---------- */
+/* ============================================================
+   PRIVATE ROOM — Luxury Redesign
+   ============================================================ */
 .private-room-content {
     display: flex;
     flex-direction: column;
@@ -1933,47 +2145,48 @@ body[data-room-context="private"] #mainRoomContent {
     padding: 0;
 }
 
-.private-room-header {
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--border-subtle);
-    background: var(--bg-card);
-}
-
 .private-room-body {
     display: flex;
+    flex-direction: column;
     flex: 1;
     min-height: 0;
-    flex-wrap: nowrap;
-    align-items: stretch;
-    gap: 16px;
-    padding: 16px;
+    position: relative;
     overflow: hidden;
+    background: #151518;
 }
 
-.private-audio-unlock-banner {
-    flex-basis: 100%;
-    width: 100%;
+.private-media-start-banner {
     flex-shrink: 0;
-    display: flex;
-    justify-content: center;
-    padding: 8px 0;
-    background: var(--primary-light);
-    border-radius: var(--radius-sm);
+    padding: 20px 24px;
+    margin: 16px;
+    background: linear-gradient(135deg, rgba(160, 120, 64, 0.08), rgba(160, 120, 64, 0.04));
+    border: 1px solid rgba(160, 120, 64, 0.3);
+    border-radius: 10px;
+    text-align: center;
 }
 
-.private-audio-unlock-banner .btn-primary {
+.private-media-start-desc {
+    margin: 0 0 14px 0;
+    font-family: var(--font-heading, 'Noto Serif JP', serif);
+    font-size: 14px;
+    color: #d4bc98;
+    letter-spacing: 0.04em;
+}
+
+.private-media-start-banner .btn-primary {
     margin: 0;
+    font-family: var(--font-heading, 'Noto Serif JP', serif);
 }
 
 .private-video-section {
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-width: 320px;
     min-height: 0;
+    padding: 10px 10px 0;
 }
 
-/* 個別対応: 横長を上下に、上が相手・下が自分（参加者・管理者共通） */
+/* --- Video grid: remote top, local bottom --- */
 .private-videos {
     display: grid;
     grid-template-columns: 1fr;
@@ -1991,37 +2204,15 @@ body[data-room-context="private"] #mainRoomContent {
     order: 2;
 }
 
-.private-video-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #2d2d2d;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 14px;
-    padding: 16px;
-}
-
+/* --- Video wrapper: rounded with gold border --- */
 .private-video-wrapper {
     position: relative;
-    background: #1a1a1a;
+    background: #1a1a1e;
     overflow: hidden;
     min-height: 0;
-}
-
-/* 個別対応: 名前は白い枠なし・映像上に文字のみ */
-.private-video-wrapper h3 {
-    position: absolute;
-    bottom: 8px;
-    left: 8px;
-    right: auto;
-    margin: 0;
-    padding: 0;
-    font-size: 12px;
-    font-weight: 500;
-    color: #fff;
-    background: none;
-    z-index: 2;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8), 0 0 4px rgba(0, 0, 0, 0.6);
+    border-radius: 10px;
+    border: 1px solid rgba(160, 120, 64, 0.4);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
 }
 
 .private-video-wrapper video {
@@ -2030,113 +2221,93 @@ body[data-room-context="private"] #mainRoomContent {
     object-fit: cover;
     object-position: center;
     display: block;
+    border-radius: 9px;
 }
 
-.private-media-start-banner {
-    flex-shrink: 0;
-    padding: 16px 20px;
-    margin-bottom: 12px;
-    background: var(--primary-light);
-    border: 1px solid var(--primary);
-    border-radius: var(--radius-sm);
-    text-align: center;
-}
-
-.private-media-start-desc {
-    margin: 0 0 12px 0;
-    font-size: 14px;
-    color: var(--text-primary);
-}
-
-.private-media-start-banner .btn-primary {
+/* --- Elegant label: "相手" / "自分" in gold serif --- */
+.private-video-wrapper h3 {
+    position: absolute;
+    bottom: 10px;
+    left: 12px;
+    right: auto;
     margin: 0;
+    padding: 3px 10px;
+    font-family: var(--font-heading, 'Noto Serif JP', serif);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    color: #d4bc98;
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: 4px;
+    border: 1px solid rgba(160, 120, 64, 0.3);
+    z-index: 2;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
+/* --- Voice meter: refined gold bar --- */
 .private-voice-meter-wrap {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 6px 8px;
-    background: rgba(0, 0, 0, 0.5);
+    padding: 0;
+    background: none;
     z-index: 2;
+    display: flex;
+    align-items: flex-end;
+    pointer-events: none;
 }
 
 .private-voice-meter-label {
-    display: block;
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.9);
-    margin-bottom: 4px;
+    display: none;
 }
 
 .private-voice-meter {
     display: block;
     width: 100%;
-    max-width: 200px;
-    height: 24px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.2);
+    height: 3px;
+    border-radius: 0 0 9px 9px;
+    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
 }
 
-.private-video-controls {
+.private-voice-meter::-webkit-meter-bar {
+    background: transparent;
+    border: none;
+    border-radius: 0 0 9px 9px;
+}
+
+.private-voice-meter::-webkit-meter-optimum-value {
+    background: linear-gradient(90deg, rgba(160, 120, 64, 0.3), rgba(197, 168, 128, 0.7));
+    border-radius: 0 0 9px 9px;
+}
+
+.private-video-placeholder {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 0;
-    flex-shrink: 0;
-}
-
-/* 対面ルーム: マイク・カメラはアイコンのみ・Zoom風SVG */
-.private-video-controls .control-btn-icon-only .control-btn-label {
-    display: none;
-}
-
-.private-video-controls .control-btn-icon-only {
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
+    background: #1e1e22;
+    color: rgba(212, 188, 152, 0.6);
+    font-family: var(--font-heading, 'Noto Serif JP', serif);
+    font-size: 13px;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(160, 120, 64, 0.25);
 }
 
-.private-video-controls .control-btn-icon-svg {
-    width: 22px;
-    height: 22px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.private-video-controls .control-btn-icon-svg svg {
+.private-audio-unlock-banner {
+    flex-basis: 100%;
     width: 100%;
-    height: 100%;
-}
-
-.private-video-controls .control-btn.on .control-btn-icon-svg {
-    color: var(--primary);
-}
-
-.private-video-controls .control-btn.muted .control-btn-icon-svg {
-    color: var(--text-tertiary);
-}
-
-.private-volume-control {
+    flex-shrink: 0;
     display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-.private-volume-label {
-    white-space: nowrap;
-}
-
-.private-volume-control input[type="range"] {
-    width: 80px;
+    justify-content: center;
+    padding: 8px 10px;
+    background: linear-gradient(135deg, rgba(160, 120, 64, 0.1), rgba(160, 120, 64, 0.05));
+    border-radius: 8px;
+    margin: 8px 10px;
 }
 
 .private-audio-click-overlay {
@@ -2148,98 +2319,394 @@ body[data-room-context="private"] #mainRoomContent {
     justify-content: center;
     padding: 16px;
     background: rgba(0, 0, 0, 0.7);
-    color: #fff;
+    color: #d4bc98;
+    font-family: var(--font-heading, 'Noto Serif JP', serif);
     font-size: 13px;
     text-align: center;
     border: none;
     cursor: pointer;
+    border-radius: 10px;
 }
 
-.private-chat-section {
-    flex: 0 0 320px;
-    width: 320px;
-    min-width: 280px;
+/* ============================================================
+   CONTROL BAR — Cream stone with filigree icons
+   ============================================================ */
+.prv-control-bar {
     display: flex;
-    flex-direction: column;
-    align-self: stretch;
-    background: var(--bg-card);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-subtle);
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 14px;
+    flex-shrink: 0;
+    background: linear-gradient(145deg, #f5f0e6, #ede5d5 40%, #f0eae0 70%, #e8e0d0);
+    border-top: 1px solid rgba(160, 120, 64, 0.3);
+    position: relative;
     overflow: hidden;
 }
 
-.private-chat-messages {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    padding: 16px;
+/* Hairline texture */
+.prv-control-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg,
+            transparent, transparent 2px,
+            rgba(160, 120, 64, 0.03) 2px, rgba(160, 120, 64, 0.03) 4px);
+    pointer-events: none;
 }
 
-.private-chat-msg {
-    margin-bottom: 12px;
-    font-size: 14px;
-    word-break: break-word;
+/* Gold filigree accent line at top */
+.prv-control-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 8%;
+    right: 8%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #c5a880 25%, #d4bc98 50%, #c5a880 75%, transparent);
+    pointer-events: none;
 }
 
-.private-chat-name {
-    font-weight: 500;
-    color: var(--text-secondary);
+/* --- Round icon buttons (mic, camera, chat) --- */
+.prv-ctrl-btn {
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-heading, 'Noto Serif JP', serif);
+    transition: all 0.25s ease;
 }
 
-.private-chat-img {
-    display: block;
-    max-width: 100%;
-    max-height: 240px;
-    border-radius: var(--radius-sm);
-    margin-top: 4px;
+.prv-ctrl-round {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(160, 120, 64, 0.08);
+    border: 1px solid rgba(160, 120, 64, 0.3);
+    color: #8a7850;
+    padding: 0;
 }
 
-.private-chat-input-area {
+.prv-ctrl-round .material-symbols-outlined {
+    font-size: 20px;
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+}
+
+.prv-ctrl-round:hover {
+    background: rgba(160, 120, 64, 0.15);
+    border-color: #a07840;
+    color: #6a5830;
+    box-shadow: 0 2px 8px rgba(160, 120, 64, 0.15);
+}
+
+/* Muted state */
+.prv-ctrl-round.muted {
+    background: rgba(180, 60, 60, 0.08);
+    border-color: rgba(180, 60, 60, 0.3);
+    color: #b44040;
+}
+
+.prv-ctrl-round.muted:hover {
+    background: rgba(180, 60, 60, 0.15);
+}
+
+/* ON state */
+.prv-ctrl-round.on {
+    background: rgba(160, 120, 64, 0.15);
+    border-color: #a07840;
+    color: #6a5830;
+}
+
+/* Chat toggle active */
+.prv-ctrl-round.prv-chat-active {
+    background: rgba(42, 95, 160, 0.12);
+    border-color: rgba(42, 95, 160, 0.4);
+    color: #2a5fa0;
+}
+
+/* --- Volume slider --- */
+.prv-volume-wrap {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px 16px;
-    border-top: 1px solid var(--border-subtle);
-    margin-top: auto;
+    align-items: center;
+    gap: 4px;
+    padding: 0 4px;
+}
+
+.prv-volume-icon {
+    font-size: 18px;
+    color: #8a7850;
+    font-variation-settings: 'FILL' 0, 'wght' 300;
+}
+
+.prv-volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 60px;
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgba(160, 120, 64, 0.2), rgba(160, 120, 64, 0.35));
+    outline: none;
+    cursor: pointer;
+}
+
+.prv-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%, #d4bc98, #a07840);
+    border: 1px solid rgba(160, 120, 64, 0.5);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.prv-volume-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%, #d4bc98, #a07840);
+    border: 1px solid rgba(160, 120, 64, 0.5);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+/* --- End session button --- */
+.prv-ctrl-end {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    background: linear-gradient(145deg, #8c3030, #a04040 40%, #8c3030);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    border: 1px solid rgba(160, 60, 60, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.prv-ctrl-end .material-symbols-outlined {
+    font-size: 18px;
+    font-variation-settings: 'FILL' 0, 'wght' 300;
+}
+
+.prv-ctrl-end-label {
+    font-family: var(--font-heading, 'Noto Serif JP', serif);
+    letter-spacing: 0.06em;
+}
+
+.prv-ctrl-end::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg,
+            transparent, transparent 2px,
+            rgba(255, 255, 255, 0.04) 2px, rgba(255, 255, 255, 0.04) 4px);
+    pointer-events: none;
+}
+
+.prv-ctrl-end:hover {
+    background: linear-gradient(145deg, #7a2828, #903838 40%, #7a2828);
+    box-shadow: 0 2px 10px rgba(160, 60, 60, 0.3);
+}
+
+/* ============================================================
+   CHAT DRAWER — slide up panel
+   ============================================================ */
+.prv-chat-drawer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 55%;
+    max-height: 400px;
+    display: flex;
+    flex-direction: column;
+    background: #1e1e22;
+    border-top: 1px solid rgba(160, 120, 64, 0.3);
+    border-radius: 14px 14px 0 0;
+    z-index: 10;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.prv-chat-drawer.is-open {
+    transform: translateY(0);
+}
+
+.prv-chat-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(160, 120, 64, 0.2);
     flex-shrink: 0;
 }
 
-.private-photo-btn-first {
-    order: -1;
-    width: 100%;
-    margin: 0;
-    cursor: pointer;
+.prv-chat-drawer-title {
+    font-family: var(--font-heading, 'Noto Serif JP', serif);
+    font-size: 13px;
+    font-weight: 500;
+    color: #d4bc98;
+    letter-spacing: 0.08em;
+}
+
+.prv-chat-drawer-close {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid rgba(160, 120, 64, 0.25);
+    background: transparent;
+    color: #d4bc98;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.2s;
 }
 
-.private-chat-input-area .auth-input {
+.prv-chat-drawer-close .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.prv-chat-drawer-close:hover {
+    background: rgba(160, 120, 64, 0.1);
+}
+
+/* --- Chat messages --- */
+.prv-chat-messages {
     flex: 1;
-    min-width: 120px;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px 14px;
 }
 
-.private-photo-btn {
-    margin: 0;
-    cursor: pointer;
+/* Keep existing private-chat-msg / private-chat-name / private-chat-img classes working */
+.private-chat-msg,
+.prv-chat-messages .private-chat-msg {
+    margin-bottom: 10px;
+    font-size: 13px;
+    word-break: break-word;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.private-chat-name,
+.prv-chat-messages .private-chat-name {
+    font-family: var(--font-heading, 'Noto Serif JP', serif);
+    font-weight: 500;
+    font-size: 11px;
+    color: #c5a880;
+    margin-bottom: 2px;
+    display: block;
+}
+
+.private-chat-img,
+.prv-chat-messages .private-chat-img {
+    display: block;
+    max-width: 100%;
+    max-height: 180px;
+    border-radius: 6px;
+    margin-top: 4px;
+    border: 1px solid rgba(160, 120, 64, 0.2);
+}
+
+/* --- Chat input --- */
+.prv-chat-input-area {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    border-top: 1px solid rgba(160, 120, 64, 0.15);
+    flex-shrink: 0;
+}
+
+.prv-chat-photo-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(160, 120, 64, 0.3);
+    background: rgba(160, 120, 64, 0.08);
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
 }
 
-/* マイク・カメラ等: オン=青、オフ=グレーで判別 */
-.control-btn.on {
-    background: var(--primary-light);
-    border-color: var(--primary);
-    color: var(--primary);
+.prv-chat-photo-btn .material-symbols-outlined {
+    font-size: 18px;
+    color: #c5a880;
+    font-variation-settings: 'FILL' 0, 'wght' 300;
 }
 
-.control-btn.muted {
-    background: var(--surface-hover);
-    border-color: var(--border-subtle);
-    color: var(--text-tertiary);
-    opacity: 0.85;
+.prv-chat-photo-btn:hover {
+    background: rgba(160, 120, 64, 0.15);
+}
+
+.prv-chat-input {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 12px;
+    font-family: var(--font-body, 'Noto Sans JP', sans-serif);
+    font-size: 13px;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(160, 120, 64, 0.2);
+    border-radius: 20px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.prv-chat-input::placeholder {
+    color: rgba(212, 188, 152, 0.4);
+}
+
+.prv-chat-input:focus {
+    border-color: rgba(160, 120, 64, 0.5);
+}
+
+.prv-chat-send-btn {
+    padding: 7px 14px;
+    font-family: var(--font-heading, 'Noto Serif JP', serif);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: #d4bc98;
+    background: rgba(160, 120, 64, 0.12);
+    border: 1px solid rgba(160, 120, 64, 0.3);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.prv-chat-send-btn:hover {
+    background: rgba(160, 120, 64, 0.2);
+    border-color: #a07840;
+}
+
+/* ============================================================
+   PRIVATE ROOM — Muted/On states for new buttons
+   ============================================================ */
+.control-btn.on,
+.prv-ctrl-round.on {
+    background: rgba(160, 120, 64, 0.15);
+    border-color: #a07840;
+    color: #6a5830;
+}
+
+.control-btn.muted,
+.prv-ctrl-round.muted {
+    background: rgba(180, 60, 60, 0.08);
+    border-color: rgba(180, 60, 60, 0.3);
+    color: #b44040;
+    opacity: 1;
 }
 
 /* ---------- メニューボタン（スマホのみ表示） ---------- */
@@ -2746,8 +3213,8 @@ body[data-room-context="private"] #mainRoomContent {
 
 .spa-home-greeting,
 .section-header {
-    text-align: left;
-    padding: 24px 20px 16px;
+    text-align: center;
+    padding: 32px 20px 20px;
     margin: 0;
 }
 
@@ -2980,11 +3447,11 @@ body[data-room-context="private"] #mainRoomContent {
 .trial-invitation-title {
     margin: 0 0 16px;
     font-family: var(--font-heading);
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 500;
     color: var(--text-primary);
-    letter-spacing: 0.05em;
-    line-height: 1.6;
+    letter-spacing: 0.06em;
+    line-height: 1.5;
 }
 
 .trial-invitation-desc {
@@ -3044,7 +3511,8 @@ body[data-room-context="private"] #mainRoomContent {
     }
 
     .trial-invitation-title {
-        font-size: 19px;
+        font-size: 17px;
+        letter-spacing: 0.04em;
     }
 
     .trial-invitation-btn {
@@ -3117,6 +3585,7 @@ body[data-room-context="private"] #mainRoomContent {
         box-shadow: 0 -1px 8px rgba(27, 42, 71, 0.05);
         padding-bottom: env(safe-area-inset-bottom);
         transition: none;
+        z-index: 10001;
     }
 
     /* Kill hover expansion on touch devices */
@@ -4468,6 +4937,7 @@ body[data-room-context="private"] #mainRoomContent {
     flex-shrink: 0;
     touch-action: pan-y;
     position: relative;
+    overflow: hidden;
 }
 
 .cal-date-arrow {
@@ -4508,6 +4978,8 @@ body[data-room-context="private"] #mainRoomContent {
     min-width: 0;
     padding: 4px 0;
     justify-content: space-between;
+    will-change: transform;
+    transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .cal-date-strip::-webkit-scrollbar {
@@ -4613,6 +5085,17 @@ body[data-room-context="private"] #mainRoomContent {
     min-height: 0;
     position: relative;
     z-index: 0;
+    transition: opacity 0.2s ease;
+    opacity: 1;
+}
+
+.cal-timeline-wrap.cal-timeline-fading {
+    opacity: 0;
+    transition: opacity 0.12s ease-out;
+}
+
+.cal-date-strip.cal-strip-dragging {
+    transition: none !important;
 }
 
 .cal-timeline {
@@ -4885,6 +5368,7 @@ body[data-room-context="private"] #mainRoomContent {
 
     .cal-date-strip-wrap {
         gap: 2px;
+        overflow: hidden;
     }
 
     .cal-date-strip {
@@ -4895,6 +5379,7 @@ body[data-room-context="private"] #mainRoomContent {
         box-sizing: border-box;
         gap: 2px;
         overflow-x: visible;
+        touch-action: pan-y;
     }
 
     .cal-date-strip::-webkit-scrollbar {

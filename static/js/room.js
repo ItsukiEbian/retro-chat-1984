@@ -306,18 +306,24 @@ if (document.readyState === 'loading') {
 
 function updateHandIndicator(wrapperEl, raised) {
     if (!wrapperEl) return;
-    let badge = wrapperEl.querySelector('.hand-badge');
+    let bar = wrapperEl.querySelector('.hand-status-bar');
     if (raised) {
-        if (!badge) {
-            badge = document.createElement('span');
-            badge.className = 'hand-badge';
-            badge.setAttribute('aria-hidden', 'true');
-            badge.textContent = '✋';
-            wrapperEl.appendChild(badge);
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.className = 'hand-status-bar';
+            bar.setAttribute('aria-hidden', 'true');
+            var gem = document.createElement('span');
+            gem.className = 'hand-status-gem';
+            var line = document.createElement('span');
+            line.className = 'hand-status-line';
+            bar.appendChild(line);
+            bar.appendChild(gem);
+            bar.appendChild(line.cloneNode(true));
+            wrapperEl.appendChild(bar);
         }
-        badge.classList.add('is-raised');
+        bar.classList.add('is-raised');
     } else {
-        if (badge) badge.classList.remove('is-raised');
+        if (bar) bar.classList.remove('is-raised');
     }
 }
 
@@ -559,7 +565,7 @@ function renderStudentList() {
         var name = (p && p.user_name) || ('参加者 ' + sid.substr(0, 6));
         var raised = handRaiseState[sid] && handRaiseState[sid].raised;
         return '<li class="student-item">' +
-            '<span class="student-name">' + escapeHtml(name) + (raised ? ' <span class="student-raised">✋</span>' : '') + '</span>' +
+            '<span class="student-name">' + escapeHtml(name) + (raised ? ' <span class="student-raised"><span class="student-raised-gem"></span></span>' : '') + '</span>' +
             '<button type="button" class="btn-primary btn-start-session" data-student-sid="' + escapeHtml(sid) + '">対応開始 (Start Session)</button>' +
             '</li>';
     }).join('');
@@ -944,14 +950,10 @@ if (handRaiseBtn) {
         // Update button text
         var labelEl = handRaiseBtn.querySelector('.control-btn-label');
         if (labelEl) {
-            labelEl.textContent = myHandRaised ? '挙手を下ろす (Lower Hand)' : '挙手する (Raise Hand)';
+            labelEl.textContent = myHandRaised ? '挙手を下ろす' : '挙手する';
         }
 
-        // Update icon
-        var iconEl = handRaiseBtn.querySelector('.control-btn-icon');
-        if (iconEl) {
-            iconEl.textContent = myHandRaised ? '✊' : '✋';
-        }
+        // Icon stays as Material Icons pan_tool (no emoji swap)
 
         socket.emit('hand_raise', { raised: myHandRaised });
         handRaiseState[socket.id] = handRaiseState[socket.id] || { user_name: USER_NAME, raised: false };
@@ -974,6 +976,23 @@ var privateChatSendBtn = document.getElementById('privateChatSendBtn');
 var privatePhotoInput = document.getElementById('privatePhotoInput');
 var privateAudioUnlockBanner = document.getElementById('privateAudioUnlockBanner');
 var privateAudioUnlockBtn = document.getElementById('privateAudioUnlockBtn');
+var privateChatDrawer = document.getElementById('privateChatDrawer');
+var privateChatToggleBtn = document.getElementById('privateChatToggleBtn');
+var privateChatCloseBtn = document.getElementById('privateChatCloseBtn');
+
+/* Chat drawer open/close */
+if (privateChatToggleBtn && privateChatDrawer) {
+    privateChatToggleBtn.addEventListener('click', function () {
+        var isOpen = privateChatDrawer.classList.toggle('is-open');
+        privateChatToggleBtn.classList.toggle('prv-chat-active', isOpen);
+    });
+}
+if (privateChatCloseBtn && privateChatDrawer) {
+    privateChatCloseBtn.addEventListener('click', function () {
+        privateChatDrawer.classList.remove('is-open');
+        if (privateChatToggleBtn) privateChatToggleBtn.classList.remove('prv-chat-active');
+    });
+}
 
 function setRoomContext(context) {
     if (document.body) document.body.setAttribute('data-room-context', context === 'private' ? 'private' : 'main');
@@ -1522,14 +1541,14 @@ window.studyRoomIsActive = function () {
     var selfBtn = document.createElement('button');
     selfBtn.type = 'button';
     selfBtn.className = 'admin-mosaic-btn';
-    selfBtn.innerHTML = '<span class="mosaic-btn-icon">🌫️</span><span>自分のモザイク ON</span>';
+    selfBtn.innerHTML = '<span class="mosaic-btn-icon">🌫️</span><span>自分のモザイク OFF</span>';
     selfBtn.title = '自分のカメラのモザイクを切り替え';
 
     // Student mosaic toggle
     var studentBtn = document.createElement('button');
     studentBtn.type = 'button';
     studentBtn.className = 'admin-mosaic-btn';
-    studentBtn.innerHTML = '<span class="mosaic-btn-icon">🌫️</span><span>生徒のモザイク ON</span>';
+    studentBtn.innerHTML = '<span class="mosaic-btn-icon">🌫️</span><span>生徒のモザイク OFF</span>';
     studentBtn.title = '生徒のカメラのモザイクを切り替え';
 
     container.appendChild(selfBtn);
@@ -1546,8 +1565,8 @@ window.studyRoomIsActive = function () {
         }
         selfBtn.classList.toggle('mosaic-active', selfMosaicOff);
         selfBtn.innerHTML = selfMosaicOff
-            ? '<span class="mosaic-btn-icon">🔍</span><span>自分のモザイク OFF</span>'
-            : '<span class="mosaic-btn-icon">🌫️</span><span>自分のモザイク ON</span>';
+            ? '<span class="mosaic-btn-icon">🔍</span><span>自分のモザイク ON</span>'
+            : '<span class="mosaic-btn-icon">🌫️</span><span>自分のモザイク OFF</span>';
     });
 
     // Toggle student mosaic
@@ -1564,8 +1583,8 @@ window.studyRoomIsActive = function () {
         applyStudentMosaic();
         studentBtn.classList.toggle('mosaic-active', studentMosaicOff);
         studentBtn.innerHTML = studentMosaicOff
-            ? '<span class="mosaic-btn-icon">🔍</span><span>生徒のモザイク OFF</span>'
-            : '<span class="mosaic-btn-icon">🌫️</span><span>生徒のモザイク ON</span>';
+            ? '<span class="mosaic-btn-icon">🔍</span><span>生徒のモザイク ON</span>'
+            : '<span class="mosaic-btn-icon">🌫️</span><span>生徒のモザイク OFF</span>';
     });
 
     // Observe for dynamically added remote videos
