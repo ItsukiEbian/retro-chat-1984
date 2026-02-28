@@ -152,10 +152,8 @@
                 <div class="section-header">
                     {% if current_user.is_authenticated %}
                     <h2 class="section-title">おかえりなさい、{{ user.name or 'ユーザー' }} さん</h2>
-                    <p class="section-subtitle">今日も一緒に頑張りましょう</p>
                     {% else %}
                     <h2 class="section-title">Study Opsへようこそ</h2>
-                    <p class="section-subtitle">みんなで集中できるオンライン自習室</p>
                     {% endif %}
                 </div>
 
@@ -166,7 +164,6 @@
                         <span class="material-symbols-outlined">workspace_premium</span>
                     </span>
                     <h2 class="trial-invitation-title">特別な学習空間を、7日間無料で体験</h2>
-                    <p class="trial-invitation-desc">集中力を最大限に引き出すオンライン自習室を、<br>まずは無料でお試しください。</p>
                     {% if current_user.is_authenticated %}
                     <a href="{{ url_for('subscription_page') }}" class="trial-invitation-btn">
                         <span>7日間無料体験をはじめる</span>
@@ -356,7 +353,6 @@
             <div class="sec-calendar">
                 <div class="section-header">
                     <h2 class="section-title">予約・カレンダー</h2>
-                    <p class="section-subtitle">学習時間を予約して、計画的に集中しましょう</p>
                 </div>
 
                 {% if current_user.is_authenticated %}
@@ -394,7 +390,6 @@
             <div class="sec-route" style="position:relative">
                 <div class="section-header">
                     <h2 class="section-title">学習ルート・面談</h2>
-                    <p class="section-subtitle">あなた専用の学習プランとメンター面談</p>
                 </div>
                 {% if current_user.is_authenticated %}
                 <!-- === Learning Route & Interview === -->
@@ -487,7 +482,6 @@
             <div class="sec-notifications">
                 <div class="section-header">
                     <h2 class="section-title">通知（お知らせ）</h2>
-                    <p class="section-subtitle">重要なお知らせや面談の通知をお届けします</p>
                 </div>
                 {% if current_user.is_authenticated %}
                 <div class="notif-list" id="notifList">
@@ -509,7 +503,6 @@
             <div class="sec-profile">
                 <div class="section-header">
                     <h2 class="section-title">プロフィール・設定</h2>
-                    <p class="section-subtitle">アカウント情報の確認と変更</p>
                 </div>
                 {% if current_user.is_authenticated %}
 

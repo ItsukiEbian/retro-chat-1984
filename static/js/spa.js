@@ -197,6 +197,17 @@
 
             // Block non-Pro users from route/compass tab
             if (section === 'route' && getUserTier() !== 'pro') {
+                // First, update nav active state so the tapped icon highlights
+                navItems.forEach(function (navEl) {
+                    navEl.classList.toggle('spa-nav-active', navEl.getAttribute('data-section') === section);
+                });
+                // Show the route section behind the modal
+                sections.forEach(function (s) { s.classList.remove('spa-section-active'); });
+                var routeTarget = document.getElementById('section-route');
+                if (routeTarget) routeTarget.classList.add('spa-section-active');
+                currentSection = section;
+
+                // Then show the Pro restriction modal on top
                 var lockedOvl = document.getElementById('studyLockedOverlay');
                 if (lockedOvl) {
                     var titleEl = lockedOvl.querySelector('.overlay-card-header h1');
