@@ -535,7 +535,8 @@ def api_admin_toggle_subscription(user_id):
     if not user:
         return jsonify({'ok': False, 'error': 'not found'}), 404
     data = request.get_json(silent=True) or {}
-    user.is_active_subscription = bool(data.get('is_subscribed', False))
+    # JSON true/false 以外（文字列 "false" 等）はすべて False として扱う
+    user.is_active_subscription = data.get('is_subscribed') is True
     try:
         db.session.commit()
     except Exception:
