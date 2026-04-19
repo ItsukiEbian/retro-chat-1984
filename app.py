@@ -247,6 +247,32 @@ def _participant_total_study_minutes(user_db_id):
         return 0
 
 
+_DATE_RE = __import__('re').compile(r'^\d{4}-\d{2}-\d{2}$')
+_TIME_RE = __import__('re').compile(r'^\d{2}:\d{2}$')
+
+
+def _is_valid_date_str(s):
+    """'YYYY-MM-DD' 形式で、実際に有効な日付かを検証。"""
+    if not isinstance(s, str) or not _DATE_RE.match(s):
+        return False
+    try:
+        dt_datetime.strptime(s, '%Y-%m-%d')
+        return True
+    except ValueError:
+        return False
+
+
+def _is_valid_time_slot(s):
+    """'HH:MM' 形式で、実際に有効な時刻かを検証。"""
+    if not isinstance(s, str) or not _TIME_RE.match(s):
+        return False
+    try:
+        dt_datetime.strptime(s, '%H:%M')
+        return True
+    except ValueError:
+        return False
+
+
 def _resolved_role_for_socket():
     """SocketIO ハンドラ内で使用する、DB由来の権限ロール（'admin' or 'student'）。
     クライアント送信の role は信用せず、current_user.role から決定する。"""
@@ -711,6 +737,8 @@ def api_create_reservations():
         ts = s.get('time_slot', '')
         if not d or not ts:
             continue
+        if not _is_valid_date_str(d) or not _is_valid_time_slot(ts):
+            return jsonify({'ok': False, 'error': '日付または時間の形式が不正です'}), 400
         if d < today_s:
             return jsonify({'ok': False, 'error': f'過去の日付 {d} には予約できません'}), 400
         # Block past time slots on today
@@ -827,6 +855,8 @@ def api_create_meeting_reservation():
         m_type = 'regular'
     if not d or not ts:
         return jsonify({'ok': False, 'error': '日付・時間は必須です'}), 400
+    if not _is_valid_date_str(d) or not _is_valid_time_slot(ts):
+        return jsonify({'ok': False, 'error': '日付または時間の形式が不正です'}), 400
 
     today_s = _today_str()
     if d < today_s:
