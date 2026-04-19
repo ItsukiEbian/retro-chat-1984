@@ -34,8 +34,16 @@ STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 
 app = Flask(__name__)
 
-# セッション鍵: Render では SECRET_KEY を環境変数で固定し、なければコード内の固定文字列を使用
-app.secret_key = os.environ.get("SECRET_KEY") or "fallback_secret_key_for_local"
+# セッション鍵: 本番（Render）では SECRET_KEY 必須。未設定ならプロセスを起動させない。
+# ローカルでは未設定時にランダム生成（プロセス毎に変わるためログアウト扱いになる）。
+_secret_key = os.environ.get("SECRET_KEY")
+if not _secret_key:
+    if os.environ.get('RENDER') == 'true':
+        raise RuntimeError(
+            "SECRET_KEY environment variable must be set in production (Render)."
+        )
+    _secret_key = secrets.token_urlsafe(64)
+app.secret_key = _secret_key
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # セッション・永続ログイン: 31日間（ブラウザを閉じても維持）
@@ -43,8 +51,15 @@ SESSION_DAYS = 31
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=SESSION_DAYS)
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=SESSION_DAYS)
-app.config['REMEMBER_COOKIE_SECURE'] = False  # HTTPS 強制環境では True 推奨
+
+# Cookie セキュリティ: Secure / HttpOnly / SameSite を明示化。
+# 本番（Render 等 HTTPS 前提）では Secure=True、ローカル HTTP 開発では False。
+_is_prod = os.environ.get('RENDER') == 'true' or os.environ.get('FLASK_ENV') == 'production'
+app.config['SESSION_COOKIE_SECURE'] = _is_prod
+app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['REMEMBER_COOKIE_SECURE'] = _is_prod
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 
 # DB: Render の DATABASE_URL があれば必ずそれを使う。Render環境で未設定なら起動エラーにする。
 db_url = os.environ.get('DATABASE_URL')
@@ -2043,5 +2058,7 @@ with app.app_context():
 if __name__ == '__main__':
     # ローカル開発時のみ（Render では gunicorn で起動する）
     port = int(os.environ.get("PORT", 10000))
+    # debug モードは FLASK_ENV=development のみ有効化（本番でのスタックトレース漏洩を防止）
+    _debug_mode = os.environ.get('FLASK_ENV') == 'development'
     print("--- 他端末でカメラを使う場合: README.md の「他端末からアクセスする場合（HTTPS）」を参照 ---")
-    socketio.run(app, debug=True, port=port, host='0.0.0.0', allow_unsafe_werkzeug=True)
+    socketio.run(app, debug=_debug_mode, port=port, host='0.0.0.0', allow_unsafe_werkzeug=True)
