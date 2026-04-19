@@ -81,7 +81,14 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'index'
 oauth = OAuth(app)
 # Render では gunicorn + eventlet で起動するため、async_mode を eventlet に統一
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+# CORS: ALLOWED_ORIGINS="https://a.example,https://b.example" のように env で列挙。
+# 未設定（ローカル開発など）のみ '*' を許可。
+_allowed_origins_env = os.environ.get('ALLOWED_ORIGINS', '').strip()
+if _allowed_origins_env:
+    _allowed_origins = [o.strip() for o in _allowed_origins_env.split(',') if o.strip()]
+else:
+    _allowed_origins = '*'
+socketio = SocketIO(app, cors_allowed_origins=_allowed_origins, async_mode='eventlet')
 
 
 # ---------- User モデル ----------
