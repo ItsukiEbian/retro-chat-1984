@@ -20,6 +20,7 @@
             <p class="auth-error">{{ error }}</p>
             {% endif %}
             <form method="post" action="{{ url_for('settings') }}" class="auth-form settings-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <label class="auth-label" for="display_name">ニックネーム</label>
                 <input type="text" id="display_name" name="display_name" class="auth-input" value="{{ current_display_name }}" placeholder="ニックネームを入力" maxlength="64">
                 <div class="settings-actions">

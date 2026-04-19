@@ -549,16 +549,26 @@ def api_admin_toggle_subscription(user_id):
 @login_required
 def settings():
     if request.method == 'POST':
+        submitted_token = request.form.get('csrf_token', '')
+        expected_token = session.get('csrf_token', '')
+        if (not expected_token
+                or not submitted_token
+                or not secrets.compare_digest(submitted_token, expected_token)):
+            abort(400)
         display_name = (request.form.get('display_name') or '').strip()
         if display_name:
             current_user.name = display_name
             db.session.commit()
             session['user_name'] = display_name
         return redirect(url_for('dashboard'))
+    # GET: トークンを発行してテンプレに渡す
+    if not session.get('csrf_token'):
+        session['csrf_token'] = secrets.token_urlsafe(32)
     return render_template(
         'settings.html',
         user=current_user,
         current_display_name=current_user.name or current_user.email or 'ユーザー',
+        csrf_token=session['csrf_token'],
     )
 
 
