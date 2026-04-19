@@ -8,6 +8,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import time
 import secrets
+import hmac
 import uuid
 from functools import wraps
 from datetime import timedelta, datetime as dt_datetime
@@ -527,7 +528,8 @@ def admin_login_secret():
         return render_template('admin_login.html', error=None)
     password = request.form.get('password', '')
     admin_password = os.environ.get('ADMIN_PASSWORD', '')
-    if admin_password and password == admin_password:
+    # タイミング攻撃対策のため定数時間比較
+    if admin_password and hmac.compare_digest(password, admin_password):
         # DB role を super_admin に昇格
         if current_user.role not in ('mentor', 'super_admin'):
             current_user.role = 'super_admin'
