@@ -330,9 +330,9 @@ def subscription_required(f):
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
-        # 管理者は課金チェックをバイパス
+        # 管理者は課金チェックをバイパス（DB のロールで判定）
         user_role = getattr(current_user, 'role', 'user') or 'user'
-        if user_role in ('mentor', 'super_admin') or session.get('role') == 'admin':
+        if user_role in ('mentor', 'super_admin'):
             return f(*args, **kwargs)
         if not current_user.is_active_subscription:
             return redirect(url_for('subscription_page'))
@@ -403,9 +403,9 @@ def google_authorized():
 @app.route('/dashboard')
 def dashboard():
     if current_user.is_authenticated:
-        # 管理者ユーザーは管理者画面へ自動リダイレクト
+        # 管理者ユーザーは管理者画面へ自動リダイレクト（DB のロールで判定）
         user_role = getattr(current_user, 'role', 'user') or 'user'
-        if user_role in ('mentor', 'super_admin') or session.get('role') == 'admin':
+        if user_role in ('mentor', 'super_admin'):
             session['role'] = 'admin'
             return redirect(url_for('admin_dashboard_page'))
         user = current_user
@@ -469,7 +469,7 @@ def admin_login_redirect():
 @login_required
 def admin_login_secret():
     """管理者用裏口ログイン（URLを知っている者のみパスワードで管理者に昇格）"""
-    if session.get('role') == 'admin':
+    if (getattr(current_user, 'role', '') or '') in ('mentor', 'super_admin'):
         return redirect(url_for('admin_dashboard_page'))
     if request.method == 'GET':
         return render_template('admin_login.html', error=None)
@@ -969,7 +969,8 @@ def api_meeting_no_show(room_token):
     r = MeetingReservation.query.filter_by(room_token=room_token, status='scheduled').first()
     if not r:
         return jsonify({'ok': False, 'error': 'not found'}), 404
-    if r.user_id != current_user.id and session.get('role') != 'admin':
+    is_admin = (getattr(current_user, 'role', '') or '') in ('mentor', 'super_admin')
+    if r.user_id != current_user.id and not is_admin:
         return jsonify({'ok': False, 'error': 'forbidden'}), 403
     r.status = 'no_show'
     try:
@@ -1016,11 +1017,9 @@ def api_admin_update_route(user_id):
 # ---------- Admin: 面談予約一覧 API ----------
 
 @app.route('/api/admin/meeting_reservations', methods=['GET'])
-@login_required
+@admin_required
 def api_admin_meeting_reservations():
     """管理者向け: scheduled な面談予約を全件返す"""
-    if session.get('role') != 'admin':
-        return jsonify({'ok': False, 'error': 'forbidden'}), 403
     rows = MeetingReservation.query.filter_by(status='scheduled').order_by(
         MeetingReservation.date, MeetingReservation.time_slot
     ).all()
@@ -1036,11 +1035,9 @@ def api_admin_meeting_reservations():
 
 
 @app.route('/admin/api/meetings', methods=['GET'])
-@login_required
+@admin_required
 def admin_api_meetings_fullcalendar():
     """管理者向け: FullCalendar形式で面談＋自習室の全予約を返す"""
-    if session.get('role') != 'admin':
-        return jsonify({'ok': False, 'error': 'forbidden'}), 403
     events = []
 
     # --- 面談予約 ---
@@ -1178,11 +1175,9 @@ def api_mark_notification_read(notification_id):
 
 
 @app.route('/api/admin/notifications', methods=['POST'])
-@login_required
+@admin_required
 def api_admin_create_notification():
     """管理者向け: 通知を送信する（個別 or 全体）"""
-    if session.get('role') != 'admin':
-        return jsonify({'ok': False, 'error': 'forbidden'}), 403
     data = request.get_json(silent=True) or {}
     title = data.get('title', '').strip()
     message = data.get('message', '').strip()
@@ -1266,8 +1261,8 @@ def meeting_room(room_token):
     r = MeetingReservation.query.filter_by(room_token=room_token).first()
     if not r:
         abort(404)
-    # 予約者本人 or admin のみ
-    is_admin = session.get('role') == 'admin'
+    # 予約者本人 or admin のみ（admin 判定は DB のロールで行う）
+    is_admin = (getattr(current_user, 'role', '') or '') in ('mentor', 'super_admin')
     if r.user_id != current_user.id and not is_admin:
         abort(403)
     return render_template(
