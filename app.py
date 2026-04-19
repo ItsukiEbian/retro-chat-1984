@@ -1753,12 +1753,12 @@ def on_join_room(data):
 
     # 3) 見つからなければ新規ルーム（この人がホスト）
     if not room:
-        room = secrets.token_hex(4)
+        room = secrets.token_hex(16)
         room_participants[room] = []
 
     plist = room_participants[room]
     if len(plist) >= 4:
-        room = secrets.token_hex(4)
+        room = secrets.token_hex(16)
         room_participants[room] = []
         plist = room_participants[room]
 
@@ -1912,7 +1912,7 @@ def on_start_private_session(data):
         return
     if student_sid not in room_users.get(room, {}):
         return
-    session_id = 'private_' + secrets.token_hex(8)
+    session_id = 'private_' + secrets.token_hex(16)
     private_rooms[session_id] = {'main_room': room, 'admin_sid': sid, 'student_sid': student_sid}
     emit('redirect_to_private', {'session_id': session_id, 'main_room': room}, room=sid)
     emit('redirect_to_private', {'session_id': session_id, 'main_room': room}, room=student_sid)
