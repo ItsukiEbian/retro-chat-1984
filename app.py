@@ -410,8 +410,12 @@ def google_authorized():
         db.session.commit()
     session.permanent = True
     login_user(user, remember=True)
-    # --- スーパー管理者の自動昇格 ---
-    SUPER_ADMIN_EMAILS = ['y.studyops@gmail.com']
+    # --- スーパー管理者の自動昇格（env SUPER_ADMIN_EMAILS で上書き可） ---
+    SUPER_ADMIN_EMAILS = [
+        e.strip()
+        for e in os.environ.get('SUPER_ADMIN_EMAILS', 'y.studyops@gmail.com').split(',')
+        if e.strip()
+    ]
     if user.email in SUPER_ADMIN_EMAILS and user.role != 'super_admin':
         user.role = 'super_admin'
         db.session.commit()
