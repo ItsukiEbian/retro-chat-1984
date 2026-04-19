@@ -615,7 +615,10 @@ def api_exit_room():
 @login_required
 def api_update_study_time():
     data = request.get_json(silent=True) or {}
-    minutes = int(data.get('minutes', 0))
+    try:
+        minutes = int(data.get('minutes', 0))
+    except (ValueError, TypeError):
+        return jsonify({'ok': False, 'error': 'invalid minutes'}), 400
     if minutes < 1 or minutes > 10:
         return jsonify({'ok': False, 'error': 'invalid minutes'}), 400
     try:
@@ -1190,9 +1193,15 @@ def api_admin_create_notification():
     if not title:
         return jsonify({'ok': False, 'error': 'title required'}), 400
 
+    if target_user_id is not None:
+        try:
+            target_user_id = int(target_user_id)
+        except (ValueError, TypeError):
+            return jsonify({'ok': False, 'error': 'invalid user_id'}), 400
+
     try:
         if target_user_id:
-            create_notification(int(target_user_id), category, title, message, link_target)
+            create_notification(target_user_id, category, title, message, link_target)
         else:
             # 全体通知 — 全ユーザーに送信
             users = User.query.all()
@@ -1456,7 +1465,14 @@ def stripe_webhook():
         stripe_subscription_id = data_object.get('subscription')
 
         if client_ref_id:
-            user = User.query.get(int(client_ref_id))
+            try:
+                user_id_int = int(client_ref_id)
+            except (ValueError, TypeError):
+                app.logger.error(
+                    f'Webhook: invalid client_reference_id={client_ref_id!r}'
+                )
+                return '', 200
+            user = User.query.get(user_id_int)
             if user:
                 user.stripe_customer_id = stripe_customer_id
                 user.stripe_subscription_id = stripe_subscription_id
