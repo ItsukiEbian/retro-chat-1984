@@ -1422,6 +1422,11 @@ def api_create_checkout_session():
     price_id = data.get('price_id', '').strip()
     if not price_id:
         return jsonify({'ok': False, 'error': 'price_id is required'}), 400
+    # ホワイトリスト: 当アプリが発行している価格 ID 以外は拒否（任意の $0 価格を
+    # 渡されて有料機能を無料で通される等の悪用を防ぐ）
+    allowed_prices = {p for p in (STRIPE_PRICE_ID_STANDARD, STRIPE_PRICE_ID_PRO) if p}
+    if price_id not in allowed_prices:
+        return jsonify({'ok': False, 'error': 'invalid price_id'}), 400
     try:
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
