@@ -895,6 +895,23 @@ def api_create_meeting_reservation():
     )
     db.session.add(reservation)
     try:
+        # flush 後に再チェックすることで、同時リクエストでの二重予約発生窓を狭める
+        db.session.flush()
+        dup_scheduled = MeetingReservation.query.filter_by(
+            user_id=current_user.id, status='scheduled'
+        ).count()
+        if dup_scheduled > 1:
+            db.session.rollback()
+            return jsonify({'ok': False, 'error': '既に予約済みの面談があります。'}), 409
+        if m_type == 'initial':
+            init_count = MeetingReservation.query.filter(
+                MeetingReservation.user_id == current_user.id,
+                MeetingReservation.meeting_type == 'initial',
+                MeetingReservation.status.in_(['scheduled', 'completed'])
+            ).count()
+            if init_count > 1:
+                db.session.rollback()
+                return jsonify({'ok': False, 'error': '初回面談は1回限りです'}), 409
         db.session.commit()
     except Exception:
         db.session.rollback()
