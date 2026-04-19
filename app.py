@@ -247,6 +247,19 @@ def _participant_total_study_minutes(user_db_id):
         return 0
 
 
+def _resolved_role_for_socket():
+    """SocketIO ハンドラ内で使用する、DB由来の権限ロール（'admin' or 'student'）。
+    クライアント送信の role は信用せず、current_user.role から決定する。"""
+    try:
+        if current_user.is_authenticated:
+            db_role = getattr(current_user, 'role', '') or ''
+            if db_role in ('mentor', 'super_admin'):
+                return 'admin'
+    except Exception:
+        pass
+    return 'student'
+
+
 def build_room_state(room_id):
     """メインルーム用: 最大4スロットの参加者リストとホストsidを返す。"""
     if not is_main_room(room_id) or room_id not in room_participants:
@@ -1595,9 +1608,12 @@ def on_connect():
 @socketio.on('join_room')
 def on_join_room(data):
     from flask import request as req
+    if not current_user.is_authenticated:
+        return
     req_room = data.get('room')  # 招待URL等で指定されたルーム（あれば）
     user_name = data.get('user_name', '')
-    role = data.get('role', 'student')
+    # role は DB 由来の current_user.role から決定する（クライアント送信値は信用しない）
+    role = _resolved_role_for_socket()
     user_id = (data.get('user_id') or '').strip()  # クライアント用UUID（永続用）
     user_db_id = data.get('user_db_id')  # DBのUser.id（総勉強時間取得用）
     sid = req.sid
@@ -1802,10 +1818,15 @@ def on_disconnect():
 @socketio.on('start_private_session')
 def on_start_private_session(data):
     from flask import request as req
+    if not current_user.is_authenticated:
+        return
     sid = req.sid
     student_sid = data.get('student_sid')
     room = sid_to_room.get(sid)
     if not room or not student_sid or room.startswith('private_'):
+        return
+    # DB 由来のロールで再確認（room_users の値と両方チェック）
+    if _resolved_role_for_socket() != 'admin':
         return
     if room_users.get(room, {}).get(sid, {}).get('role') != 'admin':
         return
@@ -1820,10 +1841,13 @@ def on_start_private_session(data):
 @socketio.on('join_private_room')
 def on_join_private_room(data):
     from flask import request as req
+    if not current_user.is_authenticated:
+        return
     sid = req.sid
     session_id = data.get('session_id')
     user_name = data.get('user_name', '')
-    role = data.get('role', 'student')
+    # role は DB 由来の current_user.role から決定する（クライアント送信値は信用しない）
+    role = _resolved_role_for_socket()
     if not session_id or session_id not in private_rooms:
         return
     old_room = sid_to_room.get(sid)
