@@ -1901,6 +1901,11 @@ def on_join_private_room(data):
     role = _resolved_role_for_socket()
     if not session_id or session_id not in private_rooms:
         return
+    # 当該プライベートルームの admin/student 以外は参加不可（session_id が漏れた場合の防御）
+    _info = private_rooms.get(session_id, {})
+    if sid != _info.get('admin_sid') and sid != _info.get('student_sid'):
+        emit('error', {'message': 'unauthorized'}, room=sid)
+        return
     old_room = sid_to_room.get(sid)
     if old_room:
         leave_room(old_room)
